@@ -1,0 +1,9 @@
+{
+  "name": "aigame-survivors",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node tools/serve.js",
+    "smoke": "node tools/headless-smoke.mjs"
+  }
+}
