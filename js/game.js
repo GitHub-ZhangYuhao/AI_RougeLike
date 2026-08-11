@@ -1,9 +1,12 @@
 import { CONFIG } from './config.js';
 import { Camera } from './camera.js';
-import { createPlayer, updatePlayer, hurtPlayer, drawPlayer } from './player.js';
+import { createPlayer, updatePlayer, hurtPlayer as applyPlayerDamage, drawPlayer } from './player.js';
 import { updateEnemy, separateEnemies, drawEnemy } from './enemy.js';
 import { Spawner } from './spawner.js';
 import { updateProjectile, drawProjectile } from './projectile.js';
+import {
+  createHostileProjectile, updateHostileProjectile, drawHostileProjectile,
+} from './enemies/hostile-projectile.js';
 import { updateTrail, drawTrail, drawSummon } from './weapons/index.js';
 import { createGem, updateGem, drawGem } from './gems.js';
 import { openingOffers, generateOffers, computeMods } from './cards.js';
@@ -39,6 +42,7 @@ export class Game {
     this.camera = new Camera(0, 0);
     this.enemies = [];
     this.projectiles = [];
+    this.hostileProjectiles = [];
     this.gems = [];
     this.trails = [];
     this.summons = [];
@@ -77,9 +81,37 @@ export class Game {
   // ---------- 统一伤害入口（武器 / 弹道 / 召唤物 / DoT 都走这里） ----------
   damageEnemy(e, damage) {
     if (e.dead) return;
-    e.hp -= damage;
+    const finalDamage = typeof e.modifyIncomingDamage === 'function'
+      ? e.modifyIncomingDamage(damage)
+      : damage;
+    if (finalDamage <= 0) return;
+    e.hp -= finalDamage;
     e.hitFlash = 0.08;
     if (e.hp <= 0) this._killEnemy(e);
+  }
+
+  // Shared player damage entry for enemy contact, bullets and special attacks.
+  hurtPlayer(damage) {
+    if (!applyPlayerDamage(this.player, damage)) return false;
+    this.hitShake = 0.25;
+    this.player.lastHurtAt = this.elapsed;
+    return true;
+  }
+
+  spawnHostileProjectile(options) {
+    this.hostileProjectiles.push(createHostileProjectile(options));
+  }
+
+  spawnEnemyBlast(options) {
+    this.effects.push({
+      type: 'enemyBlast',
+      x: options.x,
+      y: options.y,
+      radius: options.radius,
+      color: options.color ?? '#ff7043',
+      ttl: options.ttl ?? 0.35,
+      maxTtl: options.ttl ?? 0.35,
+    });
   }
 
   _killEnemy(e) {
@@ -229,18 +261,16 @@ export class Game {
     for (const e of this.enemies) {
       if (e.dead) continue;
       const dotDmg = tickStatus(e, dt);
-      if (dotDmg > 0) {
-        e.hp -= dotDmg;
-        if (e.hp <= 0) this._killEnemy(e);
-      }
+      if (dotDmg > 0) this.damageEnemy(e, dotDmg);
     }
 
-    for (const e of this.enemies) updateEnemy(e, this.player, dt);
+    for (const e of this.enemies) updateEnemy(e, this.player, dt, world);
     separateEnemies(this.enemies, dt);
 
     for (const w of this.weapons) w.update(dt, world);
 
     for (const p of this.projectiles) updateProjectile(p, dt);
+    for (const p of this.hostileProjectiles) updateHostileProjectile(p, dt);
     for (const t of this.trails) updateTrail(t, world, dt);
 
     for (const fx of this.effects) fx.ttl -= dt;
@@ -253,6 +283,7 @@ export class Game {
     // 清理死亡实体
     this.enemies = this.enemies.filter((e) => !e.dead);
     this.projectiles = this.projectiles.filter((p) => !p.dead);
+    this.hostileProjectiles = this.hostileProjectiles.filter((p) => !p.dead);
     this.trails = this.trails.filter((t) => !t.dead);
     this.summons = this.summons.filter((s) => !s.dead);
     this.gems = this.gems.filter((g) => !g.dead);
@@ -269,6 +300,7 @@ export class Game {
       player: this.player,
       enemies: this.enemies,
       projectiles: this.projectiles,
+      hostileProjectiles: this.hostileProjectiles,
       trails: this.trails,
       summons: this.summons,
       effects: this.effects,
@@ -277,6 +309,9 @@ export class Game {
       kills: this.kills,
       killLog: this.killLog,
       damageEnemy: (e, dmg) => this.damageEnemy(e, dmg),
+      hurtPlayer: (damage) => this.hurtPlayer(damage),
+      spawnHostileProjectile: (options) => this.spawnHostileProjectile(options),
+      spawnEnemyBlast: (options) => this.spawnEnemyBlast(options),
       healPlayer: (amount) => this.healPlayer(amount),
       dropPickup: (x, y, kind) => this.dropPickup(x, y, kind),
       // 状态系统
@@ -321,11 +356,17 @@ export class Game {
       if (e.dead || e.hitCooldown > 0) continue;
       const rr = e.radius + pl.radius;
       if (dist2(e.x, e.y, pl.x, pl.y) <= rr * rr) {
-        if (hurtPlayer(pl, e.damage)) {
-          e.hitCooldown = 0.6;
-          this.hitShake = 0.25;
-          pl.lastHurtAt = this.elapsed; // 供「受击触发」类质变监听
-        }
+        if (this.hurtPlayer(e.damage)) e.hitCooldown = 0.6;
+      }
+    }
+
+    // Enemy projectiles hit the player and are consumed even during i-frames.
+    for (const projectile of this.hostileProjectiles) {
+      if (projectile.dead) continue;
+      const rr = projectile.radius + pl.radius;
+      if (dist2(projectile.x, projectile.y, pl.x, pl.y) <= rr * rr) {
+        this.hurtPlayer(projectile.damage);
+        projectile.dead = true;
       }
     }
 
@@ -384,6 +425,7 @@ export class Game {
     for (const su of this.summons) drawSummon(ctx, su);
     drawPlayer(ctx, this.player);
     for (const p of this.projectiles) drawProjectile(ctx, p);
+    for (const p of this.hostileProjectiles) drawHostileProjectile(ctx, p);
     for (const w of this.weapons) w.draw(ctx, world, 'over');
     this._drawEffects(ctx);
 
@@ -439,6 +481,15 @@ export class Game {
         ctx.arc(0, 0, fx.range, -fx.arc / 2, fx.arc / 2);
         ctx.closePath();
         ctx.fillStyle = '#e0f7fa';
+        ctx.fill();
+        ctx.restore();
+      } else if (fx.type === 'enemyBlast') {
+        const progress = 1 - Math.max(0, fx.ttl / fx.maxTtl);
+        ctx.save();
+        ctx.globalAlpha = 0.55 * (1 - progress);
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, fx.radius * (0.35 + progress * 0.65), 0, Math.PI * 2);
+        ctx.fillStyle = fx.color;
         ctx.fill();
         ctx.restore();
       }

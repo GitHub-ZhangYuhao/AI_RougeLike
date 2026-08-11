@@ -42,6 +42,12 @@ await import('../js/main.js');
 const { CONFIG } = await import('../js/config.js');
 const { computeMods, generateOffers, WEAPON_CARDS, ATTR_CARDS, CARD_BY_ID } = await import('../js/cards.js');
 const { getCardRects } = await import('../js/ui-cards.js');
+const { EnemyBase } = await import('../js/enemies/base.js');
+const { ChaserEnemy } = await import('../js/enemy.js');
+const { ChargerEnemy } = await import('../js/enemies/charger.js');
+const { RangedEnemy } = await import('../js/enemies/ranged.js');
+const { BomberEnemy } = await import('../js/enemies/bomber.js');
+const { ShieldEnemy } = await import('../js/enemies/shield.js');
 
 const game = globalThis.__game;
 if (!game) throw new Error('游戏未初始化');
@@ -237,26 +243,105 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   console.log('[7] generateOffers 规则 OK');
 }
 
-// ========== [8] 死亡与 R 重开 ==========
+// ========== [8] 敌人基类与四种特殊机制 ==========
+{
+  const chaserEarly = new ChaserEnemy(0, 0, 0);
+  const chaserLate = new ChaserEnemy(0, 0, 60);
+  assert(chaserEarly instanceof EnemyBase, '[8] 普通怪未继承 EnemyBase');
+  assert(chaserLate.maxHp > chaserEarly.maxHp, '[8] 普通怪生命值未随时间成长');
+
+  const charger = new ChargerEnemy(0, 0, 0);
+  assert(charger instanceof EnemyBase && charger.rank === 'enhanced', '[8] 冲锋怪档位错误');
+  charger.update({ x: 100, y: 0 }, 0.01, {});
+  assert(charger.state === 'windup', '[8] 冲锋怪未进入预警');
+  charger.update({ x: 100, y: 0 }, CONFIG.enemyTypes.charger.windup + 0.01, {});
+  assert(charger.state === 'dash', '[8] 冲锋怪未进入冲锋');
+  const chargerX = charger.x;
+  charger.update({ x: 100, y: 0 }, 0.1, {});
+  assert(charger.x > chargerX, '[8] 冲锋怪未沿锁定方向移动');
+
+  const hostileShots = [];
+  const ranged = new RangedEnemy(0, 0, 0);
+  ranged.update({ x: 250, y: 0 }, CONFIG.enemyTypes.ranged.fireInterval + 0.01, {
+    spawnHostileProjectile: (options) => hostileShots.push(options),
+  });
+  assert(ranged instanceof EnemyBase && ranged.rank === 'enhanced-minion', '[8] 远程怪档位错误');
+  assert(hostileShots.length === 1 && hostileShots[0].speed === CONFIG.enemyTypes.ranged.projectileSpeed,
+    '[8] 远程怪未通过公共 API 发射弹道');
+  assert(CONFIG.enemyTypes.ranged.weight < CONFIG.enemyTypes.charger.weight,
+    '[8] 远程怪权重应明显低于冲锋怪');
+
+  // Enemy projectile integration: shared spawn, collision and player damage path.
+  const savedEnemies = game.enemies;
+  const savedHostiles = game.hostileProjectiles;
+  const savedHp = game.player.hp;
+  const savedIFrames = game.player.iFrames;
+  const savedLastHurtAt = game.player.lastHurtAt;
+  const savedHitShake = game.hitShake;
+  game.enemies = [];
+  game.hostileProjectiles = [];
+  game.player.hp = game.player.maxHp;
+  game.player.iFrames = 0;
+  game.spawnHostileProjectile({
+    x: game.player.x, y: game.player.y, angle: 0,
+    speed: 0, radius: 5, damage: 5, lifetime: 1,
+  });
+  game._handleCollisions();
+  assert(game.player.hp === game.player.maxHp - 5 && game.hostileProjectiles[0].dead,
+    '[8] 敌方弹道未通过统一碰撞入口伤害玩家');
+  game.enemies = savedEnemies;
+  game.hostileProjectiles = savedHostiles;
+  game.player.hp = savedHp;
+  game.player.iFrames = savedIFrames;
+  game.player.lastHurtAt = savedLastHurtAt;
+  game.hitShake = savedHitShake;
+
+  let blastDamageCount = 0;
+  let blastEffectCount = 0;
+  const bomber = new BomberEnemy(0, 0, 0);
+  const closePlayer = { x: 10, y: 0 };
+  const bomberWorld = {
+    hurtPlayer: () => { blastDamageCount++; },
+    spawnEnemyBlast: () => { blastEffectCount++; },
+  };
+  bomber.update(closePlayer, 0.01, bomberWorld);
+  bomber.update(closePlayer, CONFIG.enemyTypes.bomber.windup + 0.01, bomberWorld);
+  bomber.update(closePlayer, 1, bomberWorld);
+  assert(bomber.dead && blastDamageCount === 1 && blastEffectCount === 1,
+    '[8] 自爆怪应只爆炸并伤害一次');
+
+  const shield = new ShieldEnemy(0, 0, 0);
+  assert(shield instanceof EnemyBase && shield.rank === 'elite', '[8] 护盾怪档位错误');
+  assert(Math.abs(shield.modifyIncomingDamage(10) - 10 * CONFIG.enemyTypes.shield.shieldDamageMult) < 1e-6,
+    '[8] 护盾期减伤错误');
+  shield.update({ x: 100, y: 0 }, CONFIG.enemyTypes.shield.shieldDuration + 0.01, {});
+  assert(shield.phase === 'open', '[8] 护盾怪未进入开放期');
+  assert(Math.abs(shield.modifyIncomingDamage(10) - 10 * CONFIG.enemyTypes.shield.openDamageMult) < 1e-6,
+    '[8] 开放期易伤错误');
+
+  console.log('[8] 敌人基类与四种特殊机制 OK');
+}
+
+// ========== [9] 死亡与 R 重开 ==========
 game.player.hp = 1;
 game.player.iFrames = 0;
 if (game.enemies.length === 0) pump(120);
-assert(game.enemies.length > 0, '[8] 没有敌人，无法验证死亡');
+assert(game.enemies.length > 0, '[9] 没有敌人，无法验证死亡');
 game.player.x = game.enemies[0].x;
 game.player.y = game.enemies[0].y;
 pump(120);
-assert(game.state === 'dead', '[8] 玩家应该已死亡，实际 ' + game.state);
+assert(game.state === 'dead', '[9] 玩家应该已死亡，实际 ' + game.state);
 
 key('keydown', 'KeyR');
 key('keyup', 'KeyR');
 pump(3);
-assert(game.state === 'opening', '[8] 重开应回到开局选卡，实际 ' + game.state);
-assert(game.weapons.length === 0, '[8] 重开后武器应清空');
-assert(game.level === 1, '[8] 重开后等级应重置为 1');
-assert(game.kills === 0, '[8] 重开后击杀数应清零');
+assert(game.state === 'opening', '[9] 重开应回到开局选卡，实际 ' + game.state);
+assert(game.weapons.length === 0, '[9] 重开后武器应清空');
+assert(game.level === 1, '[9] 重开后等级应重置为 1');
+assert(game.kills === 0, '[9] 重开后击杀数应清零');
 
 pumpWithChoices(3);
-assert(game.state === 'playing' && game.weapons.length === 1, '[8] 重开后选卡应回到战斗');
-console.log('[8] 死亡 / 重开 OK');
+assert(game.state === 'playing' && game.weapons.length === 1, '[9] 重开后选卡应回到战斗');
+console.log('[9] 死亡 / 重开 OK');
 
-console.log('✅ 冒烟测试全部通过（Step 2 卡牌系统 + Step 3 武器升级）');
+console.log('✅ 冒烟测试全部通过（卡牌、武器与敌人原型）');

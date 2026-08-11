@@ -35,6 +35,38 @@ export const CONFIG = {
     color: '#ef5350',
   },
 
+  // ---------- Enemy archetypes ----------
+  // Weights are relative. Ranged enemies intentionally use a low weight.
+  enemyTypes: {
+    chaser: {
+      unlockAt: 0, weight: 62, maxAlive: Infinity,
+    },
+    charger: {
+      unlockAt: 15, weight: 18, maxAlive: 8,
+      hpMult: 1.15, speedMult: 0.95, damageMult: 1.1,
+      chargeRange: 260, windup: 0.65, dashSpeed: 320,
+      dashDuration: 0.55, recovery: 0.85, cooldown: 2.4,
+    },
+    ranged: {
+      unlockAt: 25, weight: 7, maxAlive: 4,
+      hpMult: 0.8, speedMult: 0.8, damageMult: 0.75,
+      preferredDistance: 260, retreatDistance: 170,
+      fireInterval: 2.2, projectileSpeed: 155,
+      projectileRadius: 5, projectileLifetime: 4,
+    },
+    bomber: {
+      unlockAt: 35, weight: 10, maxAlive: 6,
+      hpMult: 0.75, speedMult: 1.15, damageMult: 1.45,
+      triggerDistance: 58, windup: 0.9, blastRadius: 78,
+    },
+    shield: {
+      unlockAt: 50, weight: 3, maxAlive: 1,
+      hpMult: 2, speedMult: 0.72, damageMult: 1.15,
+      shieldDuration: 3, openDuration: 1.5,
+      shieldDamageMult: 0.4, openDamageMult: 1.25,
+    },
+  },
+
   // ---------- 卡牌系统 ----------
   cards: {
     maxWeaponSlots: 3,   // 玩家可同时持有的武器数（后续可扩展到 5，不写死）
