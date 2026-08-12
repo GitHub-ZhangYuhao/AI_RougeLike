@@ -1,4 +1,4 @@
----
+﻿---
 name: video-to-alpha-flipbook
 description: Convert MP4, MOV, WebM, and other FFmpeg-readable videos into raw PNG frame sequences, AI-matted RGBA PNG sequences, and uniformly sampled game-ready sprite sheets/Flipbooks with previews and metadata. Use when the user asks to split a video into frames or 序列帧, perform Alpha/background matting, pack animation frames into a Sprite Sheet/Flipbook/SubUV texture for Unreal or Unity, or compare 5x5, 6x6, and 8x8 atlases.
 ---
@@ -12,7 +12,7 @@ description: Convert MP4, MOV, WebM, and other FFmpeg-readable videos into raw P
 在 Windows PowerShell 中运行：
 
 ```powershell
-$skill = "C:\WorkSpace\AI_RougeLike\video-to-alpha-flipbook"
+$skill = "C:\WorkSpace\AIGame\.agents\skills\video-to-alpha-flipbook"
 
 & "$skill\scripts\run_video_to_flipbook.ps1" `
   -InputVideo ".\input.mp4" `

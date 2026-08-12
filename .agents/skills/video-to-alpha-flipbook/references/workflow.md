@@ -1,4 +1,4 @@
-# Workflow Reference
+﻿# Workflow Reference
 
 ## Pipeline
 
@@ -30,28 +30,28 @@ The wrapper installs `rembg`, `opencv-python-headless`, and `onnxruntime-directm
 Complete 6×6 pipeline:
 
 ```powershell
-& "C:\WorkSpace\AI_RougeLike\video-to-alpha-flipbook\scripts\run_video_to_flipbook.ps1" `
+& "C:\WorkSpace\AIGame\.agents\skills\video-to-alpha-flipbook\scripts\run_video_to_flipbook.ps1" `
   -InputVideo ".\clip.mp4" -Grid 6 -AtlasSize 2048
 ```
 
 Alpha sequence only:
 
 ```powershell
-& "C:\WorkSpace\AI_RougeLike\video-to-alpha-flipbook\scripts\run_video_to_flipbook.ps1" `
+& "C:\WorkSpace\AIGame\.agents\skills\video-to-alpha-flipbook\scripts\run_video_to_flipbook.ps1" `
   -InputVideo ".\clip.mp4" -SkipAtlas
 ```
 
 Raw frame extraction only:
 
 ```powershell
-& "C:\WorkSpace\AI_RougeLike\video-to-alpha-flipbook\scripts\run_video_to_flipbook.ps1" `
+& "C:\WorkSpace\AIGame\.agents\skills\video-to-alpha-flipbook\scripts\run_video_to_flipbook.ps1" `
   -InputVideo ".\clip.mp4" -SkipMatting -SkipAtlas
 ```
 
 Use a different model or provider:
 
 ```powershell
-& "C:\WorkSpace\AI_RougeLike\video-to-alpha-flipbook\scripts\run_video_to_flipbook.ps1" `
+& "C:\WorkSpace\AIGame\.agents\skills\video-to-alpha-flipbook\scripts\run_video_to_flipbook.ps1" `
   -InputVideo ".\clip.mp4" `
   -Model "birefnet-general" `
   -Provider "CPUExecutionProvider"

@@ -1,6 +1,6 @@
-interface:
+﻿interface:
   display_name: "视频转透明序列帧"
   short_description: "将视频一键转为透明 PNG 序列和可配置 Flipbook 图集"
-  default_prompt: "Use $video-to-alpha-flipbook to convert this video into an alpha PNG sequence and a game-ready sprite sheet."
+  default_prompt: "使用 $video-to-alpha-flipbook 将这个视频转换为透明 PNG 序列帧和可用于游戏的精灵图集（Sprite Sheet）。"
 policy:
   allow_implicit_invocation: true
