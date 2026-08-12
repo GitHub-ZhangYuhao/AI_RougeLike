@@ -11,3 +11,6 @@ Experimental/
 # Local Godot engine
 /GameEngine/
 /GameProject/.godot/
+
+# Local gpt-image credentials
+/.agents/skills/gpt-image/.env
