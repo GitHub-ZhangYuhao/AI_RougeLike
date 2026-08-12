@@ -1,0 +1,4 @@
+interface:
+  display_name: "ComfyUI Workflow"
+  short_description: "Krea-2 文生图与 MiniMax H3 首尾帧生视频的 ComfyUI 工作流模板"
+  default_prompt: "Use $comfyui-workflow to load the Krea-2 text-to-image or MiniMax H3 first/last-frame-to-video workflow into ComfyUI."
