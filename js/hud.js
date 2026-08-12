@@ -1,5 +1,6 @@
 import { CONFIG } from './config.js';
 import { RARE_ITEM_BY_ID } from './rare-items.js';
+import { META_ITEMS } from './meta/items.js';
 import { formatTime } from './utils.js';
 
 // HUD：经验、生命、武器、波次、Boss、稀有物品与战斗统计。
@@ -77,6 +78,16 @@ export function drawHUD(ctx, viewW, viewH, game) {
   }
 
   drawCenterMessages(ctx, viewW, viewH, game);
+
+  // 临时背包：撤离入库、死亡全损
+  const packEntries = Object.entries(game.tempBackpack ?? {}).filter(([, n]) => n > 0);
+  if (packEntries.length > 0) {
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 13px "Segoe UI", "Microsoft YaHei", sans-serif';
+    ctx.fillStyle = '#b39ddb';
+    const packText = '临时背包 ' + packEntries.map(([id, n]) => `${META_ITEMS[id]?.icon ?? id}×${n}`).join(' ');
+    ctx.fillText(packText, viewW - pad, viewH - pad - 22);
+  }
 
   ctx.textAlign = 'left';
   ctx.font = CONFIG.hud.font;
@@ -184,6 +195,15 @@ export function drawGameOver(ctx, viewW, viewH, game) {
   ctx.fillText('存活 ' + formatTime(game.elapsed) + ' · Lv ' + game.level + ' · 击杀 ' + game.kills, viewW / 2, viewH / 2 + 4);
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
   ctx.font = '16px "Segoe UI", "Microsoft YaHei", sans-serif';
-  ctx.fillText('按 R 重新开始', viewW / 2, viewH / 2 + 38);
+  const lostEntries = Object.entries(game.lastDeathLoss ?? {}).filter(([, n]) => n > 0);
+  if (lostEntries.length > 0) {
+    ctx.fillStyle = '#ff8a80';
+    const lostText = '临时背包损失：' + lostEntries.map(([id, n]) => `${META_ITEMS[id]?.name ?? id}×${n}`).join(' ');
+    ctx.fillText(lostText, viewW / 2, viewH / 2 + 34);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillText('按 R 返回主菜单', viewW / 2, viewH / 2 + 60);
+  } else {
+    ctx.fillText('按 R 返回主菜单', viewW / 2, viewH / 2 + 38);
+  }
   ctx.restore();
 }

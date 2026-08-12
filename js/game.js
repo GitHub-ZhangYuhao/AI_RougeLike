@@ -14,6 +14,14 @@ import { createGem, updateGem, drawGem } from './gems.js';
 import { createRarePickup, applyRareItem, drawRarePickup } from './rare-items.js';
 import { openingOffers, generateOffers, computeMods } from './cards.js';
 import { drawHUD, drawGameOver } from './hud.js';
+import { rollBossDrops } from './meta/drops.js';
+import { tryBuy } from './meta/shop.js';
+import { META_ITEMS, META_ITEM_LIST } from './meta/items.js';
+import { loadSave, persistSave } from './meta/save.js';
+import {
+  updateMenu, drawMenu, updateShop, drawShop, updateStorage, drawStorage,
+  updateExtraction, drawExtraction, updateSummary, drawSummary,
+} from './ui/meta-screens.js';
 import { getCardRects, drawChoiceUI } from './ui-cards.js';
 import { dist2 } from './utils.js';
 import {
@@ -21,16 +29,20 @@ import {
 } from './systems/status.js';
 
 // 游戏主状态机
-// state: 'opening' 开局选卡 | 'playing' 战斗中 | 'choice' 升级选卡 | 'dead' 死亡
+// state: 'menu' 主菜单 | 'shop' 商城 | 'storage' 仓库 | 'opening' 开局选卡 | 'playing' 战斗中
+//      | 'choice' 升级选卡 | 'extraction' 撤离抉择 | 'summary' 撤离结算 | 'dead' 死亡
 export class Game {
   constructor(input) {
     this.input = input;
     this.debug = new DebugRuntime(this);
+    this.save = loadSave();
+    this.lastRunSummary = null;
+    this.lastDeathLoss = null;
     this.reset();
   }
 
   reset() {
-    this.state = 'opening';
+    this.state = 'menu';
     this.elapsed = 0;
     this.kills = 0;
 
@@ -40,6 +52,9 @@ export class Game {
     this.pendingChoices = 0; // 待处理的选卡次数（可能一次升多级）
     // 卡牌：属性卡叠加层数 -> 全局乘数
     this.attrStacks = {};
+    // 局外成长：本局临时背包（撤离入库、死亡全损）与商城永久属性（每级等效 1 层属性卡）
+    this.tempBackpack = { shard: 0, essence: 0, soulCrystal: 0 };
+    this.metaStacks = { ...this.save.metaLevels };
     this.rareInventory = {};
     this.rareBonuses = {
       damageMult: 1,
@@ -47,7 +62,7 @@ export class Game {
       moveSpeedMult: 1,
       magnetRadiusBonus: 0,
     };
-    this.mods = computeMods(this.attrStacks);
+    this.mods = computeMods(this.attrStacks, this.metaStacks);
     this.playerMoveSpeedBonuses = new Map();
 
     this.player = createPlayer(0, 0);
@@ -89,7 +104,7 @@ export class Game {
   }
 
   recomputeMods() {
-    const mods = computeMods(this.attrStacks);
+    const mods = computeMods(this.attrStacks, this.metaStacks);
     const debugPlayer = this.debug?.settings.player;
     mods.damageMult *= this.rareBonuses.damageMult * (debugPlayer?.damageMult ?? 1);
     mods.xpMult *= this.rareBonuses.xpMult * (debugPlayer?.xpMult ?? 1);
@@ -186,6 +201,8 @@ export class Game {
       this.dropRarePickup(e.x, e.y);
     } else if (e.rank === 'boss') {
       this.bossesDefeated++;
+      this.save.stats.totalBossKills += 1;
+      persistSave(this.save);
       this.dropRarePickup(e.x - 14, e.y);
       this.dropRarePickup(e.x + 14, e.y);
     }
@@ -307,10 +324,117 @@ export class Game {
     }
   }
 
+  // ---------- 局外成长：撤离抉择 / 商城 / 仓库 ----------
+  // Boss 波（含援军）清空钩子：掉落掷骰进临时背包，进入撤离抉择
+  onBossWaveCleared() {
+    const drops = rollBossDrops(this.bossesDefeated);
+    for (const id of drops) this.tempBackpack[id] = (this.tempBackpack[id] || 0) + 1;
+    this.state = 'extraction';
+  }
+
+  chooseExtraction(extract) {
+    if (this.state !== 'extraction') return;
+    if (!extract) {
+      this.state = 'playing';
+      this.waveDirector.beginRest();
+      return;
+    }
+    const wave = this.waveDirector.wave;
+    const darkCrystalsGained = wave * CONFIG.meta.waveRewardMult;
+    this.save.darkCrystals += darkCrystalsGained;
+    const itemsBanked = { ...this.tempBackpack };
+    for (const [id, count] of Object.entries(this.tempBackpack)) {
+      if (count > 0) this.save.storage[id] = (this.save.storage[id] || 0) + count;
+    }
+    this.tempBackpack = { shard: 0, essence: 0, soulCrystal: 0 };
+    this.save.stats.extractions += 1;
+    this.save.stats.bestWave = Math.max(this.save.stats.bestWave, wave);
+    persistSave(this.save);
+    this.lastRunSummary = {
+      wave,
+      kills: this.kills,
+      level: this.level,
+      bossesDefeated: this.bossesDefeated,
+      elapsed: this.elapsed,
+      darkCrystalsGained,
+      itemsBanked,
+    };
+    this.state = 'summary';
+  }
+
+  startRun() {
+    if (this.state !== 'menu') return;
+    this.save.stats.runs += 1;
+    persistSave(this.save);
+    this.reset();
+    this.state = 'opening';
+    // 应用局外最大生命等级（等效局内属性卡 onAcquire 效果）
+    const metaMaxHp = this.metaStacks.maxHp || 0;
+    if (metaMaxHp > 0) this.increaseMaxHp(20 * metaMaxHp, 20 * metaMaxHp);
+  }
+
+  openShop() { if (this.state === 'menu') this.state = 'shop'; }
+  openStorage() { if (this.state === 'menu') this.state = 'storage'; }
+  backToMenu() { this.reset(); }
+  confirmSummary() { if (this.state === 'summary') this.reset(); }
+
+  buyShopItem(attrId) {
+    if (this.state !== 'shop') return false;
+    const ok = tryBuy(this.save, attrId);
+    if (ok) persistSave(this.save);
+    return ok;
+  }
+
+  // 单卖 = 卖出该材料全部存量
+  sellStorageItem(itemId) {
+    if (this.state !== 'storage') return 0;
+    const item = META_ITEMS[itemId];
+    const count = this.save.storage[itemId] || 0;
+    if (!item || count <= 0) return 0;
+    const gained = item.sellPrice * count;
+    this.save.storage[itemId] = 0;
+    this.save.darkCrystals += gained;
+    persistSave(this.save);
+    return gained;
+  }
+
+  sellAllStorage() {
+    if (this.state !== 'storage') return 0;
+    let gained = 0;
+    for (const item of META_ITEM_LIST) {
+      const count = this.save.storage[item.id] || 0;
+      if (count > 0) {
+        this.save.storage[item.id] = 0;
+        gained += item.sellPrice * count;
+      }
+    }
+    if (gained > 0) {
+      this.save.darkCrystals += gained;
+      persistSave(this.save);
+    }
+    return gained;
+  }
+
+  // 死亡：临时背包全损，已入库物品不受影响
+  _onDeath() {
+    this.lastDeathLoss = { ...this.tempBackpack };
+    this.tempBackpack = { shard: 0, essence: 0, soulCrystal: 0 };
+    this.save.stats.bestWave = Math.max(this.save.stats.bestWave, this.waveDirector.wave);
+    persistSave(this.save);
+    this.state = 'dead';
+  }
+
   // ---------- 主循环 ----------
   update(dt, viewW, viewH) {
     this._viewW = viewW;
     this._viewH = viewH;
+
+    // 局外界面：主菜单 / 商城 / 仓库 / 撤离抉择 / 撤离结算
+    if (this.state === 'menu') { updateMenu(this); return; }
+    if (this.state === 'shop') { updateShop(this); return; }
+    if (this.state === 'storage') { updateStorage(this); return; }
+    if (this.state === 'extraction') { updateExtraction(this); return; }
+    if (this.state === 'summary') { updateSummary(this); return; }
 
     if (this.state === 'opening' || this.state === 'choice') {
       this._handleChoice(viewW, viewH);
@@ -318,7 +442,7 @@ export class Game {
     }
 
     if (this.state === 'dead') {
-      if (this.input.wasPressed('KeyR')) this.reset();
+      if (this.input.wasPressed('KeyR')) this.backToMenu();
       return;
     }
 
@@ -513,7 +637,7 @@ export class Game {
       }
     }
 
-    if (pl.hp <= 0) { pl.hp = 0; this.state = 'dead'; }
+    if (pl.hp <= 0) { pl.hp = 0; this._onDeath(); }
   }
 
   // ---------- 渲染 ----------
@@ -557,6 +681,16 @@ export class Game {
       drawChoiceUI(ctx, viewW, viewH, this);
     } else if (this.state === 'dead') {
       drawGameOver(ctx, viewW, viewH, this);
+    } else if (this.state === 'menu') {
+      drawMenu(ctx, viewW, viewH, this);
+    } else if (this.state === 'shop') {
+      drawShop(ctx, viewW, viewH, this);
+    } else if (this.state === 'storage') {
+      drawStorage(ctx, viewW, viewH, this);
+    } else if (this.state === 'extraction') {
+      drawExtraction(ctx, viewW, viewH, this);
+    } else if (this.state === 'summary') {
+      drawSummary(ctx, viewW, viewH, this);
     }
   }
 

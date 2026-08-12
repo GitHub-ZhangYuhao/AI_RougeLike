@@ -56,6 +56,10 @@ const { WaveDirector } = await import('../js/systems/waves.js');
 const { createGem, updateGem } = await import('../js/gems.js');
 const { drawEnemy } = await import('../js/enemy.js');
 const { applyDot } = await import('../js/systems/status.js');
+const { rollBossDrops, dropChanceFor, minTierFor } = await import('../js/meta/drops.js');
+const { ITEM_BY_TIER, META_ITEMS } = await import('../js/meta/items.js');
+const { priceForLevel, SHOP_MAX_LEVEL } = await import('../js/meta/shop.js');
+const { loadSave, persistSave } = await import('../js/meta/save.js');
 
 const game = globalThis.__game;
 if (!game) throw new Error('游戏未初始化');
@@ -98,6 +102,13 @@ function pumpWithChoices(frames, prefer) {
         key('keydown', DIGITS[idx]);
         key('keyup', DIGITS[idx]);
       }
+    } else if (game.state === 'extraction') {
+      // 兼容：老测试长跑中若清完 Boss 波，默认「继续深入」保持对局推进
+      key('keydown', 'KeyC');
+      key('keyup', 'KeyC');
+    } else if (game.state === 'summary') {
+      key('keydown', 'Enter');
+      key('keyup', 'Enter');
     }
     pump(1);
   }
@@ -118,16 +129,22 @@ for (const card of WEAPON_CARDS) {
 }
 console.log('[0] Weapon card structure OK');
 
-// ========== [1] 开局：三张新武器卡，三选一 ==========
-assert(game.state === 'opening', '[1] 初始状态应为 opening，实际 ' + game.state);
+// ========== [1] 主菜单 → 开局：全部武器卡任选一 ==========
+assert(game.state === 'menu', '[1] 初始状态应为主菜单，实际 ' + game.state);
 assert(game.currentOffers.length === WEAPON_CARDS.length, '[1] 开局应展示全部武器卡（' + WEAPON_CARDS.length + ' 张）');
+const runsBefore = game.save.stats.runs;
+key('keydown', 'Enter');
+key('keyup', 'Enter');
+pump(1);
+assert(game.state === 'opening', '[1] Enter 开局后应进入开局选卡，实际 ' + game.state);
+assert(game.save.stats.runs === runsBefore + 1, '[1] 开局数应 +1');
 for (const o of game.currentOffers) {
   assert(o.card.kind === 'weapon' && o.type === 'new', '[1] 开局卡牌应全部是新武器卡');
 }
 pumpWithChoices(3, (o) => o.card.id !== 'trail'); // 站桩测试避开丹火（需要移动）
 assert(game.state === 'playing', '[1] 选卡后应进入 playing，实际 ' + game.state);
 assert(game.weapons.length === 1, '[1] 选卡后应持有 1 把武器');
-console.log('[1] 开局选卡 OK：' + game.weapons[0].card.name);
+console.log('[1] 主菜单开局选卡 OK：' + game.weapons[0].card.name);
 
 // ========== [2] 移动 ==========
 const startX = game.player.x;
@@ -805,7 +822,7 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   console.log('[Debug] Debug Runtime OK');
 }
 
-// ========== [10] 死亡与 R 重开 ==========
+// ========== [10] 死亡与 R 返回主菜单 ==========
 game.player.hp = 1;
 game.player.iFrames = 0;
 game.hurtPlayer(999);
@@ -815,15 +832,306 @@ assert(game.state === 'dead', '[10] 玩家应该已死亡，实际 ' + game.stat
 key('keydown', 'KeyR');
 key('keyup', 'KeyR');
 pump(3);
-assert(game.state === 'opening', '[10] 重开应回到开局选卡，实际 ' + game.state);
-assert(game.weapons.length === 0, '[10] 重开后武器应清空');
-assert(game.level === 1, '[10] 重开后等级应重置为 1');
-assert(game.kills === 0, '[10] 重开后击杀数应清零');
-assert(game.waveDirector.wave === 1, '[10] 重开后波次应重置为 1');
-assert(Object.keys(game.rareInventory).length === 0, '[10] 重开后稀有物品应清空');
+assert(game.state === 'menu', '[10] 死亡后按 R 应返回主菜单，实际 ' + game.state);
+assert(game.weapons.length === 0, '[10] 返回后武器应清空');
+assert(game.level === 1, '[10] 返回后等级应重置为 1');
+assert(game.kills === 0, '[10] 返回后击杀数应清零');
+assert(game.waveDirector.wave === 1, '[10] 返回后波次应重置为 1');
+assert(Object.keys(game.rareInventory).length === 0, '[10] 返回后稀有物品应清空');
 
+key('keydown', 'Enter');
+key('keyup', 'Enter');
+pump(1);
+assert(game.state === 'opening', '[10] 开局后应进入开局选卡，实际 ' + game.state);
 pumpWithChoices(3);
-assert(game.state === 'playing' && game.weapons.length === 1, '[10] 重开后选卡应回到战斗');
-console.log('[10] 死亡 / 重开 OK');
+assert(game.state === 'playing' && game.weapons.length === 1, '[10] 开局选卡后应回到战斗');
+console.log('[10] 死亡 / 返回主菜单 OK');
 
-console.log('✅ 冒烟测试全部通过（卡牌、武器、波次、精英与 Boss）');
+// ========== [11] Boss 掉落概率边界与保底品阶 ==========
+{
+  const closeTo = (actual, expected, message, epsilon = 1e-9) => {
+    assert(Math.abs(actual - expected) <= epsilon, message + '（实际 ' + actual + '，期望 ' + expected + '）');
+  };
+  // 概率公式：基础 8% + 每阶 3%，上限 20%
+  closeTo(dropChanceFor(1), 0.08, '[11] 阶位 1 掉落率应为 8%');
+  closeTo(dropChanceFor(2), 0.11, '[11] 阶位 2 掉落率应为 11%');
+  closeTo(dropChanceFor(5), 0.20, '[11] 阶位 5 掉落率应达上限 20%');
+  closeTo(dropChanceFor(9), 0.20, '[11] 阶位 9 掉落率应保持上限 20%');
+  assert(dropChanceFor(100) <= 0.20, '[11] 总掉落概率不得超过 20%');
+  // 保底品阶：1~2 阶无保底，3~4 阶 ≥T2，5 阶+ ≥T3
+  assert(minTierFor(1) === 1 && minTierFor(2) === 1, '[11] 阶位 1~2 不应有保底');
+  assert(minTierFor(3) === 2 && minTierFor(4) === 2, '[11] 阶位 3~4 保底应为 T2');
+  assert(minTierFor(5) === 3 && minTierFor(9) === 3, '[11] 阶位 5+ 保底应为 T3');
+  // rng=0.99 → 必不触发掉落
+  for (let tier = 1; tier <= 9; tier++) {
+    assert(rollBossDrops(tier, () => 0.99).length === 0, '[11] 阶位 ' + tier + ' 未命中概率时不应掉落');
+  }
+  // rng=0 → 必掉；数量取下限；品阶被保底抬升
+  assert(JSON.stringify(rollBossDrops(1, () => 0)) === JSON.stringify(['shard']), '[11] 阶位 1 保底掉落应为 1 个碎片');
+  assert(JSON.stringify(rollBossDrops(3, () => 0)) === JSON.stringify(['essence']), '[11] 阶位 3 保底掉落应抬升为辉光精华');
+  assert(JSON.stringify(rollBossDrops(5, () => 0)) === JSON.stringify(['soulCrystal', 'soulCrystal']), '[11] 阶位 5 保底掉落应为 2 个灵魂结晶');
+  console.log('[11] Boss 掉落概率 / 保底品阶 OK');
+}
+
+// ========== [12] 撤离流程：Boss 波清空 → 撤离 → 结算 → 存档 ==========
+{
+  game.pendingChoices = 0;
+  game.enemies.length = 0;
+  game.hostileProjectiles.length = 0;
+  const bossWave = CONFIG.waves.bossEvery;
+  game.waveDirector.startWave(game, bossWave);
+  assert(game.waveDirector.isBossWave, '[12] 第 ' + bossWave + ' 波应为 Boss 波');
+  const bossTierBefore = game.bossesDefeated;
+  const boss = new BossEnemy(game.player.x + 60, game.player.y, game.elapsed);
+  game.enemies.push(boss);
+  game.waveDirector.bossSpawned = true;
+  game.waveDirector.spawned = game.waveDirector.quota;
+
+  // 掉落随机桩为 0.99 → 本次不掉材料，专注验证撤离主流程
+  const origRandom = Math.random;
+  Math.random = () => 0.99;
+  game.damageEnemy(boss, boss.maxHp * 2);
+  game.gems.length = 0;
+  game.pickups.length = 0;
+  pump(1);
+  Math.random = origRandom;
+
+  assert(boss.dead, '[12] Boss 应被击杀');
+  assert(game.bossesDefeated === bossTierBefore + 1, '[12] Boss 击杀数应 +1');
+  assert(game.state === 'extraction', '[12] Boss 波清空应进入撤离抉择，实际 ' + game.state);
+  assert(Object.values(game.tempBackpack).every((n) => n === 0), '[12] 未掉落时临时背包应为空');
+
+  const dcBefore = game.save.darkCrystals;
+  const extractionsBefore = game.save.stats.extractions;
+  key('keydown', 'KeyE');
+  key('keyup', 'KeyE');
+  pump(1);
+  assert(game.state === 'summary', '[12] 撤离后应进入结算界面，实际 ' + game.state);
+  assert(game.save.darkCrystals === dcBefore + bossWave * CONFIG.meta.waveRewardMult,
+    '[12] 撤离暗晶奖励应为 波数×' + CONFIG.meta.waveRewardMult);
+  assert(game.save.stats.extractions === extractionsBefore + 1, '[12] 成功撤离次数应 +1');
+  assert(game.save.stats.bestWave >= bossWave, '[12] 最佳波数应更新');
+  assert(game.lastRunSummary && game.lastRunSummary.wave === bossWave
+    && game.lastRunSummary.darkCrystalsGained === bossWave * CONFIG.meta.waveRewardMult,
+    '[12] 结算数据错误');
+  const reloaded = loadSave();
+  assert(reloaded.darkCrystals === game.save.darkCrystals
+    && reloaded.stats.extractions === game.save.stats.extractions, '[12] 撤离结果应写入存档');
+
+  key('keydown', 'Enter');
+  key('keyup', 'Enter');
+  pump(1);
+  assert(game.state === 'menu', '[12] 确认结算应返回主菜单，实际 ' + game.state);
+  console.log('[12] 撤离流程 OK');
+}
+
+// ========== [13] 继续深入：背包保留，下个 Boss 波再次抉择 ==========
+{
+  game.pendingChoices = 0;
+  key('keydown', 'Enter');
+  key('keyup', 'Enter');
+  pump(1);
+  assert(game.state === 'opening', '[13] 应进入开局选卡，实际 ' + game.state);
+  pumpWithChoices(3);
+  assert(game.state === 'playing', '[13] 选卡后应进入战斗，实际 ' + game.state);
+  game.pendingChoices = 0;
+  game.enemies.length = 0;
+  game.hostileProjectiles.length = 0;
+
+  const bossWave = CONFIG.waves.bossEvery;
+  game.waveDirector.startWave(game, bossWave);
+  const boss = new BossEnemy(game.player.x + 60, game.player.y, game.elapsed);
+  game.enemies.push(boss);
+  game.waveDirector.bossSpawned = true;
+  game.waveDirector.spawned = game.waveDirector.quota;
+
+  // rng=0 → 必掉：数量取下限、品阶被保底抬升
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  game.damageEnemy(boss, boss.maxHp * 2);
+  game.gems.length = 0;
+  game.pickups.length = 0;
+  pump(1);
+  Math.random = origRandom;
+
+  assert(game.state === 'extraction', '[13] Boss 波清空应进入撤离抉择，实际 ' + game.state);
+  const bossTier = game.bossesDefeated;
+  const tierKey = Math.min(Math.max(1, bossTier), 5);
+  const expectedCount = CONFIG.meta.dropCount[tierKey][0];
+  const expectedItem = ITEM_BY_TIER[minTierFor(bossTier)];
+  const packTotal = Object.values(game.tempBackpack).reduce((sum, n) => sum + n, 0);
+  assert(packTotal === expectedCount && game.tempBackpack[expectedItem.id] === expectedCount,
+    '[13] 掉落应进入临时背包（' + expectedItem.name + '×' + expectedCount + '）');
+
+  key('keydown', 'KeyC');
+  key('keyup', 'KeyC');
+  pump(1);
+  assert(game.state === 'playing', '[13] 继续深入后应回到战斗，实际 ' + game.state);
+  assert(game.waveDirector.phase === 'rest', '[13] 继续深入后应进入休整阶段');
+  assert(game.tempBackpack[expectedItem.id] === expectedCount, '[13] 继续深入后背包应保留');
+
+  // 下一个 Boss 波再次出现抉择（直接跳到第 10 波 Boss）
+  game.pendingChoices = 0;
+  game.enemies.length = 0;
+  game.hostileProjectiles.length = 0;
+  const nextBossWave = CONFIG.waves.bossEvery * 2;
+  game.waveDirector.startWave(game, nextBossWave);
+  const boss2 = new BossEnemy(game.player.x + 60, game.player.y, game.elapsed);
+  game.enemies.push(boss2);
+  game.waveDirector.bossSpawned = true;
+  game.waveDirector.spawned = game.waveDirector.quota;
+  Math.random = () => 0.99; // 本次不掉新材料
+  game.damageEnemy(boss2, boss2.maxHp * 2);
+  game.gems.length = 0;
+  game.pickups.length = 0;
+  pump(1);
+  Math.random = origRandom;
+  assert(game.state === 'extraction', '[13] 下个 Boss 波应再次出现抉择，实际 ' + game.state);
+  assert(game.tempBackpack[expectedItem.id] === expectedCount, '[13] 之前的背包应仍保留');
+
+  // 撤离收尾：第 10 波奖励 = 10×2，背包入库
+  const dcBefore = game.save.darkCrystals;
+  const storageBefore = game.save.storage[expectedItem.id];
+  key('keydown', 'KeyE');
+  key('keyup', 'KeyE');
+  pump(1);
+  assert(game.state === 'summary', '[13] 撤离后应进入结算，实际 ' + game.state);
+  assert(game.save.darkCrystals === dcBefore + nextBossWave * CONFIG.meta.waveRewardMult, '[13] 第 10 波撤离奖励错误');
+  assert(game.save.storage[expectedItem.id] === storageBefore + expectedCount, '[13] 背包材料应入库');
+  assert(Object.values(game.tempBackpack).every((n) => n === 0), '[13] 撤离后临时背包应清空');
+  key('keydown', 'Enter');
+  key('keyup', 'Enter');
+  pump(1);
+  assert(game.state === 'menu', '[13] 确认结算应返回主菜单');
+  console.log('[13] 继续深入 OK');
+}
+
+// ========== [14] 死亡损失：临时背包全损、仓库不受影响 ==========
+{
+  game.pendingChoices = 0;
+  key('keydown', 'Enter');
+  key('keyup', 'Enter');
+  pump(1);
+  pumpWithChoices(3);
+  assert(game.state === 'playing', '[14] 选卡后应进入战斗，实际 ' + game.state);
+  game.pendingChoices = 0;
+  game.enemies.length = 0;
+
+  game.tempBackpack = { shard: 2, essence: 1, soulCrystal: 1 };
+  const storageBefore = { ...game.save.storage };
+  const dcBefore = game.save.darkCrystals;
+
+  game.player.hp = 1;
+  game.player.iFrames = 0;
+  game.hurtPlayer(999);
+  game._handleCollisions();
+  assert(game.state === 'dead', '[14] 空血应进入死亡，实际 ' + game.state);
+  pump(1); // 渲染一帧死亡界面，验证 drawGameOver 损失展示
+  assert(game.lastDeathLoss.shard === 2 && game.lastDeathLoss.essence === 1
+    && game.lastDeathLoss.soulCrystal === 1, '[14] 死亡损失记录应为临时背包');
+  assert(Object.values(game.tempBackpack).every((n) => n === 0), '[14] 死亡后临时背包应全损');
+  assert(game.save.storage.shard === storageBefore.shard
+    && game.save.storage.essence === storageBefore.essence
+    && game.save.storage.soulCrystal === storageBefore.soulCrystal, '[14] 仓库不应受死亡影响');
+  assert(game.save.darkCrystals === dcBefore, '[14] 暗晶不应受死亡影响');
+
+  key('keydown', 'KeyR');
+  key('keyup', 'KeyR');
+  pump(1);
+  assert(game.state === 'menu', '[14] 死亡后按 R 应返回主菜单，实际 ' + game.state);
+  console.log('[14] 死亡损失 OK');
+}
+
+// ========== [15] 商城：价格曲线 / 购买 / 余额不足 / 满级 ==========
+{
+  assert(game.state === 'menu', '[15] 应从主菜单开始');
+  const curve = [20, 32, 51, 82, 131, 210, 336, 537, 859, 1374];
+  for (let k = 1; k <= SHOP_MAX_LEVEL; k++) {
+    assert(priceForLevel(k) === curve[k - 1],
+      '[15] 第 ' + k + ' 级价格应为 ' + curve[k - 1] + '，实际 ' + priceForLevel(k));
+  }
+  assert(priceForLevel(0) === 0, '[15] 低于 1 级的价格应为 0');
+
+  game.openShop();
+  assert(game.state === 'shop', '[15] 应进入商城，实际 ' + game.state);
+  pump(1); // 渲染一帧商城界面，验证 drawShop 与 ctx 桩兼容
+
+  game.save.darkCrystals = 500;
+  assert(game.buyShopItem('damage') === true, '[15] 购买伤害 Lv1 应成功');
+  assert(game.save.metaLevels.damage === 1 && game.save.darkCrystals === 480, '[15] Lv1 购买应扣 20 暗晶');
+  assert(game.buyShopItem('damage') === true, '[15] 购买伤害 Lv2 应成功');
+  assert(game.save.metaLevels.damage === 2 && game.save.darkCrystals === 448, '[15] Lv2 购买应扣 32 暗晶');
+  assert(loadSave().metaLevels.damage === 2, '[15] 购买结果应写入存档');
+
+  game.save.darkCrystals = 10;
+  assert(game.buyShopItem('damage') === false, '[15] 余额不足应拒绝购买');
+  assert(game.save.metaLevels.damage === 2 && game.save.darkCrystals === 10, '[15] 余额不足不应扣款或升级');
+
+  game.save.metaLevels.armor = SHOP_MAX_LEVEL;
+  game.save.darkCrystals = 99999;
+  assert(game.buyShopItem('armor') === false, '[15] 满级应拒绝购买');
+  assert(game.save.darkCrystals === 99999, '[15] 满级不应扣款');
+
+  assert(game.buyShopItem('notExist') === false, '[15] 未知属性应拒绝购买');
+
+  key('keydown', 'Escape');
+  key('keyup', 'Escape');
+  pump(1);
+  assert(game.state === 'menu', '[15] Esc 应返回主菜单，实际 ' + game.state);
+  const dcAtMenu = game.save.darkCrystals;
+  assert(game.buyShopItem('xp') === false, '[15] 非商城状态应拒绝购买');
+  assert(game.save.darkCrystals === dcAtMenu, '[15] 非商城状态不应扣款');
+  console.log('[15] 商城 OK');
+}
+
+// ========== [16] 仓库卖出与局外属性生效 ==========
+{
+  game.save.storage = { shard: 4, essence: 2, soulCrystal: 1 };
+  persistSave(game.save);
+  game.openStorage();
+  assert(game.state === 'storage', '[16] 应进入仓库，实际 ' + game.state);
+  pump(1); // 渲染一帧仓库界面，验证 drawStorage 与 ctx 桩兼容
+
+  // 单卖 = 卖出该材料全部存量
+  const dcBefore = game.save.darkCrystals;
+  assert(game.sellStorageItem('shard') === 4 * META_ITEMS.shard.sellPrice, '[16] 碎片单卖金额错误');
+  assert(game.save.storage.shard === 0
+    && game.save.darkCrystals === dcBefore + 4 * META_ITEMS.shard.sellPrice, '[16] 单卖结算错误');
+  const expectedAll = 2 * META_ITEMS.essence.sellPrice + 1 * META_ITEMS.soulCrystal.sellPrice;
+  assert(game.sellAllStorage() === expectedAll, '[16] 全卖金额错误');
+  assert(game.save.storage.essence === 0 && game.save.storage.soulCrystal === 0, '[16] 全卖后仓库应清空');
+  assert(game.save.darkCrystals === dcBefore + 4 * META_ITEMS.shard.sellPrice + expectedAll, '[16] 全卖结算错误');
+  assert(game.sellStorageItem('shard') === 0 && game.sellAllStorage() === 0, '[16] 空仓库卖出应返回 0');
+  assert(loadSave().darkCrystals === game.save.darkCrystals, '[16] 卖出收益应写入存档');
+
+  key('keydown', 'Escape');
+  key('keyup', 'Escape');
+  pump(1);
+  assert(game.state === 'menu', '[16] Esc 应返回主菜单');
+
+  // 局外属性生效：每级等效 1 层局内属性卡
+  game.save.metaLevels.damage = 3;
+  game.save.metaLevels.maxHp = 2;
+  game.save.metaLevels.magnet = 1;
+  persistSave(game.save);
+  key('keydown', 'Enter');
+  key('keyup', 'Enter');
+  pump(1);
+  assert(game.state === 'opening', '[16] 应进入开局选卡，实际 ' + game.state);
+  assert(game.metaStacks.damage === 3 && game.metaStacks.maxHp === 2 && game.metaStacks.magnet === 1,
+    '[16] metaStacks 应继承存档局外等级');
+  const closeTo = (actual, expected, message, epsilon = 1e-9) => {
+    assert(Math.abs(actual - expected) <= epsilon, message + '（实际 ' + actual + '，期望 ' + expected + '）');
+  };
+  closeTo(game.mods.damageMult, 1 + 0.15 * 3, '[16] 伤害 Lv3 应提供 1.45 倍伤害');
+  closeTo(game.mods.magnetRadiusBonus, 50, '[16] 拾取范围 Lv1 应提供 +50px 吸附');
+  assert(game.player.maxHp === CONFIG.player.maxHp + 20 * 2, '[16] 生命 Lv2 应提供 +40 最大生命');
+  assert(game.player.hp === game.player.maxHp, '[16] 生命加成应在开局全额回复');
+
+  pumpWithChoices(3);
+  assert(game.state === 'playing', '[16] 选卡后应进入战斗');
+  assert(game.metaStacks.damage === 3, '[16] 局外等级应在战斗中保留');
+  console.log('[16] 仓库卖出 / 局外属性生效 OK');
+}
+
+console.log('✅ 冒烟测试全部通过（卡牌、武器、波次、精英与 Boss、撤离抉择与局外商城）');

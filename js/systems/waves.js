@@ -151,8 +151,13 @@ export class WaveDirector {
 
     // Boss waves finish only after the boss and every reinforcement are dead.
     if (this.spawned >= this.quota && !game.enemies.some((enemy) => !enemy.dead)) {
-      this._beginRest();
+      game.onBossWaveCleared(this);
     }
+  }
+
+  // Boss 撤离抉择选「继续深入」后，由 game 调用进入休整
+  beginRest() {
+    this._beginRest();
   }
 
   _beginRest() {
