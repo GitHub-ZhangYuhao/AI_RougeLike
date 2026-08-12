@@ -98,7 +98,7 @@ export class RingWeapon extends WeaponBase {
     for (const e of world.enemies) {
       if (e.dead || e.ringCd > 0) continue;
       for (const p of positions) {
-        if (dist2(p.x, p.y, e.x, e.y) <= (14 + e.radius) ** 2) {
+        if (dist2(p.x, p.y, e.x, e.y) <= (42 + e.radius) ** 2) {
           e.ringCd = RING_HIT_COOLDOWN;
           world.damageEnemy(e, damage);
           if (s.coldJade) world.applySlow(e, 0.35, 1.6); // 寒玉：减速 35%，持续 1.6s
@@ -119,7 +119,7 @@ export class RingWeapon extends WeaponBase {
     const frenzy = !!s.ultimate && this.frenzyTimer > 0;
     const expanding = !!s.bloodDrop && this.expanding;
     // 血滴子视觉：扩张段变血红并略微放大；狂暴期间亮红
-    const ringR = expanding ? 16 : 14;
+    const ringR = expanding ? 48 : 42;
     const color = frenzy ? '#ff1744' : expanding ? '#ff5252' : '#69f0ae';
     for (const p of this.ringPositions(world)) {
       ctx.beginPath();
@@ -127,7 +127,7 @@ export class RingWeapon extends WeaponBase {
       ctx.fillStyle = color;
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 18, 0, Math.PI * 2);
       ctx.fillStyle = '#0e0e16';
       ctx.fill();
     }
@@ -154,20 +154,20 @@ export class RingWeapon extends WeaponBase {
 
 export const CARD = {
   id: 'ring', kind: 'weapon', name: '玉环', icon: '💍', maxLevel: 6,
-  desc: '玉环围绕玩家旋转，触碰的敌人受到伤害。升级增加玉环数量与转速，高阶解锁寒玉减速、血滴子外扩与狂暴反制。',
+  desc: '玉环围绕玩家旋转，触碰的敌人受到伤害。升级增加玉环数量、轨道范围与转速，高阶解锁寒玉减速、血滴子外扩与狂暴反制。',
   levels: [
-    // Lv1：基础数值
-    { damage: 12, count: 1, orbitRadius: 84, orbitSpeed: 2.6 },
+    // Lv1：两个玉环贴身环绕
+    { damage: 12, count: 2, orbitRadius: 56, orbitSpeed: 2.6 },
     // Lv2：寒玉——命中的敌人减速 35%，持续 1.6s
-    { damage: 16, count: 1, orbitRadius: 91, orbitSpeed: 2.8, coldJade: true },
-    // Lv3：数值成长 + 环数加一
-    { damage: 20, count: 2, orbitRadius: 99, orbitSpeed: 3.0, coldJade: true },
+    { damage: 16, count: 2, orbitRadius: 66, orbitSpeed: 2.8, coldJade: true },
+    // Lv3：环数加一，轨道外扩、转速提升
+    { damage: 20, count: 3, orbitRadius: 78, orbitSpeed: 3.0, coldJade: true },
     // Lv4：血滴子——周期性全部玉环外扩再收回（一个来回），扩张段伤害 ×2
-    { damage: 26, count: 2, orbitRadius: 107, orbitSpeed: 3.3, coldJade: true, bloodDrop: true, expandRadius: 105 },
-    // Lv5：数值成长 + 环数加一
-    { damage: 32, count: 3, orbitRadius: 114, orbitSpeed: 3.6, coldJade: true, bloodDrop: true, expandRadius: 115 },
-    // Lv6：每 50 杀狂暴 4 秒 + 受击冰霜新星反制（CD 16s，冻结 2s），环数加到 4 个
-    { damage: 40, count: 4, orbitRadius: 122, orbitSpeed: 4.0, coldJade: true, bloodDrop: true, expandRadius: 125,
+    { damage: 26, count: 4, orbitRadius: 92, orbitSpeed: 3.3, coldJade: true, bloodDrop: true, expandRadius: 80 },
+    // Lv5：环数加一，轨道继续外扩
+    { damage: 32, count: 5, orbitRadius: 106, orbitSpeed: 3.6, coldJade: true, bloodDrop: true, expandRadius: 95 },
+    // Lv6：六环护体；每 50 杀狂暴 4 秒 + 受击冰霜新星反制（CD 16s，冻结 2s）
+    { damage: 40, count: 6, orbitRadius: 120, orbitSpeed: 4.0, coldJade: true, bloodDrop: true, expandRadius: 110,
       ultimate: true, counterDamage: 200, counterRadius: 300, counterCd: 16 },
   ],
   create() { return new RingWeapon(this); },
