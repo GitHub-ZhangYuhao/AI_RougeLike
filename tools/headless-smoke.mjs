@@ -339,6 +339,26 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   for (let i = 0; i < 6; i++) whiffSword.update(2, whiffWorld);
   assert(whiffSword.rings.length === 0 && whiffSword.attackCount === 0, '[6] draw slash must not charge on whiffed attacks');
 
+  // 飞剑觉醒·穿梭：不再单体往返，而是在敌群间来回穿梭、贯穿沿途所有敌人
+  const flySword = CARD_BY_ID.get('sword').create();
+  flySword.level = 6;
+  const flyWorld = baseWorld();
+  flyWorld.damageEnemy = (enemy, damage) => { enemy.hp -= damage; };
+  flyWorld.enemies = [
+    { x: 100, y: 0, radius: 13, dead: false, hp: 1000, dots: {} },
+    { x: 220, y: 0, radius: 13, dead: false, hp: 1000, dots: {} },
+    { x: 340, y: 0, radius: 13, dead: false, hp: 1000, dots: {} },
+  ];
+  flySword._spawnFlyingSword(flyWorld);
+  let peakChains = 0;
+  for (let i = 0; i < 180; i++) {
+    flySword.update(1 / 60, flyWorld);
+    const f0 = flySword.flyingSwords[0];
+    if (f0 && f0.chains > peakChains) peakChains = f0.chains;
+  }
+  assert(flyWorld.enemies.every((e) => e.hp < 1000), '[6] flying sword must pierce every shuttled enemy');
+  assert(peakChains >= 3, '[6] flying sword must chain-shuttle between multiple enemies');
+
   // Cloak kill shock is extra and must not reset normal cooldown.
   const cloak = CARD_BY_ID.get('cloak').create();
   cloak.level = 6;

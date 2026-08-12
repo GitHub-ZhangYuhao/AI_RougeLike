@@ -105,6 +105,18 @@ export class SwordWeapon extends WeaponBase {
     }
   }
 
+  // 穿梭选靶：以飞剑当前位置为中心找范围内最近的活敌人；exclude 用于排除刚飞离的目标
+  _nearestEnemyNear(world, x, y, rangeR2, exclude = null) {
+    let best = null;
+    let bestD = rangeR2;
+    for (const e of world.enemies) {
+      if (e.dead || e === exclude) continue;
+      const d = dist2(x, y, e.x, e.y);
+      if (d < bestD) { bestD = d; best = e; }
+    }
+    return best;
+  }
+
   _spawnFlyingSword(world) {
     this.flyingSwords.push({
       x: world.player.x,
@@ -119,6 +131,10 @@ export class SwordWeapon extends WeaponBase {
       dirX: 0,
       dirY: 1,
       travel: 0,
+      chains: 0,
+      legTravel: 0,
+      legLength: 0,
+      visited: new Set(),
       hitSet: new Set(),
     });
   }
@@ -146,8 +162,12 @@ export class SwordWeapon extends WeaponBase {
           if (target) {
             f.state = 'strike';
             f.target = target;
+            f.chains = 1;
             f.atkTimer = s.flyInterval;
             f.travel = 0;
+            f.legTravel = 0;
+            f.legLength = Math.max(48, Math.hypot(target.x - f.x, target.y - f.y));
+            f.visited = new Set([target]);
             f.hitSet = new Set();
             const dx = target.x - f.x;
             const dy = target.y - f.y;
@@ -159,7 +179,8 @@ export class SwordWeapon extends WeaponBase {
           }
         }
       } else if (f.state === 'strike') {
-        // 觉醒贯穿：沿目标方向直飞，对路径上每个敌人各结算一次伤害
+        // 觉醒·穿梭：锁定目标直飞，越过目标后立刻在敌群中锁定下一个目标来回穿梭，
+        // 每一段飞行都贯穿沿途所有敌人（同一段内每个敌人只结算一次，换段重新计数）
         const target = f.target;
         if (target && !target.dead) {
           const dx = target.x - f.x;
@@ -168,11 +189,13 @@ export class SwordWeapon extends WeaponBase {
           f.face = Math.atan2(dy, dx);
           f.dirX = dx / distance;
           f.dirY = dy / distance;
+          // 段长在锁定目标时一次性确定，这里不可回写，否则会在抵达目标前半程就结束本段
         }
         const step = 640 * dt;
         f.x += f.dirX * step;
         f.y += f.dirY * step;
         f.travel += step;
+        f.legTravel += step;
         for (const e of world.enemies) {
           if (e.dead || f.hitSet.has(e)) continue;
           if (dist2(f.x, f.y, e.x, e.y) <= (e.radius + 8) ** 2) {
@@ -181,9 +204,38 @@ export class SwordWeapon extends WeaponBase {
             if (!e.dead) world.applyDot(e, 'bleed', 9, 2.5);
           }
         }
-        const passedTarget = !!(target && !target.dead)
-          && ((f.x - target.x) * f.dirX + (f.y - target.y) * f.dirY > 12);
-        if (passedTarget || f.travel > 520 || dist2(f.x, f.y, px, py) > 340 * 340) {
+        // 本段飞完（越过目标约一个身位）：找下一个目标继续穿梭，否则回收
+        if (f.legTravel >= f.legLength + 16) {
+          let next = null;
+          if (f.chains < (s.flyChain ?? 1)) {
+            const rangeR2 = (s.flyChainRange ?? 240) ** 2;
+            // 优先飞向本次穿梭尚未访问过的敌人，保证贯穿整条敌群
+            let bestD = rangeR2;
+            for (const e of world.enemies) {
+              if (e.dead || f.visited.has(e)) continue;
+              const d = dist2(f.x, f.y, e.x, e.y);
+              if (d < bestD) { bestD = d; next = e; }
+            }
+            if (!next) {
+              // 全部访问过：在敌人之间来回穿梭锯割；仅剩单目标（Boss）时原地反复切割
+              next = this._nearestEnemyNear(world, f.x, f.y, rangeR2, f.target);
+              if (!next && f.target && !f.target.dead && dist2(f.x, f.y, f.target.x, f.target.y) <= rangeR2) next = f.target;
+            }
+          }
+          if (next) {
+            f.chains++;
+            f.target = next;
+            f.visited.add(next);
+            f.hitSet = new Set();
+            f.legTravel = 0;
+            f.legLength = Math.max(48, Math.hypot(next.x - f.x, next.y - f.y));
+          } else {
+            f.state = 'return';
+            f.target = null;
+          }
+        }
+        // 总航程或离玩家过远时强制回收
+        if (f.travel > 1600 || dist2(f.x, f.y, px, py) > 460 * 460) {
           f.state = 'return';
           f.target = null;
         }
@@ -259,7 +311,7 @@ export class SwordWeapon extends WeaponBase {
 
 export const CARD = {
   id: 'sword', kind: 'weapon', name: '道剑', icon: '⚔️', maxLevel: 6,
-  desc: 'Lv1 近战挥砍，Lv2 起御剑远程贯穿；Lv4 命中 3 次攻击后追加拔剑斩（空挥不充能）；Lv6 觉醒剑意：每命中 10 次凝一柄飞剑，飞剑贯穿沿途所有敌人。',
+  desc: 'Lv1 近战挥砍，Lv2 起御剑远程贯穿；Lv4 命中 3 次攻击后追加拔剑斩（空挥不充能）；Lv6 觉醒剑意：每命中 10 次凝一柄飞剑，飞剑在敌群间来回穿梭，贯穿沿途所有敌人。',
   levels: [
     { damage: 16, meleeRange: 125, interval: 1.15, arc: 120 },
     { damage: 20, projectile: true, projectileRange: 520, projectileSpeed: 500, maxHits: 2, interval: 1.08 },
@@ -270,7 +322,7 @@ export const CARD = {
       drawSlash: true, ringRadius: 380, ringBleedDps: 11 },
     { damage: 48, projectile: true, projectileRange: 640, projectileSpeed: 660, maxHits: Infinity, interval: 0.80,
       drawSlash: true, ringRadius: 344, ringBleedDps: 12, swordIntent: true,
-      flyMax: 10, flyInterval: 1.2, flyRange: 260 },
+      flyMax: 10, flyInterval: 1.2, flyRange: 260, flyChain: 6, flyChainRange: 240 },
   ],
   create() { return new SwordWeapon(this); },
 };
