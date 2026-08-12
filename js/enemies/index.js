@@ -25,9 +25,9 @@ function normalizedWaveOf(wave) {
 
 function enhancedChaserRatio(wave) {
   if (wave < 8) return 0;
-  if (wave === 8) return 0.25;
-  if (wave === 9) return 0.5;
-  if (wave === 10) return 0.75;
+  if (wave === 8) return 0.15;
+  if (wave === 9) return 0.35;
+  if (wave === 10) return 0.65;
   return 1;
 }
 

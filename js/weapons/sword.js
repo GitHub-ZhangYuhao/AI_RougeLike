@@ -1,4 +1,4 @@
-import { WeaponBase, nearestEnemy, hitEnemiesInRadius } from './base.js';
+﻿import { WeaponBase, nearestEnemy, hitEnemiesInRadius } from './base.js';
 import { dist2, angleDiff } from '../utils.js';
 import { createProjectile } from '../projectile.js';
 
@@ -229,14 +229,14 @@ export const CARD = {
   id: 'sword', kind: 'weapon', name: '道剑', icon: '⚔️', maxLevel: 6,
   desc: 'Lv1 近战挥砍，Lv2 起御剑远程贯穿；Lv4 每 3 次攻击追加拔剑斩，Lv6 觉醒剑意。',
   levels: [
-    { damage: 14, meleeRange: 96, interval: 1.15, arc: 105 },
-    { damage: 18, projectile: true, projectileRange: 520, projectileSpeed: 500, maxHits: 2, interval: 1.08 },
-    { damage: 23, projectile: true, projectileRange: 550, projectileSpeed: 560, maxHits: 2, interval: 1.00 },
-    { damage: 29, projectile: true, projectileRange: 570, projectileSpeed: 580, maxHits: 2, interval: 0.94,
+    { damage: 16, meleeRange: 96, interval: 1.15, arc: 105 },
+    { damage: 20, projectile: true, projectileRange: 520, projectileSpeed: 500, maxHits: 2, interval: 1.08 },
+    { damage: 26, projectile: true, projectileRange: 550, projectileSpeed: 560, maxHits: 3, interval: 1.00 },
+    { damage: 32, projectile: true, projectileRange: 570, projectileSpeed: 580, maxHits: 3, interval: 0.94,
       drawSlash: true, ringRadius: 145, ringBleedDps: 10 },
-    { damage: 36, projectile: true, projectileRange: 600, projectileSpeed: 620, maxHits: 4, interval: 0.87,
+    { damage: 40, projectile: true, projectileRange: 600, projectileSpeed: 620, maxHits: 4, interval: 0.87,
       drawSlash: true, ringRadius: 158, ringBleedDps: 11 },
-    { damage: 44, projectile: true, projectileRange: 640, projectileSpeed: 660, maxHits: Infinity, interval: 0.80,
+    { damage: 48, projectile: true, projectileRange: 640, projectileSpeed: 660, maxHits: Infinity, interval: 0.80,
       drawSlash: true, ringRadius: 172, ringBleedDps: 12, swordIntent: true,
       flyMax: 10, flyInterval: 1.2, flyRange: 220 },
   ],

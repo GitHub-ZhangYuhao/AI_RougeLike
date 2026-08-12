@@ -1,4 +1,9 @@
-﻿# 临时 / 同步文件
+# 临时 / 同步文件
 *.tmp
 tmp_*
 .notion-sync-content.md
+# Python / generated media intermediates
+.venv*/
+__pycache__/
+*.py[cod]
+Experimental/

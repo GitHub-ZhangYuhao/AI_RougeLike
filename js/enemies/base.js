@@ -115,12 +115,25 @@ export function applyWaveScaling(enemy, wave = 1) {
   if (enemy.waveScalingApplied) return enemy;
 
   const step = normalizedWave - 1;
-  const hpMult = 1 + CONFIG.enemy.hpPerWave * step;
-  const damageMult = 1 + CONFIG.enemy.damagePerWave * step;
-  const speedMult = 1 + Math.min(
-    CONFIG.enemy.speedWaveCap,
-    CONFIG.enemy.speedPerWave * step,
+  // Waves 1-6 are gentle, 7-11 catch up, and 12+ scale beyond the old curve.
+  const earlySteps = Math.min(step, CONFIG.enemy.midWaveStart - 2);
+  const midSteps = Math.min(
+    Math.max(0, step - earlySteps),
+    CONFIG.enemy.lateWaveStart - CONFIG.enemy.midWaveStart,
   );
+  const lateSteps = Math.max(0, step - earlySteps - midSteps);
+  const hpMult = 1
+    + CONFIG.enemy.hpPerWave * earlySteps
+    + CONFIG.enemy.hpPerWaveMid * midSteps
+    + CONFIG.enemy.hpPerWaveLate * lateSteps;
+  const damageMult = 1
+    + CONFIG.enemy.damagePerWave * earlySteps
+    + CONFIG.enemy.damagePerWaveMid * midSteps
+    + CONFIG.enemy.damagePerWaveLate * lateSteps;
+  const speedBonus = CONFIG.enemy.speedPerWave * earlySteps
+    + CONFIG.enemy.speedPerWaveMid * midSteps
+    + CONFIG.enemy.speedPerWaveLate * lateSteps;
+  const speedMult = 1 + Math.min(CONFIG.enemy.speedWaveCap, speedBonus);
   const hpRatio = enemy.maxHp > 0 ? enemy.hp / enemy.maxHp : 1;
 
   enemy.maxHp *= hpMult;

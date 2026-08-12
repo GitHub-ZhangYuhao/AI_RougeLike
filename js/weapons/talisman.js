@@ -159,17 +159,17 @@ export const CARD = {
   desc: '向远处敌人射出雷电弹道。每命中 2 次触发引雷，Lv4 起命中还会弹射闪电链。',
   levels: [
     // Lv1 数值基准
-    { damage: 10, interval: 1.0, speed: 460, range: 520 },
+    { damage: 12, interval: 1.0, speed: 460, range: 520 },
     // Lv2 解锁引雷
-    { damage: 13, interval: 0.95, speed: 460, range: 520, thunder: true },
+    { damage: 15, interval: 0.95, speed: 460, range: 520, thunder: true },
     // Lv3 数值成长
-    { damage: 17, interval: 0.88, speed: 460, range: 520, thunder: true },
+    { damage: 19, interval: 0.88, speed: 460, range: 520, thunder: true },
     // Lv4 解锁闪电链（弹射 2 次）
-    { damage: 21, interval: 0.81, speed: 460, range: 520, thunder: true, chain: true, chainBounces: 2 },
+    { damage: 23, interval: 0.81, speed: 460, range: 520, thunder: true, chain: true, chainBounces: 2 },
     // Lv5 数值成长
-    { damage: 25, interval: 0.75, speed: 460, range: 520, thunder: true, chain: true, chainBounces: 2 },
+    { damage: 27, interval: 0.75, speed: 460, range: 520, thunder: true, chain: true, chainBounces: 2 },
     // Lv6 质变：链弹射 3 目标；每波攻击首命中必定引雷（不占计数）；引雷变范围伤害
-    { damage: 30, interval: 0.70, speed: 490, range: 550, thunder: true, thunderFirst: true, thunderAoE: true, chain: true, chainBounces: 3 },
+    { damage: 31, interval: 0.70, speed: 490, range: 550, thunder: true, thunderFirst: true, thunderAoE: true, chain: true, chainBounces: 3 },
   ],
   create() { return new TalismanWeapon(this); },
 };
