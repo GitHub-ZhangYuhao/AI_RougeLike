@@ -7,3 +7,7 @@ tmp_*
 __pycache__/
 *.py[cod]
 Experimental/
+
+# Local Godot engine
+/GameEngine/
+/GameProject/.godot/
