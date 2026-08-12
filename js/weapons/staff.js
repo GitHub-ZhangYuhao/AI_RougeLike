@@ -2,13 +2,13 @@ import { WeaponBase, hitEnemiesInRadius } from './base.js';
 import { dist2, rand } from '../utils.js';
 
 // ---------- 死灵法杖：周期召唤不可死亡的仆从 ----------
-// 每个召唤槽位独立循环：冷却(内置CD) -> 召唤 -> 存活固定时长 -> 回到冷却
+// 每个召唤槽位独立循环：冷却(内置CD) -> 待命(附近有敌才部署) -> 存活固定时长 -> 回到冷却
 // Lv2 尸毒（命中挂 poison）；Lv4 消散自爆；Lv6「百鬼夜行」尸体转化 + 连接回血 + 全员强化
 
 // 尸毒参数（dps 参考契约 6~10，持续 3s）
 const POISON_DPS = 8;
 const POISON_DUR = 3;
-const POISON_RADIUS = 40;      // 尸毒溅射的小范围
+const POISON_RADIUS = 50;      // 尸毒溅射的小范围
 
 // 自爆特效时长
 const BLAST_FX_DUR = 0.35;
@@ -29,11 +29,40 @@ const NIGHT_RADIUS = 17;       // 夜行强化：体型（规格 16~18，取 17�
 export class StaffWeapon extends WeaponBase {
   constructor(card) {
     super(card);
-    this.slots = [];      // {phase: 'cd'|'active', timer, summon}
+    this.slots = [];      // {phase: 'cd'|'ready'|'active', timer, summon}
     this.corpses = [];    // 尸体仆从列表（用于上限管理，最旧优先顶替）
     this.blasts = [];     // 自爆特效（武器实例自持，draw 里画）
     this.lastKillId = 0;  // killLog 增量消费游标
     this.pity = 0;        // 距上次成功转化的击杀数（保底计数）
+  }
+
+  // 缰绳范围内是否有活着的敌人（召唤待命判定用）
+  _enemyInLeash(world, leash) {
+    const p = world.player;
+    const r2 = leash * leash;
+    for (const e of world.enemies) {
+      if (e.dead) continue;
+      if (dist2(p.x, p.y, e.x, e.y) <= r2) return true;
+    }
+    return false;
+  }
+
+  // 部署仆从：槽位由 cd/ready 转入 active，仆从寿命从此刻开始消耗
+  _deploySummon(slot, s, world) {
+    const summon = {
+      x: world.player.x + rand(-24, 24),
+      y: world.player.y + rand(-24, 24),
+      damage: s.damage * world.mods.damageMult,
+      life: s.life,
+      speed: s.speed,
+      hitTimer: 0,
+      wander: Math.random() * Math.PI * 2,
+      dead: false,
+    };
+    slot.summon = summon;
+    slot.phase = 'active';
+    slot.timer = s.life;
+    world.summons.push(summon);
   }
   update(dt, world) {
     const s = this.stats;
@@ -48,25 +77,18 @@ export class StaffWeapon extends WeaponBase {
       if (removed.summon) removed.summon.dead = true;
     }
 
+    // 附近有敌人才召唤：CD 转好后进入待命，敌人进入缰绳范围立即部署，
+    // 避免空闲期浪费仆从存活时间（仆从寿命只在战斗中消耗）
+    const enemyInLeash = this._enemyInLeash(world, s.leash);
     for (const slot of this.slots) {
       if (slot.phase === 'cd') {
         slot.timer -= dt;
         if (slot.timer <= 0) {
-          const summon = {
-            x: world.player.x + rand(-24, 24),
-            y: world.player.y + rand(-24, 24),
-            damage: s.damage * world.mods.damageMult,
-            life: s.life,
-            speed: s.speed,
-            hitTimer: 0,
-            wander: Math.random() * Math.PI * 2,
-            dead: false,
-          };
-          slot.summon = summon;
-          slot.phase = 'active';
-          slot.timer = s.life;
-          world.summons.push(summon);
+          if (enemyInLeash) this._deploySummon(slot, s, world);
+          else { slot.phase = 'ready'; slot.timer = 0; }
         }
+      } else if (slot.phase === 'ready') {
+        if (enemyInLeash) this._deploySummon(slot, s, world);
       } else {
         slot.timer -= dt;
         if (slot.timer <= 0) {
@@ -159,9 +181,25 @@ export class StaffWeapon extends WeaponBase {
     world.summons.push(summon);
   }
 
-  // 自爆特效画在 over 层
+  // 自爆特效画在 over 层；百鬼夜行时额外绘制仆从→玩家的连线回血指示
   draw(ctx, world, phase) {
     if (phase !== 'over') return;
+    if (this.stats.nightParade && world.summons) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(140,255,170,0.55)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 9]);
+      // 虚线向玩家方向流动（断断续续的连线，表示正在输送生命）
+      ctx.lineDashOffset = -((world.elapsed * 36) % 14);
+      for (const su of world.summons) {
+        if (su.dead) continue;
+        ctx.beginPath();
+        ctx.moveTo(su.x, su.y);
+        ctx.lineTo(world.player.x, world.player.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     for (const b of this.blasts) {
       const k = 1 - b.t / b.dur; // 0 -> 1
       const r = b.maxR * (0.4 + 0.6 * k);
@@ -264,7 +302,7 @@ export function drawSummon(ctx, su) {
 
 export const CARD = {
   id: 'staff', kind: 'weapon', name: '死灵法杖', icon: '🦴', maxLevel: 6,
-  desc: '周期性召唤仆从作战。仆从无法被击杀，但有固定存活时间，消散时自爆；高级解锁尸毒，最终化为百鬼夜行：转化尸体仆从并连接回血。',
+  desc: '周期性召唤仆从作战（附近有敌人才召唤）。仆从无法被击杀，但有固定存活时间，消散时自爆；高级解锁尸毒，最终化为百鬼夜行：转化尸体仆从，仆从连线持续为玩家回复生命。',
   levels: [
     // Lv1 基线
     { damage: 7,  count: 1, life: 6,   cd: 4,   speed: 170, leash: 260 },
@@ -273,11 +311,11 @@ export const CARD = {
     // Lv3 数值：伤害 + 存活时间 + CD
     { damage: 12, count: 2, life: 7.5, cd: 3.2, speed: 190, leash: 260, poison: true },
     // Lv4 机制：消散自爆（半径 70）
-    { damage: 14, count: 2, life: 8.2, cd: 2.8, speed: 200, leash: 260, poison: true, blast: true, blastRadius: 70 },
+    { damage: 14, count: 2, life: 8.2, cd: 2.8, speed: 200, leash: 260, poison: true, blast: true, blastRadius: 85 },
     // Lv5 数值：数量 3 + 自爆半径 +50% + 存活时间
-    { damage: 17, count: 3, life: 9,   cd: 2.5, speed: 210, leash: 260, poison: true, blast: true, blastRadius: 105 },
+    { damage: 17, count: 3, life: 9,   cd: 2.5, speed: 210, leash: 260, poison: true, blast: true, blastRadius: 125 },
     // Lv6 质变「百鬼夜行」：尸体转化 + 连接回血 + 全员强化
-    { damage: 20, count: 3, life: 9.8, cd: 2.2, speed: 220, leash: 280, poison: true, blast: true, blastRadius: 105, nightParade: true },
+    { damage: 20, count: 3, life: 9.8, cd: 2.2, speed: 220, leash: 280, poison: true, blast: true, blastRadius: 125, nightParade: true },
   ],
   create() { return new StaffWeapon(this); },
 };

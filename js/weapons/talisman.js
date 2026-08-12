@@ -69,13 +69,13 @@ export class TalismanWeapon extends WeaponBase {
     if (s.chain) this._chainLightning(e, p.damage * 0.5, world);
   }
 
-  // 引雷落雷：Lv2~5 单体，Lv6 变为范围伤害（半径 80，设计上限）
+  // 引雷落雷：Lv2~5 单体，Lv6 变为范围伤害（半径 95，设计上限）
   _strikeThunder(e, dmg, world) {
     const s = this.stats;
     const total = 0.18;
     if (s.thunderAoE) {
       // 范围落雷：内部自动跳过死亡敌人，击杀走统一伤害入口
-      hitEnemiesInRadius(world, e.x, e.y, 80, dmg);
+      hitEnemiesInRadius(world, e.x, e.y, 95, dmg);
     } else if (!e.dead) {
       world.damageEnemy(e, dmg);
     }
@@ -86,7 +86,7 @@ export class TalismanWeapon extends WeaponBase {
   _chainLightning(origin, dmg, world) {
     const s = this.stats;
     const bounces = s.chainBounces || 2;
-    const R2 = 160 * 160; // 弹射搜索半径上限（设计定稿 ≤160px）
+    const R2 = 180 * 180; // 弹射搜索半径上限（设计定稿 ≤180px）
     const total = 0.15;
     const hitSet = new Set([origin]); // 同一条链不重复命中同一目标
     let cur = origin;
@@ -123,7 +123,7 @@ export class TalismanWeapon extends WeaponBase {
       this._drawBoltLine(ctx, fx.x + 14, fx.y - 150, fx.x, fx.y, '#ffe98a', 3);
       if (fx.aoe) {
         ctx.beginPath();
-        ctx.arc(fx.x, fx.y, 80 * (1 - fx.ttl / fx.total), 0, Math.PI * 2);
+        ctx.arc(fx.x, fx.y, 95 * (1 - fx.ttl / fx.total), 0, Math.PI * 2);
         ctx.strokeStyle = '#ffe98a';
         ctx.lineWidth = 2;
         ctx.stroke();

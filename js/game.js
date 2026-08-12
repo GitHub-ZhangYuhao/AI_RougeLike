@@ -340,7 +340,7 @@ export class Game {
       return;
     }
     const wave = this.waveDirector.wave;
-    const darkCrystalsGained = wave * CONFIG.meta.waveRewardMult;
+    const darkCrystalsGained = Math.round(wave * CONFIG.meta.waveRewardMult);
     this.save.darkCrystals += darkCrystalsGained;
     const itemsBanked = { ...this.tempBackpack };
     for (const [id, count] of Object.entries(this.tempBackpack)) {

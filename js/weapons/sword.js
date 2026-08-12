@@ -7,15 +7,13 @@ export class SwordWeapon extends WeaponBase {
   constructor(card) {
     super(card);
     this.attackCount = 0;
-    this.lastKills = -1;
-    this.killCarry = 0;
+    this.hitCarry = 0; // 剑意累积：每命中 10 次凝一柄飞剑（Lv6）
     this.flyingSwords = [];
     this.rings = [];
   }
 
   update(dt, world) {
     const s = this.stats;
-    if (s.swordIntent) this._updateKills(world, s);
     if (this.flyingSwords.length) this._updateFlyingSwords(dt, world, s);
 
     for (const r of this.rings) r.ttl -= dt;
@@ -45,7 +43,10 @@ export class SwordWeapon extends WeaponBase {
       if (e.dead) continue;
       if (dist2(px, py, e.x, e.y) > (s.meleeRange + e.radius) ** 2) continue;
       const enemyAngle = Math.atan2(e.y - py, e.x - px);
-      if (angleDiff(enemyAngle, angle) <= halfArc) world.damageEnemy(e, damage);
+      if (angleDiff(enemyAngle, angle) <= halfArc) {
+        world.damageEnemy(e, damage);
+        this._registerHit(world, s);
+      }
     }
     world.effects.push({
       type: 'slash', x: px, y: py, angle,
@@ -64,6 +65,7 @@ export class SwordWeapon extends WeaponBase {
     p.pierce = true;
     p.maxHits = s.maxHits;
     p.swordQi = true;
+    p.onHit = () => this._registerHit(world, s);
     world.projectiles.push(p);
   }
 
@@ -72,18 +74,17 @@ export class SwordWeapon extends WeaponBase {
     const py = world.player.y;
     hitEnemiesInRadius(world, px, py, s.ringRadius, mainDamage * 2.5, (e) => {
       if (!e.dead) world.applyDot(e, 'bleed', s.ringBleedDps || 10, 2.5);
+      this._registerHit(world, s);
     });
     this.rings.push({ x: px, y: py, r: s.ringRadius, ttl: 0.28, maxTtl: 0.28 });
   }
 
-  _updateKills(world, s) {
-    if (this.lastKills < 0) this.lastKills = world.kills;
-    if (world.kills > this.lastKills) {
-      this.killCarry += world.kills - this.lastKills;
-      this.lastKills = world.kills;
-    }
-    while (this.killCarry >= 10) {
-      this.killCarry -= 10;
+  // 剑意累积：任意攻击命中敌人 +1（同一目标多次命中也计数，Boss 战可正常积攒）
+  _registerHit(world, s, count = 1) {
+    if (!s.swordIntent) return;
+    this.hitCarry += count;
+    while (this.hitCarry >= 10) {
+      this.hitCarry -= 10;
       if (this.flyingSwords.length < s.flyMax) this._spawnFlyingSword(world);
     }
   }
@@ -99,6 +100,10 @@ export class SwordWeapon extends WeaponBase {
       state: 'orbit',
       target: null,
       face: 0,
+      dirX: 0,
+      dirY: 1,
+      travel: 0,
+      hitSet: new Set(),
     });
   }
 
@@ -126,34 +131,45 @@ export class SwordWeapon extends WeaponBase {
             f.state = 'strike';
             f.target = target;
             f.atkTimer = s.flyInterval;
+            f.travel = 0;
+            f.hitSet = new Set();
+            const dx = target.x - f.x;
+            const dy = target.y - f.y;
+            const d = Math.hypot(dx, dy) || 1;
+            f.dirX = dx / d;
+            f.dirY = dy / d;
           } else {
             f.atkTimer = 0.15;
           }
         }
       } else if (f.state === 'strike') {
+        // 觉醒贯穿：沿目标方向直飞，对路径上每个敌人各结算一次伤害
         const target = f.target;
-        if (!target || target.dead) {
-          f.state = 'return';
-          f.target = null;
-          continue;
+        if (target && !target.dead) {
+          const dx = target.x - f.x;
+          const dy = target.y - f.y;
+          const distance = Math.hypot(dx, dy) || 1;
+          f.face = Math.atan2(dy, dx);
+          f.dirX = dx / distance;
+          f.dirY = dy / distance;
         }
-        const dx = target.x - f.x;
-        const dy = target.y - f.y;
-        const distance = Math.hypot(dx, dy) || 1;
-        f.face = Math.atan2(dy, dx);
         const step = 640 * dt;
-        if (distance <= step + target.radius + 6) {
-          world.damageEnemy(target, flyDamage);
-          if (!target.dead) world.applyDot(target, 'bleed', 9, 2.5);
+        f.x += f.dirX * step;
+        f.y += f.dirY * step;
+        f.travel += step;
+        for (const e of world.enemies) {
+          if (e.dead || f.hitSet.has(e)) continue;
+          if (dist2(f.x, f.y, e.x, e.y) <= (e.radius + 8) ** 2) {
+            f.hitSet.add(e);
+            world.damageEnemy(e, flyDamage);
+            if (!e.dead) world.applyDot(e, 'bleed', 9, 2.5);
+          }
+        }
+        const passedTarget = !!(target && !target.dead)
+          && ((f.x - target.x) * f.dirX + (f.y - target.y) * f.dirY > 12);
+        if (passedTarget || f.travel > 520 || dist2(f.x, f.y, px, py) > 340 * 340) {
           f.state = 'return';
           f.target = null;
-        } else {
-          f.x += (dx / distance) * step;
-          f.y += (dy / distance) * step;
-          if (dist2(f.x, f.y, px, py) > 340 * 340) {
-            f.state = 'return';
-            f.target = null;
-          }
         }
       } else {
         const tx = px + Math.cos(f.angle) * f.orbitR;
@@ -227,18 +243,18 @@ export class SwordWeapon extends WeaponBase {
 
 export const CARD = {
   id: 'sword', kind: 'weapon', name: '道剑', icon: '⚔️', maxLevel: 6,
-  desc: 'Lv1 近战挥砍，Lv2 起御剑远程贯穿；Lv4 每 3 次攻击追加拔剑斩，Lv6 觉醒剑意。',
+  desc: 'Lv1 近战挥砍，Lv2 起御剑远程贯穿；Lv4 每 3 次攻击追加拔剑斩；Lv6 觉醒剑意：每命中 10 次凝一柄飞剑，飞剑贯穿沿途所有敌人。',
   levels: [
-    { damage: 16, meleeRange: 96, interval: 1.15, arc: 105 },
+    { damage: 16, meleeRange: 125, interval: 1.15, arc: 120 },
     { damage: 20, projectile: true, projectileRange: 520, projectileSpeed: 500, maxHits: 2, interval: 1.08 },
     { damage: 26, projectile: true, projectileRange: 550, projectileSpeed: 560, maxHits: 3, interval: 1.00 },
     { damage: 32, projectile: true, projectileRange: 570, projectileSpeed: 580, maxHits: 3, interval: 0.94,
-      drawSlash: true, ringRadius: 145, ringBleedDps: 10 },
+      drawSlash: true, ringRadius: 175, ringBleedDps: 10 },
     { damage: 40, projectile: true, projectileRange: 600, projectileSpeed: 620, maxHits: 4, interval: 0.87,
-      drawSlash: true, ringRadius: 158, ringBleedDps: 11 },
+      drawSlash: true, ringRadius: 190, ringBleedDps: 11 },
     { damage: 48, projectile: true, projectileRange: 640, projectileSpeed: 660, maxHits: Infinity, interval: 0.80,
       drawSlash: true, ringRadius: 172, ringBleedDps: 12, swordIntent: true,
-      flyMax: 10, flyInterval: 1.2, flyRange: 220 },
+      flyMax: 10, flyInterval: 1.2, flyRange: 260 },
   ],
   create() { return new SwordWeapon(this); },
 };

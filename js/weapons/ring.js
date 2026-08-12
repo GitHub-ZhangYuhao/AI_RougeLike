@@ -157,18 +157,18 @@ export const CARD = {
   desc: '玉环围绕玩家旋转，触碰的敌人受到伤害。升级增加玉环数量与转速，高阶解锁寒玉减速、血滴子外扩与狂暴反制。',
   levels: [
     // Lv1：基础数值
-    { damage: 10, count: 1, orbitRadius: 70, orbitSpeed: 2.4 },
+    { damage: 10, count: 1, orbitRadius: 84, orbitSpeed: 2.4 },
     // Lv2：寒玉——命中的敌人减速 25%，持续 1.2s
-    { damage: 13, count: 1, orbitRadius: 76, orbitSpeed: 2.7, coldJade: true },
+    { damage: 13, count: 1, orbitRadius: 91, orbitSpeed: 2.7, coldJade: true },
     // Lv3：数值成长 + 环数加一
-    { damage: 16, count: 2, orbitRadius: 82, orbitSpeed: 2.9, coldJade: true },
+    { damage: 16, count: 2, orbitRadius: 99, orbitSpeed: 2.9, coldJade: true },
     // Lv4：血滴子——周期性全部玉环外扩再收回（一个来回），扩张段伤害 ×1.5
-    { damage: 20, count: 2, orbitRadius: 89, orbitSpeed: 3.2, coldJade: true, bloodDrop: true, expandRadius: 80 },
+    { damage: 20, count: 2, orbitRadius: 107, orbitSpeed: 3.2, coldJade: true, bloodDrop: true, expandRadius: 96 },
     // Lv5：数值成长 + 环数加一
-    { damage: 24, count: 3, orbitRadius: 95, orbitSpeed: 3.5, coldJade: true, bloodDrop: true, expandRadius: 86 },
+    { damage: 24, count: 3, orbitRadius: 114, orbitSpeed: 3.5, coldJade: true, bloodDrop: true, expandRadius: 103 },
     // Lv6: frenzy every 80 kills plus the reactive frost nova.
-    { damage: 28, count: 3, orbitRadius: 102, orbitSpeed: 3.8, coldJade: true, bloodDrop: true, expandRadius: 92,
-      ultimate: true, counterDamage: 130, counterRadius: 240, counterCd: 24 },
+    { damage: 28, count: 3, orbitRadius: 122, orbitSpeed: 3.8, coldJade: true, bloodDrop: true, expandRadius: 110,
+      ultimate: true, counterDamage: 130, counterRadius: 275, counterCd: 24 },
   ],
   create() { return new RingWeapon(this); },
 };

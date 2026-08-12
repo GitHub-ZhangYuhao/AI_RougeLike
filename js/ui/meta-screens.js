@@ -396,8 +396,8 @@ export function drawExtraction(ctx, viewW, viewH, game) {
   drawOverlay(ctx, viewW, viewH, 0.72);
 
   const wave = game.waveDirector?.wave ?? 1;
-  const waveRewardMult = CONFIG.meta?.waveRewardMult ?? 2;
-  const reward = wave * waveRewardMult;
+  const waveRewardMult = CONFIG.meta?.waveRewardMult ?? 1.5;
+  const reward = Math.round(wave * waveRewardMult);
   const backpack = materialEntries(game.tempBackpack);
   const layout = extractionLayout(viewW, viewH);
   const mx = game.input.mouse.x;
@@ -428,7 +428,7 @@ export function drawExtraction(ctx, viewW, viewH, game) {
 
   ctx.font = `bold 18px ${UI_FONT}`;
   ctx.fillStyle = '#b39ddb';
-  ctx.fillText(`撤离奖励：🌑 暗晶 +${reward}（第 ${wave} 波 × ${waveRewardMult}）`, viewW / 2, viewH * 0.505);
+  ctx.fillText(`撤离保底奖励：🌑 暗晶 +${reward}（第 ${wave} 波 × ${waveRewardMult}）`, viewW / 2, viewH * 0.505);
 
   drawButton(ctx, layout.extract, '撤离（E）', {
     hover: rectHit(layout.extract, mx, my), accent: '#66bb6a', fontSize: 22,

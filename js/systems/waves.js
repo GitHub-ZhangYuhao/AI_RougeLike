@@ -172,8 +172,8 @@ export class WaveDirector {
 
   _bossReinforcementsFor(wave) {
     if (wave < 15) return 0;
-    // Explicit targets: wave 15 => 6, wave 20+ => capped at 8.
-    return Math.min(8, 4 + Math.floor((wave - 10) / 5) * 2);
+    // Explicit targets: wave 15 => 8, wave 20 => 10, wave 25+ capped at 12.
+    return Math.min(12, 6 + Math.floor((wave - 10) / 5) * 2);
   }
 
   _quotaFor(wave) {

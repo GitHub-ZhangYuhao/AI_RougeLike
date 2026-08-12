@@ -398,12 +398,12 @@ export const CARD = {
   id: 'trail', kind: 'weapon', name: '丹火', icon: '🔥', maxLevel: 6,
   desc: '移动留下丹火轨迹；四级起闭环成炉，积蓄炉火开炉爆发，满级生成九转高温火域。',
   levels: [
-    { damage: 8, radius: 32, life: 3.0, dropInterval: 0.22 },
-    { damage: 11, radius: 35, life: 3.4, dropInterval: 0.22, burn: true, burnDps: 12 },
-    { damage: 15, radius: 38, life: 3.9, dropInterval: 0.18, burn: true, burnDps: 14 },
-    { damage: 18, radius: 42, life: 4.2, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true },
-    { damage: 23, radius: 46, life: 4.6, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true, enhancedFurnace: true },
-    { damage: 29, radius: 50, life: 5.0, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true, enhancedFurnace: true, nineTurn: true },
+    { damage: 8, radius: 40, life: 3.0, dropInterval: 0.22 },
+    { damage: 11, radius: 44, life: 3.4, dropInterval: 0.22, burn: true, burnDps: 12 },
+    { damage: 15, radius: 48, life: 3.9, dropInterval: 0.18, burn: true, burnDps: 14 },
+    { damage: 18, radius: 52, life: 4.2, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true },
+    { damage: 23, radius: 57, life: 4.6, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true, enhancedFurnace: true },
+    { damage: 29, radius: 62, life: 5.0, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true, enhancedFurnace: true, nineTurn: true },
   ],
   create() { return new TrailWeapon(this); },
 };

@@ -581,9 +581,9 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   assert(director.phase === 'rest', '[9] 清空波次后未进入休整');
 
   assert(new WaveDirector()._quotaFor(1) === 12, '[9] wave 1 quota must be 12');
-  assert(new WaveDirector()._quotaFor(9) === 52, '[9] normal-wave quota growth incorrect');
-  assert(new WaveDirector()._quotaFor(15) === 7, '[9] wave 15 boss reinforcement quota incorrect');
-  assert(new WaveDirector()._quotaFor(20) === 9, '[9] late boss reinforcement cap incorrect');
+  assert(new WaveDirector()._quotaFor(9) === 60, '[9] normal-wave quota growth incorrect');
+  assert(new WaveDirector()._quotaFor(15) === 9, '[9] wave 15 boss reinforcement quota incorrect');
+  assert(new WaveDirector()._quotaFor(20) === 11, '[9] late boss reinforcement cap incorrect');
 
   const bossDirector = new WaveDirector();
   bossDirector.wave = CONFIG.waves.bossEvery;
@@ -907,12 +907,12 @@ console.log('[10] 死亡 / 返回主菜单 OK');
   key('keyup', 'KeyE');
   pump(1);
   assert(game.state === 'summary', '[12] 撤离后应进入结算界面，实际 ' + game.state);
-  assert(game.save.darkCrystals === dcBefore + bossWave * CONFIG.meta.waveRewardMult,
-    '[12] 撤离暗晶奖励应为 波数×' + CONFIG.meta.waveRewardMult);
+  assert(game.save.darkCrystals === dcBefore + Math.round(bossWave * CONFIG.meta.waveRewardMult),
+    '[12] 撤离暗晶奖励应为 波数×' + CONFIG.meta.waveRewardMult + '（四舍五入）');
   assert(game.save.stats.extractions === extractionsBefore + 1, '[12] 成功撤离次数应 +1');
   assert(game.save.stats.bestWave >= bossWave, '[12] 最佳波数应更新');
   assert(game.lastRunSummary && game.lastRunSummary.wave === bossWave
-    && game.lastRunSummary.darkCrystalsGained === bossWave * CONFIG.meta.waveRewardMult,
+    && game.lastRunSummary.darkCrystalsGained === Math.round(bossWave * CONFIG.meta.waveRewardMult),
     '[12] 结算数据错误');
   const reloaded = loadSave();
   assert(reloaded.darkCrystals === game.save.darkCrystals
@@ -996,7 +996,7 @@ console.log('[10] 死亡 / 返回主菜单 OK');
   key('keyup', 'KeyE');
   pump(1);
   assert(game.state === 'summary', '[13] 撤离后应进入结算，实际 ' + game.state);
-  assert(game.save.darkCrystals === dcBefore + nextBossWave * CONFIG.meta.waveRewardMult, '[13] 第 10 波撤离奖励错误');
+  assert(game.save.darkCrystals === dcBefore + Math.round(nextBossWave * CONFIG.meta.waveRewardMult), '[13] 第 10 波撤离奖励错误');
   assert(game.save.storage[expectedItem.id] === storageBefore + expectedCount, '[13] 背包材料应入库');
   assert(Object.values(game.tempBackpack).every((n) => n === 0), '[13] 撤离后临时背包应清空');
   key('keydown', 'Enter');

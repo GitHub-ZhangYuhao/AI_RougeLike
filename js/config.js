@@ -17,8 +17,8 @@ export const CONFIG = {
     minInterval: 0.28,
     intervalPerWave: 0.09,
     startMaxAlive: 12,
-    maxAlivePerWave: 4,
-    maxAliveCap: 60,
+    maxAlivePerWave: 5,
+    maxAliveCap: 80,
     spawnMargin: 80,
   },
 
@@ -95,8 +95,8 @@ export const CONFIG = {
   // 离散波次：每波数量有限，清场后休整，不再无限持续刷怪。
   waves: {
     baseQuota: 12,
-    quotaPerWave: 5,
-    quotaCap: 80,
+    quotaPerWave: 6,
+    quotaCap: 110,
     restDuration: 6,
     bossEvery: 5,
     eliteEvery: 3,
@@ -139,7 +139,7 @@ export const CONFIG = {
     tierWeights: { 1: [100, 0, 0], 2: [70, 30, 0], 3: [45, 45, 10], 4: [25, 45, 30], 5: [10, 40, 50] }, // 权重对应 [T1,T2,T3]；5 阶及以上 Boss 一律用第 5 档
     dropCount: { 1: [1, 1], 2: [1, 1], 3: [1, 2], 4: [1, 2], 5: [2, 2] }, // [min,max]；5 阶及以上用第 5 档
     guaranteedMinTier: { 3: 2, 5: 3 }, // Boss 阶位 → 保底最低材料阶（取 ≤bossTier 的最大键；1~2 阶无保底即 1）
-    waveRewardMult: 2,
+    waveRewardMult: 1.5,
     shopMaxLevel: 10,
     shopPrice: { base: 20, growth: 1.6 },
     saveKey: 'ai-roguelike-meta-save-v1',
