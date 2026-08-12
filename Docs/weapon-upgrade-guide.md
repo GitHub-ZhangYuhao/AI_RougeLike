@@ -31,8 +31,9 @@ world.kills       累计击杀数
 world.killLog     最近击杀记录数组，条目 { id, x, y, burned }（burned=死亡时是否带火系debuff）
 world.damageEnemy(e, dmg)         统一伤害入口（击杀计数/掉宝石必须走它）
 world.healPlayer(amount)          治疗（自动 clamp 到上限）
+world.setPlayerMoveSpeedBonus(source, multiplier, duration)  按来源添加短时移速倍率
 world.dropPickup(x, y, kind='hp') 掉血包（同屏上限系统自动控制）
-world.applyDot(e, type, dps, duration)   挂 debuff。type: 'burn'|'bleed'|'poison'，不叠加只刷新
+world.applyDot(e, type, dps, duration)   挂 debuff。type: 'burn'|'blaze'|'bleed'|'poison'，不叠加只刷新
 world.applySlow(e, factor, duration)     减速。factor=0.25 即减速25%
 world.applyFreeze(e, duration)           冰冻
 world.hasDot(e, type)                    查询 debuff
@@ -58,7 +59,8 @@ for (const k of world.killLog) {
 
 ## 四、DoT 数值参考（dps = 每秒伤害）
 
-- burn（灼烧/烈焰）：dps ≈ 10~16，持续 2s（参考：披风 Lv2 每 0.5s 打 7）
+- burn（灼烧）：dps ≈ 10~16，持续 2s（披风使用）
+- blaze（烈焰）：dps ≈ 12~14，持续 2s（丹火独立状态）
 - bleed（流血）：dps ≈ 6~12，持续 2.5s
 - poison（尸毒）：dps ≈ 6~10，持续 3s
 
@@ -89,12 +91,14 @@ for (const k of world.killLog) {
 6. 质变：闪电链弹射 3 个目标；每次攻击命中的第一个目标必定触发引雷（不占计数）；引雷变为范围伤害（半径 ≤80px）
 
 ### 丹火 trail.js
-1. 数值
-2. + 烈焰：地面 tick 命中的敌人挂 burn
-3. 数值
-4. + 爆燃：消费 killLog，带 burned 的击杀在死亡点爆炸（半径 60~70，伤害 ≈ 地面 tick ×2，对附近敌人）；每次击杀只爆一次（killLog 天然保证）
-5. 数值
-6. 质变：玩家站在自己的丹火地面上回血（1 点/0.5s，用 world.healPlayer）；爆燃放血包：爆炸击杀的敌人 20% 概率 world.dropPickup（系统有同屏上限，直接调即可）；爆燃半径 +50%
+1. 强化轨迹的伤害、范围、持续时间与铺火频率。
+2. + 烈焰：轨迹命中附加独立 `blaze` 持续伤害。
+3. 继续强化基础数值与铺火效率。
+4. + 画地为炉：移动轨迹形成有效闭环时生成 4.5 秒丹炉火域；生成时造成 ×4 爆发，之后每 0.4 秒造成 ×1.25 伤害，并以 25px/s 牵引敌人。击杀敌人或持续命中精英/Boss可积累炉火。
+5. 强化火域与开炉能力；每个火域最多开炉 2 次。
+6. 质变「九转丹火」：积满 9 点炉火开炉，造成 ×6 范围爆发、火域延长 2 秒（剩余时间最多 8 秒），并生成 3 秒九转高温火域；高温伤害为普通火域 ×1.5，玩家站入后每 0.5 秒回复 1 点生命并获得 12% 移速。
+
+闭环判定：路径长度 ≥260px、面积 ≥9000px²，当前点距离至少 1.2 秒前的轨迹点 ≤55px；触发冷却 1.5 秒。
 
 ### 玉环 ring.js
 1. 数值

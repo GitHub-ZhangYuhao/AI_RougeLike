@@ -1,4 +1,4 @@
-import { WeaponBase, nearestN, hitEnemiesInRadius } from './base.js';
+import { WeaponBase, nearestEnemy, hitEnemiesInRadius } from './base.js';
 import { createProjectile } from '../projectile.js';
 import { dist2 } from '../utils.js';
 
@@ -10,7 +10,7 @@ export class TalismanWeapon extends WeaponBase {
   constructor(card) {
     super(card);
     this.world = null;      // 当前帧 world（update 每帧刷新，onHit 回调里读取）
-    this.hitCount = 0;      // 引雷命中计数（满 2 触发后清零）
+    this.hitCounts = new WeakMap(); // Per-target thunder counters
     this.attackSeq = 0;     // 攻击波次序号（Lv6「首命中必引雷」用）
     this.firstDoneSeq = 0;  // 已消费过首命中引雷的波次序号
     this.boltFx = [];       // 引雷特效：{ x, y, ttl, total, aoe }
@@ -28,26 +28,19 @@ export class TalismanWeapon extends WeaponBase {
     this.timer -= dt;
     if (this.timer > 0) return;
     const s = this.stats;
-    // 「弹道数量」属性只对弹道类武器生效
-    const count = 1 + world.mods.projectileBonus;
-    const targets = nearestN(world.enemies, world.player.x, world.player.y, count, s.range ** 2);
-    if (targets.length === 0) { this.timer = 0; return; }
-    this.timer = s.interval / world.mods.attackSpeedMult;
+    const target = nearestEnemy(world.enemies, world.player.x, world.player.y, s.range ** 2);
+    if (!target) { this.timer = 0; return; }
+    this.timer = s.interval;
     const damage = s.damage * world.mods.damageMult;
     const lifetime = s.range / s.speed + 0.3;
-    this.attackSeq++; // 开启新的攻击波次
-    for (let i = 0; i < count; i++) {
-      const t = targets[i % targets.length];
-      let angle = Math.atan2(t.y - world.player.y, t.x - world.player.x);
-      if (targets.length < count) angle += (i - (count - 1) / 2) * 0.14; // 多余弹道扇形展开
-      const p = createProjectile(world.player.x, world.player.y, angle, {
-        speed: s.speed, radius: 5, damage, lifetime, color: '#8be0ff',
-      });
-      p.attackSeq = this.attackSeq;
-      // 官方命中钩子：game 在 damageEnemy 之后调用，引雷/闪电链在此结算
-      p.onHit = (e) => this._onProjectileHit(e, p);
-      world.projectiles.push(p);
-    }
+    this.attackSeq++;
+    const angle = Math.atan2(target.y - world.player.y, target.x - world.player.x);
+    const p = createProjectile(world.player.x, world.player.y, angle, {
+      speed: s.speed, radius: 5, damage, lifetime, color: '#8be0ff',
+    });
+    p.attackSeq = this.attackSeq;
+    p.onHit = (e) => this._onProjectileHit(e, p);
+    world.projectiles.push(p);
   }
 
   // 弹道命中回调（由 game._handleCollisions 调用，发生在 damageEnemy 之后）
@@ -62,11 +55,13 @@ export class TalismanWeapon extends WeaponBase {
       this.firstDoneSeq = p.attackSeq;
       this._strikeThunder(e, thunderDmg, world);
     } else if (s.thunder) {
-      // 引雷：按命中次数计数，每命中 2 次，被命中的那个目标被雷劈一次
-      this.hitCount++;
-      if (this.hitCount >= 2) {
-        this.hitCount = 0;
+      // Each enemy tracks its own two-hit thunder progress.
+      const hits = (this.hitCounts.get(e) || 0) + 1;
+      if (hits >= 2) {
+        this.hitCounts.delete(e);
         this._strikeThunder(e, thunderDmg, world);
+      } else {
+        this.hitCounts.set(e, hits);
       }
     }
 

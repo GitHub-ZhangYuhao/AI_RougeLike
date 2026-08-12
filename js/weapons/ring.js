@@ -21,7 +21,7 @@ export class RingWeapon extends WeaponBase {
   // 玉环位置（含血滴子扩张半径，命中判定与 draw 同步）
   ringPositions(world) {
     const s = this.stats;
-    const orbitR = (s.orbitRadius + this.expandFactor * (s.expandRadius || 0)) * world.mods.areaMult;
+    const orbitR = s.orbitRadius + this.expandFactor * (s.expandRadius || 0);
     const out = [];
     for (let i = 0; i < s.count; i++) {
       const a = this.angle + (i * Math.PI * 2) / s.count;
@@ -34,7 +34,7 @@ export class RingWeapon extends WeaponBase {
   }
   update(dt, world) {
     const s = this.stats;
-    this.angle += s.orbitSpeed * world.mods.attackSpeedMult * dt;
+    this.angle += s.orbitSpeed * dt;
     const frenzy = !!s.ultimate && this.frenzyTimer > 0;
 
     // —— Lv6：狂暴充能（按 world.kills 增量，每 100 击杀触发血滴子狂暴 3s） ——
@@ -51,8 +51,8 @@ export class RingWeapon extends WeaponBase {
       if (hurtAt !== this.lastHurtSeen) {
         this.lastHurtSeen = hurtAt;
         if (hurtAt >= 0 && this.counterCd <= 0) {
-          this.counterCd = (s.counterCd || 24) * world.mods.cooldownMult; // 内置 CD（基准 24s，保证减 CD 后仍 ≥20s 左右）
-          const radius = (s.counterRadius || 240) * world.mods.areaMult;
+          this.counterCd = (s.counterCd || 24); // 内置 CD（基准 24s，保证减 CD 后仍 ≥20s 左右）
+          const radius = (s.counterRadius || 240);
           const dmg = (s.counterDamage || 130) * world.mods.damageMult;
           for (const e of world.enemies) {
             if (e.dead) continue;
@@ -72,7 +72,7 @@ export class RingWeapon extends WeaponBase {
       const speed = frenzy ? 2 : 1;               // 狂暴：扩张速度 ×2
       const expandDur = 1 / speed;                // 扩张段 ~1s
       const contractDur = 1 / speed;              // 收回段对称 ~1s
-      const period = 4 * world.mods.cooldownMult; // 周期 ~4s（内置 CD ×cooldownMult）
+      const period = 4; // fixed four-second cycle
       this.dropT += dt;
       while (this.dropT >= period) this.dropT -= period;
       if (this.dropT < expandDur) {
@@ -90,7 +90,7 @@ export class RingWeapon extends WeaponBase {
 
     // —— 玉环本体命中（保持 e.ringCd=0.5 受击冷却机制） ——
     // 扩张段伤害 ×1.5；狂暴期间再 ×2（即扩张段 ×3）
-    const damage = s.damage * world.mods.damageMult * (expanding ? (frenzy ? 3 : 1.5) : 1);
+    const damage = s.damage * world.mods.damageMult * (frenzy ? 2 : 1) * (expanding ? 1.5 : 1);
     const positions = this.ringPositions(world);
     for (const e of world.enemies) {
       if (e.dead || e.ringCd > 0) continue;
@@ -130,7 +130,7 @@ export class RingWeapon extends WeaponBase {
     }
     // 血滴子扩张指示环：当前轨道半径细圈，让外扩过程可见
     if (s.bloodDrop && this.expandFactor > 0) {
-      const orbitR = (s.orbitRadius + this.expandFactor * (s.expandRadius || 0)) * world.mods.areaMult;
+      const orbitR = s.orbitRadius + this.expandFactor * (s.expandRadius || 0);
       ctx.beginPath();
       ctx.arc(world.player.x, world.player.y, orbitR, 0, Math.PI * 2);
       ctx.strokeStyle = frenzy ? 'rgba(255,23,68,0.5)' : 'rgba(255,82,82,0.35)';

@@ -1,5 +1,6 @@
 import { Input } from './input.js';
 import { Game } from './game.js';
+import { DebugPanel } from './debug-panel.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -19,6 +20,12 @@ window.addEventListener('resize', resize);
 resize();
 
 const game = new Game(input);
+const debugPanel = new DebugPanel(game);
+window.addEventListener('keydown', (event) => {
+  if (event.code !== 'F2') return;
+  event.preventDefault();
+  if (!event.repeat) debugPanel.toggle();
+}, true);
 globalThis.__game = game; // 调试入口：浏览器控制台可用 __game 查看/修改状态
 
 // 固定时间步长：逻辑按 60Hz 推进，渲染每帧执行

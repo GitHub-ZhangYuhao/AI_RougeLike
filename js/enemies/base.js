@@ -94,13 +94,40 @@ export class EnemyBase {
   }
 
   drawHealthBar(ctx) {
-    if (this.hp >= this.maxHp) return;
-    const width = this.radius * 2;
+    if (this.rank === 'normal' && this.hp >= this.maxHp) return;
+    const width = this.radius * (this.rank === 'boss' ? 2.4 : 2);
+    const height = this.rank === 'normal' ? 3 : 5;
     const ratio = Math.max(0, this.hp / this.maxHp);
-    const y = this.y - this.radius - 8;
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(this.x - width / 2, y, width, 3);
-    ctx.fillStyle = '#ff8a80';
-    ctx.fillRect(this.x - width / 2, y, width * ratio, 3);
+    const y = this.y - this.radius - (this.rank === 'normal' ? 8 : 13);
+    ctx.fillStyle = 'rgba(0,0,0,0.68)';
+    ctx.fillRect(this.x - width / 2, y, width, height);
+    ctx.fillStyle = this.rank === 'elite' ? '#ffd54f'
+      : (this.rank === 'boss' ? '#b388ff' : '#ff8a80');
+    ctx.fillRect(this.x - width / 2, y, width * ratio, height);
   }
+}
+
+// Apply wave growth after the concrete enemy has applied its own type/rank
+// multipliers. This keeps legacy constructors compatible while letting every
+// enemy type, including bosses and elites, share the same wave curve.
+export function applyWaveScaling(enemy, wave = 1) {
+  const normalizedWave = Number.isFinite(wave) ? Math.max(1, Math.floor(wave)) : 1;
+  if (enemy.waveScalingApplied) return enemy;
+
+  const step = normalizedWave - 1;
+  const hpMult = 1 + CONFIG.enemy.hpPerWave * step;
+  const damageMult = 1 + CONFIG.enemy.damagePerWave * step;
+  const speedMult = 1 + Math.min(
+    CONFIG.enemy.speedWaveCap,
+    CONFIG.enemy.speedPerWave * step,
+  );
+  const hpRatio = enemy.maxHp > 0 ? enemy.hp / enemy.maxHp : 1;
+
+  enemy.maxHp *= hpMult;
+  enemy.hp = enemy.maxHp * hpRatio;
+  enemy.damage *= damageMult;
+  enemy.speed *= speedMult;
+  enemy.wave = normalizedWave;
+  enemy.waveScalingApplied = true;
+  return enemy;
 }

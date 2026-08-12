@@ -16,6 +16,7 @@ const CTX_METHODS = new Set([
   'fillRect', 'strokeRect', 'clearRect', 'beginPath', 'closePath', 'arc', 'ellipse',
   'fill', 'stroke', 'moveTo', 'lineTo', 'arcTo', 'save', 'restore', 'translate',
   'scale', 'rotate', 'setTransform', 'resetTransform', 'clip', 'fillText', 'strokeText',
+  'setLineDash',
 ]);
 const ctxStore = {};
 const ctxStub = new Proxy(ctxStore, {
@@ -48,6 +49,13 @@ const { ChargerEnemy } = await import('../js/enemies/charger.js');
 const { RangedEnemy } = await import('../js/enemies/ranged.js');
 const { BomberEnemy } = await import('../js/enemies/bomber.js');
 const { ShieldEnemy } = await import('../js/enemies/shield.js');
+const { BossEnemy } = await import('../js/enemies/boss.js');
+const { EnhancedChaserEnemy } = await import('../js/enemies/enhanced-chaser.js');
+const { chooseEnemyType, createEnemyByType } = await import('../js/enemies/index.js');
+const { WaveDirector } = await import('../js/systems/waves.js');
+const { createGem, updateGem } = await import('../js/gems.js');
+const { drawEnemy } = await import('../js/enemy.js');
+const { applyDot } = await import('../js/systems/status.js');
 
 const game = globalThis.__game;
 if (!game) throw new Error('游戏未初始化');
@@ -102,18 +110,13 @@ function assert(cond, msg) {
 // 预热 1 帧：main.js 的第一帧只记录时间戳，不推进逻辑
 pump(1);
 
-// ========== [0] 武器卡结构：maxLevel===6 && levels.length===6 ==========
+// ========== [0] Weapon card structure ==========
 for (const card of WEAPON_CARDS) {
-  assert(card.maxLevel === 6, '[0] ' + card.id + ' maxLevel 应为 6，实际 ' + card.maxLevel);
-  assert(card.levels.length === 6, '[0] ' + card.id + ' levels 应有 6 条，实际 ' + card.levels.length);
-  for (let lv = 0; lv < 5; lv++) {
-    const a = Object.keys(card.levels[lv]);
-    const b = new Set(Object.keys(card.levels[lv + 1]));
-    const missing = a.filter((k) => !b.has(k));
-    assert(missing.length === 0, '[0] ' + card.id + ' L' + (lv + 1) + '->L' + (lv + 2) + ' 丢失字段: ' + missing.join(','));
-  }
+  assert(card.maxLevel === 6, '[0] ' + card.id + ' maxLevel must be 6');
+  assert(card.levels.length === 6, '[0] ' + card.id + ' must have 6 levels');
+  for (const level of card.levels) assert(level.damage > 0, '[0] ' + card.id + ' level damage missing');
 }
-console.log('[0] 武器卡结构 OK（6 武器 × 6 级，flag 逐级继承）');
+console.log('[0] Weapon card structure OK');
 
 // ========== [1] 开局：三张新武器卡，三选一 ==========
 assert(game.state === 'opening', '[1] 初始状态应为 opening，实际 ' + game.state);
@@ -141,11 +144,12 @@ game.player.hp = 100000;
 // ========== [3] 站桩 60 秒：击杀 / 升级选卡 / 武器槽上限 ==========
 pumpWithChoices(60 * 60);
 console.log('[3] 60 秒后：elapsed=' + game.elapsed.toFixed(1) + 's 击杀=' + game.kills
-  + ' 等级=' + game.level + ' 武器=' + game.weapons.length);
+  + ' 等级=' + game.level + ' 武器=' + game.weapons.length + ' 波次=' + game.waveDirector.wave);
 assert(game.kills > 0, '[3] 没有产生击杀');
 assert(game.level >= 2, '[3] 玩家应该至少升到 2 级');
 assert(game.state === 'playing', '[3] 应处于战斗状态，实际 ' + game.state);
 assert(game.weapons.length <= CONFIG.cards.maxWeaponSlots, '[3] 武器数量超过槽位上限');
+assert(game.waveDirector.wave >= 2, '[3] 波次系统未推进');
 
 // ========== [4] 强制升级：鼠标点击选卡 ==========
 game.pendingChoices = 0;
@@ -183,42 +187,201 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   console.log('[4] 鼠标选卡 OK：' + offer.card.name + '（' + offer.type + '）');
 }
 
-// ========== [5] computeMods 数值 ==========
+// ========== [5] New base attributes ==========
 {
-  const m = computeMods({ damage: 2, projectile: 1, xp: 3, area: 2, moveSpeed: 1, attackSpeed: 2, cooldown: 2 });
+  assert(ATTR_CARDS.length === 6, '[5] attribute pool must contain exactly 6 cards');
+  assert(ATTR_CARDS.map((c) => c.id).join(',') === 'damage,armor,magnet,xp,maxHp,moveSpeed',
+    '[5] attribute pool contains removed or missing cards');
+  assert(CONFIG.gems.magnetRadius === 180, '[5] base magnet radius must be 180px');
+
+  const m = computeMods({ damage: 2, armor: 5, magnet: 2, xp: 3, maxHp: 2, moveSpeed: 1 });
+  const expectedReduction = 75 / 175;
   const expect = [
     ['damageMult', 1.3],
-    ['projectileBonus', 1],
-    ['xpMult', 1.75],
-    ['areaMult', 1.2],
-    ['moveSpeedMult', 1.08],
-    ['attackSpeedMult', 1.2],
-    ['cooldownMult', 0.84],
+    ['armor', 75],
+    ['damageReduction', expectedReduction],
+    ['magnetRadiusBonus', 100],
+    ['xpMult', 1.45],
+    ['maxHpBonus', 40],
+    ['moveSpeedMult', 1.06],
   ];
-  for (const [k, v] of expect) {
-    assert(Math.abs(m[k] - v) < 1e-6, '[5] ' + k + ' 数值错误：' + m[k] + '，期望 ' + v);
+  for (const [key, value] of expect) {
+    assert(Math.abs(m[key] - value) < 1e-6, '[5] bad ' + key + ': ' + m[key]);
   }
-  console.log('[5] computeMods 数值 OK');
+  const capped = computeMods({ armor: 1000 });
+  assert(capped.damageReduction === 0.5, '[5] armor reduction must cap at 50%');
+
+  const savedStacks = game.attrStacks;
+  const savedMods = game.mods;
+  const savedHp = game.player.hp;
+  const savedMaxHp = game.player.maxHp;
+  game.attrStacks = {};
+  game.recomputeMods();
+  game.player.hp = 50;
+  game.player.maxHp = 100;
+  game._applyOffer({ card: CARD_BY_ID.get('maxHp'), type: 'attr' });
+  assert(game.player.maxHp === 120 && game.player.hp === 70, '[5] max HP card must add and heal 20');
+
+  game.mods = computeMods({ armor: 5 });
+  game.player.hp = 100;
+  game.player.iFrames = 0;
+  game.hurtPlayer(100);
+  assert(Math.abs(game.player.hp - (100 - 100 * (1 - expectedReduction))) < 1e-6,
+    '[5] player armor reduction was not applied');
+
+  game.attrStacks = savedStacks;
+  game.mods = savedMods;
+  game.player.hp = savedHp;
+  game.player.maxHp = savedMaxHp;
+  game.player.iFrames = 0;
+  console.log('[5] Base attributes, armor and max HP acquisition OK');
 }
 
-// ========== [6] 「弹道数量」属性作用于弹道武器 ==========
+// ========== [6] Weapon mechanic changes ==========
 {
+  const baseWorld = () => ({
+    player: { x: 0, y: 0, radius: 12, facing: 0, moving: false, lastHurtAt: -1 },
+    enemies: [{ x: 120, y: 0, radius: 13, dead: false, hp: 1000 }],
+    projectiles: [], trails: [], summons: [], effects: [], killLog: [],
+    mods: computeMods({ projectile: 5, area: 5, attackSpeed: 5, cooldown: 5 }),
+    elapsed: 0, kills: 0,
+    damageEnemy: () => {}, healPlayer: () => {}, dropPickup: () => {},
+    applyDot: () => {}, applySlow: () => {}, applyFreeze: () => {},
+  });
+
+  // Talisman always fires one projectile and tracks thunder per target.
   const talisman = CARD_BY_ID.get('talisman').create();
-  const projectiles = [];
-  const fakeWorld = {
-    player: { x: 0, y: 0, facing: 0, moving: false },
-    enemies: [{ x: 120, y: 0, radius: 13, dead: false, hp: 100 }],
-    projectiles,
-    trails: [],
-    summons: [],
-    effects: [],
-    mods: computeMods({ projectile: 2 }), // +2 弹道 → 一次应射 3 发
-    elapsed: 0,
-    damageEnemy: () => {},
+  const talismanWorld = baseWorld();
+  talisman.update(1 / 60, talismanWorld);
+  assert(talismanWorld.projectiles.length === 1, '[6] talisman must fire exactly one projectile');
+  talisman.level = 2;
+  let thunderHits = 0;
+  const targetA = { x: 0, y: 0, radius: 10, dead: false };
+  const targetB = { x: 10, y: 0, radius: 10, dead: false };
+  talisman.world = { enemies: [targetA, targetB], damageEnemy: () => { thunderHits++; } };
+  const hitProjectile = { damage: 10, attackSeq: 1 };
+  talisman._onProjectileHit(targetA, hitProjectile);
+  talisman._onProjectileHit(targetB, hitProjectile);
+  assert(thunderHits === 0, '[6] thunder counters leaked between targets');
+  talisman._onProjectileHit(targetA, hitProjectile);
+  assert(thunderHits === 1, '[6] second hit on same target must trigger thunder');
+
+  // Sword finite piercing, infinite piercing and every-third-attack draw slash.
+  const sword = CARD_BY_ID.get('sword').create();
+  sword.level = 2;
+  const swordWorld = baseWorld();
+  sword.update(1 / 60, swordWorld);
+  assert(swordWorld.projectiles.length === 1 && swordWorld.projectiles[0].maxHits === 2,
+    '[6] sword Lv2 must be one ranged sword with total 2 hits');
+  sword.level = 5;
+  sword.timer = 0;
+  swordWorld.projectiles.length = 0;
+  sword.update(1 / 60, swordWorld);
+  assert(swordWorld.projectiles[0].maxHits === 4, '[6] sword Lv5 must pierce 3 enemies');
+  sword.level = 6;
+  sword.timer = 0;
+  swordWorld.projectiles.length = 0;
+  sword.update(1 / 60, swordWorld);
+  assert(swordWorld.projectiles[0].maxHits === Infinity, '[6] sword Lv6 must pierce infinitely');
+
+  const savedEnemies = game.enemies;
+  const savedProjectiles = game.projectiles;
+  const enemies = [0, 1, 2].map((i) => ({ x: 5000, y: i, radius: 10, hp: 100, dead: false, hitCooldown: 0 }));
+  const finite = { x: 5000, y: 0, radius: 20, damage: 10, dead: false, pierce: true, maxHits: 2 };
+  game.enemies = enemies;
+  game.projectiles = [finite];
+  game._handleCollisions();
+  assert(finite.dead && enemies.filter((e) => e.hp === 90).length === 2, '[6] finite projectile hit limit failed');
+  const infinite = { x: 5000, y: 0, radius: 20, damage: 10, dead: false, pierce: true, maxHits: Infinity };
+  for (const e of enemies) { e.hp = 100; e.dead = false; }
+  game.projectiles = [infinite];
+  game._handleCollisions();
+  assert(!infinite.dead && enemies.every((e) => e.hp === 90), '[6] infinite projectile piercing failed');
+  game.enemies = savedEnemies;
+  game.projectiles = savedProjectiles;
+
+  const ringSword = CARD_BY_ID.get('sword').create();
+  ringSword.level = 4;
+  const ringWorld = baseWorld();
+  ringWorld.enemies[0].x = 20;
+  let bleedApplications = 0;
+  ringWorld.applyDot = (enemy, type) => { if (type === 'bleed') bleedApplications++; };
+  for (let i = 0; i < 3; i++) ringSword.update(2, ringWorld);
+  assert(ringSword.rings.length === 1 && bleedApplications === 1, '[6] every third sword attack must add draw slash and bleed');
+
+  // Cloak kill shock is extra and must not reset normal cooldown.
+  const cloak = CARD_BY_ID.get('cloak').create();
+  cloak.level = 6;
+  const cloakWorld = baseWorld();
+  cloak.update(0.1, cloakWorld);
+  cloakWorld.kills = 100;
+  cloak.update(0.1, cloakWorld);
+  assert(cloak.shocks.some((shock) => shock.enhanced), '[6] cloak 100-kill enhanced shock missing');
+  assert(cloak.shockTimer > 2.7, '[6] enhanced shock incorrectly reset normal cooldown');
+
+  // Trail blaze is independent from cloak burn.
+  const burnEnemy = { x: 0, y: 0, radius: 10, hp: 1, dead: false, dots: {} };
+  applyDot(burnEnemy, 'burn', 1, 2);
+  game.damageEnemy(burnEnemy, 2);
+  assert(game.killLog.at(-1).burned && !game.killLog.at(-1).blazed, '[6] cloak burn incorrectly counts as trail blaze');
+  const blazeEnemy = { x: 0, y: 0, radius: 10, hp: 1, dead: false, dots: {} };
+  applyDot(blazeEnemy, 'blaze', 1, 2);
+  game.damageEnemy(blazeEnemy, 2);
+  assert(game.killLog.at(-1).blazed, '[6] trail blaze was not recorded');
+
+  // Trail Lv4 creates a furnace from a valid loop; Lv6 opening creates a hot zone.
+  const trailWeapon = CARD_BY_ID.get('trail').create();
+  trailWeapon.level = 6;
+  const trailWorld = baseWorld();
+  trailWorld.player.x = 60;
+  trailWorld.player.y = 60;
+  trailWorld.enemies = [{ x: 60, y: 60, radius: 10, hp: 10000, dead: false, rank: 'normal' }];
+  trailWorld.damageEnemy = (enemy, damage) => {
+    enemy.hp -= damage;
+    if (enemy.hp <= 0) enemy.dead = true;
   };
-  talisman.update(1 / 60, fakeWorld);
-  assert(projectiles.length === 3, '[6] 雷符咒应射出 3 发弹道，实际 ' + projectiles.length);
-  console.log('[6] 弹道数量加成 OK');
+  let trailHeals = 0;
+  let speedBonus = 1;
+  trailWorld.healPlayer = (amount) => { trailHeals += amount; };
+  trailWorld.setPlayerMoveSpeedBonus = (source, multiplier) => { speedBonus = multiplier; };
+  const loopPoints = [
+    [0, 0, 0], [120, 0, 0.35], [120, 120, 0.7], [0, 120, 1.05], [5, 5, 1.3],
+  ];
+  trailWeapon.pathPoints = loopPoints.map(([x, y, at]) => ({ x, y, at, trail: { dead: false } }));
+  trailWorld.elapsed = 1.3;
+  trailWeapon._tryCreateFurnace(trailWorld, trailWeapon.stats);
+  assert(trailWeapon.furnaces.length === 1 && trailWeapon.loopCooldown > 0,
+    '[6] trail valid loop did not create furnace');
+  const furnace = trailWeapon.furnaces[0];
+  furnace.fuel = 9;
+  trailWeapon._tryOpen(furnace, trailWorld, trailWeapon.stats);
+  assert(furnace.opens === 1 && trailWeapon.hotZones.length === 1,
+    '[6] trail furnace opening or Ninefold hot zone missing');
+  trailWeapon._updateHotZones(0.5, trailWorld, trailWeapon.stats);
+  assert(trailHeals === 1 && Math.abs(speedBonus - 1.12) < 1e-6,
+    '[6] trail hot-zone healing or movement bonus missing');
+
+  // Staff: self-explosion kills cannot convert; pity and corpse cap are enforced.
+  const staff = CARD_BY_ID.get('staff').create();
+  staff.level = 6;
+  const staffWorld = baseWorld();
+  staffWorld.killLog = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, x: 0, y: 0, noSummon: true }));
+  const oldRandom = Math.random;
+  Math.random = () => 1;
+  staff.update(0, staffWorld);
+  assert(staff.corpses.length === 0, '[6] noSummon kills created corpse minions');
+  staffWorld.killLog.push(...Array.from({ length: 60 }, (_, i) => ({ id: i + 11, x: 0, y: 0, noSummon: false })));
+  staff.update(0, staffWorld);
+  Math.random = oldRandom;
+  assert(staff.corpses.length === 5, '[6] corpse minion cap must be 5');
+  let blastOptions = null;
+  const blastWorld = baseWorld();
+  blastWorld.enemies = [{ x: 0, y: 0, radius: 10, dead: false }];
+  blastWorld.damageEnemy = (enemy, damage, options) => { blastOptions = options; };
+  staff.detonate({ x: 0, y: 0, damage: 10 }, staff.stats, blastWorld);
+  assert(blastOptions && blastOptions.noSummon, '[6] staff explosion damage must carry noSummon');
+
+  console.log('[6] Weapon transformations and caps OK');
 }
 
 // ========== [7] generateOffers 卡池规则 ==========
@@ -287,7 +450,8 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
     speed: 0, radius: 5, damage: 5, lifetime: 1,
   });
   game._handleCollisions();
-  assert(game.player.hp === game.player.maxHp - 5 && game.hostileProjectiles[0].dead,
+  const expectedProjectileDamage = 5 * (1 - game.mods.damageReduction);
+  assert(Math.abs(game.player.hp - (game.player.maxHp - expectedProjectileDamage)) < 1e-6 && game.hostileProjectiles[0].dead,
     '[8] 敌方弹道未通过统一碰撞入口伤害玩家');
   game.enemies = savedEnemies;
   game.hostileProjectiles = savedHostiles;
@@ -319,29 +483,347 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   assert(Math.abs(shield.modifyIncomingDamage(10) - 10 * CONFIG.enemyTypes.shield.openDamageMult) < 1e-6,
     '[8] 开放期易伤错误');
 
-  console.log('[8] 敌人基类与四种特殊机制 OK');
+  // Wave scaling and enhanced chaser enrage.
+  const savedRandomForWave = Math.random;
+  Math.random = () => 0.5;
+  const waveOneEnemy = createEnemyByType('chaser', 0, 0, 60, 1);
+  const waveElevenEnemy = createEnemyByType('chaser', 0, 0, 60, 11);
+  Math.random = savedRandomForWave;
+  assert(Math.abs(waveElevenEnemy.maxHp / waveOneEnemy.maxHp - 2.2) < 1e-6,
+    '[8] enemy HP wave scaling incorrect');
+  assert(Math.abs(waveElevenEnemy.damage / waveOneEnemy.damage - 1.7) < 1e-6,
+    '[8] enemy damage wave scaling incorrect');
+  assert(Math.abs(waveElevenEnemy.speed / waveOneEnemy.speed - 1.15) < 1e-6,
+    '[8] enemy speed wave scaling incorrect');
+
+  const enhanced = new EnhancedChaserEnemy(0, 0, 0);
+  const enhancedBaseDamage = enhanced.damage;
+  enhanced.hp = enhanced.maxHp * 0.5;
+  enhanced.update({ x: 100, y: 0 }, 0.01, {});
+  assert(enhanced.warningTimer > 0 && !enhanced.enraged,
+    '[8] enhanced chaser did not enter warning state');
+  enhanced.update({ x: 100, y: 0 }, CONFIG.enemyTypes.enhancedChaser.warningDuration + 0.01, {});
+  assert(enhanced.enraged && enhanced.damage > enhancedBaseDamage,
+    '[8] enhanced chaser did not enrage after warning');
+
+  const oldRandomForTypes = Math.random;
+  Math.random = () => 0.01;
+  for (let i = 0; i < 30; i++) {
+    const lateType = chooseEnemyType(120, [], { wave: 11, quota: 62, spawnedByType: {} });
+    assert(lateType !== 'chaser', '[8] base chaser returned after wave 11');
+  }
+  for (let i = 0; i < 30; i++) {
+    const cappedType = chooseEnemyType(120, [], { wave: 8, quota: 12, spawnedByType: { ranged: 1 } });
+    assert(cappedType !== 'ranged', '[8] ranged per-wave cap was exceeded');
+  }
+  Math.random = oldRandomForTypes;
+
+  console.log('[8] Enemy base, special mechanics and wave scaling OK');
 }
 
-// ========== [9] 死亡与 R 重开 ==========
+// ========== [9] 波次 / Boss / 精英掉落 / 经验锁定吸附 ==========
+{
+  // 经验宝石一旦进入范围必须持续追踪，不能因玩家移动出初始范围而脱锁甩飞。
+  const gem = createGem(180, 0, 0);
+  gem.vx = 500;
+  gem.vy = 0;
+  const gemPlayer = { x: 0, y: 0 };
+  updateGem(gem, gemPlayer, 1 / 60, CONFIG.gems.magnetRadius);
+  assert(gem.magnetized && gem.vx < 0, '[9] 经验宝石未在范围内锁定玩家');
+  gemPlayer.x = 700;
+  updateGem(gem, gemPlayer, 1 / 60, CONFIG.gems.magnetRadius);
+  assert(gem.magnetized && gem.vx > 0, '[9] 经验宝石离开初始范围后脱锁');
+
+  // 波次 3 保证精英；投放完并清场后进入休整。
+  const director = new WaveDirector();
+  director.wave = 3;
+  director.quota = 2;
+  director.spawned = 0;
+  const fakeGame = {
+    elapsed: 60,
+    enemies: [],
+    spawner: {
+      timer: 0,
+      spawnType(type, elapsed, enemies) {
+        const enemy = { type, rank: type === 'shield' ? 'elite' : 'normal', dead: false };
+        enemies.push(enemy);
+        return enemy;
+      },
+      update(dt, elapsed, enemies, camera, viewW, viewH, options) {
+        const count = Math.min(1, options.spawnLimit);
+        for (let i = 0; i < count; i++) enemies.push({ type: 'chaser', rank: 'normal', dead: false });
+        return count;
+      },
+    },
+  };
+  director.update(1 / 60, fakeGame, { x: 0, y: 0 }, 1280, 720);
+  assert(fakeGame.enemies.some((enemy) => enemy.rank === 'elite'), '[9] 精英波未保证生成精英怪');
+  assert(director.spawned === 2 && director.remaining === 0, '[9] 波次投放数量错误');
+  for (const enemy of fakeGame.enemies) enemy.dead = true;
+  director.update(1 / 60, fakeGame, { x: 0, y: 0 }, 1280, 720);
+  assert(director.phase === 'rest', '[9] 清空波次后未进入休整');
+
+  assert(new WaveDirector()._quotaFor(1) === 12, '[9] wave 1 quota must be 12');
+  assert(new WaveDirector()._quotaFor(9) === 52, '[9] normal-wave quota growth incorrect');
+  assert(new WaveDirector()._quotaFor(15) === 7, '[9] wave 15 boss reinforcement quota incorrect');
+  assert(new WaveDirector()._quotaFor(20) === 9, '[9] late boss reinforcement cap incorrect');
+
+  const bossDirector = new WaveDirector();
+  bossDirector.wave = CONFIG.waves.bossEvery;
+  bossDirector.quota = 1;
+  bossDirector.update(1 / 60, fakeGame, { x: 0, y: 0 }, 1280, 720);
+  assert(fakeGame.enemies.at(-1).type === 'boss' && bossDirector.bossSpawned,
+    '[9] Boss 波未通过波次系统生成 Boss');
+
+  // Boss 蓄力后应发射环形弹幕，并拥有独立 Boss 档位。
+  const bossShots = [];
+  const boss = new BossEnemy(0, 0, 120);
+  boss.attackCooldown = 0;
+  boss.update({ x: 200, y: 0 }, 0.01, {});
+  assert(boss.rank === 'boss' && boss.state === 'windup', '[9] Boss 未进入蓄力攻击');
+  boss.update({ x: 200, y: 0 }, CONFIG.enemyTypes.boss.windup + 0.01, {
+    spawnHostileProjectile: (options) => bossShots.push(options),
+    spawnEnemyBlast: () => {},
+  });
+  assert(bossShots.length === CONFIG.enemyTypes.boss.projectileCount, '[9] Boss 环形弹幕数量错误');
+
+  // 精英标记绘制不应依赖具体精英类，并且精英死亡必掉一个稀有物品。
+  const elite = new ShieldEnemy(game.player.x, game.player.y, game.elapsed);
+  drawEnemy(ctxStub, elite);
+  const pickupCount = game.pickups.length;
+  game.damageEnemy(elite, elite.maxHp * 10);
+  assert(game.pickups.length === pickupCount + 1 && game.pickups.at(-1).kind === 'rare',
+    '[9] 精英怪死亡未掉落稀有物品');
+  const bossDropCount = game.pickups.length;
+  const defeatedBoss = new BossEnemy(game.player.x + 100, game.player.y, game.elapsed);
+  game.damageEnemy(defeatedBoss, defeatedBoss.maxHp * 2);
+  assert(game.pickups.length === bossDropCount + 2 && game.bossesDefeated > 0,
+    '[9] Boss 死亡未掉落两件稀有物品');
+
+  const rarePickup = game.pickups.find((pickup) => pickup.kind === 'rare');
+  rarePickup.x = game.player.x;
+  rarePickup.y = game.player.y;
+  game._updatePickups(1 / 60);
+  assert(rarePickup.dead && Object.keys(game.rareInventory).length > 0 && game.rareMessage,
+    '[9] 稀有物品未被拾取或未生效');
+
+  console.log('[9] 波次 / Boss / 精英掉落 / 经验吸附 OK');
+}
+
+// ========== [Debug] Debug Runtime ==========
+{
+  const debug = game.debug;
+  const closeTo = (actual, expected, message, epsilon = 1e-6) => {
+    assert(Math.abs(actual - expected) <= epsilon, `${message}: ${actual} !== ${expected}`);
+  };
+  const weaponSnapshot = () => Object.fromEntries(
+    game.weapons.map((weapon) => [weapon.card.id, weapon.level]),
+  );
+
+  // Defaults must be neutral for normal gameplay.
+  assert(debug && typeof debug.setPlayerSettings === 'function', '[Debug] game.debug missing');
+  assert(
+    debug.settings.player.damageMult === 1
+      && debug.settings.player.xpMult === 1
+      && debug.settings.player.moveSpeedMult === 1
+      && debug.settings.player.maxHpMult === 1
+      && debug.settings.player.pickupRangeMult === 1
+      && debug.settings.player.armorBonus === 0
+      && debug.settings.enemy.hpMult === 1
+      && debug.settings.enemy.damageMult === 1
+      && debug.settings.enemy.speedMult === 1,
+    '[Debug] default multipliers are not neutral',
+  );
+  const defaultMods = { ...game.mods };
+  const defaultPickupRange = game.gemMagnetRadius();
+  const defaultEnemy = createEnemyByType('chaser', 0, 0, game.elapsed, game.waveDirector.wave);
+  const defaultEnemyStats = [defaultEnemy.maxHp, defaultEnemy.hp, defaultEnemy.damage, defaultEnemy.speed];
+  debug.applyEnemyMultipliers(defaultEnemy);
+  closeTo(game.mods.damageMult, defaultMods.damageMult, '[Debug] default damage changed');
+  closeTo(game.mods.xpMult, defaultMods.xpMult, '[Debug] default xp changed');
+  closeTo(game.mods.moveSpeedMult, defaultMods.moveSpeedMult, '[Debug] default move changed');
+  closeTo(game.gemMagnetRadius(), defaultPickupRange, '[Debug] default pickup changed');
+  [defaultEnemy.maxHp, defaultEnemy.hp, defaultEnemy.damage, defaultEnemy.speed].forEach((value, index) => {
+    closeTo(value, defaultEnemyStats[index], '[Debug] default enemy stats changed');
+  });
+
+  // Player settings, HP ratio/clamping and invincibility.
+  const naturalMaxHp = CONFIG.player.maxHp + (game.mods.maxHpBonus ?? 0);
+  game.player.maxHp = naturalMaxHp;
+  game.player.hp = naturalMaxHp * 0.4;
+  debug.setPlayerSettings({
+    damageMult: 2, xpMult: 3, moveSpeedMult: 1.5,
+    armorBonus: 50, pickupRangeMult: 2.5, maxHpMult: 2,
+  });
+  closeTo(game.mods.damageMult, defaultMods.damageMult * 2, '[Debug] damage multiplier');
+  closeTo(game.mods.xpMult, defaultMods.xpMult * 3, '[Debug] xp multiplier');
+  closeTo(game.mods.moveSpeedMult, defaultMods.moveSpeedMult * 1.5, '[Debug] move multiplier');
+  closeTo(game.mods.armor, defaultMods.armor + 50, '[Debug] armor bonus');
+  closeTo(game.gemMagnetRadius(), defaultPickupRange * 2.5, '[Debug] pickup multiplier');
+  closeTo(game.player.maxHp, naturalMaxHp * 2, '[Debug] max HP multiplier');
+  closeTo(game.player.hp / game.player.maxHp, 0.4, '[Debug] max HP ratio preservation');
+  debug.setPlayerHp(game.player.maxHp * 10);
+  closeTo(game.player.hp, game.player.maxHp, '[Debug] HP upper clamp');
+  debug.setPlayerHp(-100);
+  closeTo(game.player.hp, 0, '[Debug] HP lower clamp');
+  debug.setPlayerHp(game.player.maxHp * 0.5);
+  game.player.iFrames = 0;
+  debug.setInvincible(true);
+  const hpBeforeInvincibleHit = game.player.hp;
+  assert(game.hurtPlayer(25) === false, '[Debug] invincible hurtPlayer return');
+  closeTo(game.player.hp, hpBeforeInvincibleHit, '[Debug] invincible hurtPlayer block');
+  debug.setInvincible(false);
+
+  // Debug weapon levels bypass slots; resetDefaults restores natural weapons.
+  const normalWeaponLevels = weaponSnapshot();
+  WEAPON_CARDS.forEach((card, index) => debug.setWeaponLevel(card.id, index + 1));
+  assert(game.weapons.length === WEAPON_CARDS.length, '[Debug] weapon slot bypass');
+  WEAPON_CARDS.forEach((card, index) => {
+    assert(game.weapons.find((weapon) => weapon.card.id === card.id)?.level === index + 1,
+      `[Debug] weapon level ${card.id}`);
+  });
+  debug.setWeaponLevel(WEAPON_CARDS[0].id, 0);
+  assert(!game.weapons.some((weapon) => weapon.card.id === WEAPON_CARDS[0].id), '[Debug] weapon level 0 removal');
+  debug.setWeaponLevel(WEAPON_CARDS[0].id, 6);
+  debug.resetDefaults();
+  const restoredNaturalWeapons = weaponSnapshot();
+  assert(Object.keys(restoredNaturalWeapons).length === Object.keys(normalWeaponLevels).length
+    && Object.entries(normalWeaponLevels).every(([id, level]) => restoredNaturalWeapons[id] === level),
+  '[Debug] natural weapon baseline restoration');
+  for (const card of WEAPON_CARDS) debug.setWeaponLevel(card.id, 4);
+  game.reset();
+  assert(game.weapons.length === WEAPON_CARDS.length && game.weapons.every((weapon) => weapon.level === 4),
+    '[Debug] weapon overrides did not survive game.reset');
+
+  // Existing/new enemy scaling, idempotence and dynamic 1.35x preservation.
+  debug.clearEnemies();
+  const existingEnemy = createEnemyByType('chaser', 0, 0, game.elapsed, game.waveDirector.wave);
+  const baseEnemyStats = { maxHp: existingEnemy.maxHp, damage: existingEnemy.damage, speed: existingEnemy.speed };
+  existingEnemy.hp = existingEnemy.maxHp * 0.4;
+  game.enemies.push(existingEnemy);
+  debug.setEnemyMultipliers({ hpMult: 2, damageMult: 3, speedMult: 4 });
+  closeTo(existingEnemy.maxHp, baseEnemyStats.maxHp * 2, '[Debug] existing enemy HP');
+  closeTo(existingEnemy.hp / existingEnemy.maxHp, 0.4, '[Debug] existing enemy HP ratio');
+  closeTo(existingEnemy.damage, baseEnemyStats.damage * 3, '[Debug] existing enemy damage');
+  closeTo(existingEnemy.speed, baseEnemyStats.speed * 4, '[Debug] existing enemy speed');
+  const originalRandom = Math.random;
+  Math.random = () => 0.5;
+  const manualControl = createEnemyByType('chaser', 0, 0, game.elapsed, game.waveDirector.wave);
+  const manualEnemies = debug.spawnEnemies('chaser', 1);
+  Math.random = originalRandom;
+  assert(manualEnemies.length === 1, '[Debug] manual spawn count');
+  closeTo(manualEnemies[0].maxHp, manualControl.maxHp * 2, '[Debug] new enemy HP');
+  closeTo(manualEnemies[0].damage, manualControl.damage * 3, '[Debug] new enemy damage');
+  closeTo(manualEnemies[0].speed, manualControl.speed * 4, '[Debug] new enemy speed');
+  const unchangedStats = [existingEnemy.maxHp, existingEnemy.hp, existingEnemy.damage, existingEnemy.speed];
+  debug.setEnemyMultipliers({ hpMult: 2, damageMult: 3, speedMult: 4 });
+  [existingEnemy.maxHp, existingEnemy.hp, existingEnemy.damage, existingEnemy.speed].forEach((value, index) => {
+    closeTo(value, unchangedStats[index], '[Debug] repeated enemy multiplier stacking');
+  });
+  existingEnemy.damage *= 1.35;
+  existingEnemy.speed *= 1.35;
+  debug.setEnemyMultipliers({ hpMult: 3, damageMult: 5, speedMult: 6 });
+  closeTo(existingEnemy.maxHp, baseEnemyStats.maxHp * 3, '[Debug] changed enemy HP');
+  closeTo(existingEnemy.hp / existingEnemy.maxHp, 0.4, '[Debug] changed enemy HP ratio');
+  closeTo(existingEnemy.damage, baseEnemyStats.damage * 1.35 * 5, '[Debug] dynamic enemy damage preservation');
+  closeTo(existingEnemy.speed, baseEnemyStats.speed * 1.35 * 6, '[Debug] dynamic enemy speed preservation');
+
+  // Spawn quota/cap/interval/pause, wave jump, manual spawn and clear.
+  debug.setWave(4);
+  const baseQuota = game.waveDirector.baseQuota;
+  debug.setSpawnSettings({ quotaMult: 1.5, aliveCap: 2, intervalMult: 0.5, paused: true });
+  assert(game.waveDirector.quota === Math.round(baseQuota * 1.5), '[Debug] quota multiplier');
+  assert(debug.settings.spawn.aliveCap === 2 && debug.settings.spawn.intervalMult === 0.5
+    && debug.settings.spawn.paused === true, '[Debug] spawn settings update');
+  game.spawner.timer = 0;
+  assert(game.spawner.update(1, game.elapsed, game.enemies, game.camera, 1280, 720, {
+    spawnLimit: 1, wave: game.waveDirector.wave, spawnSettings: debug.settings.spawn, debug,
+  }) === 0, '[Debug] spawn pause');
+  debug.setSpawnSettings({ paused: false });
+  game.enemies = [
+    createEnemyByType('chaser', 0, 0, game.elapsed, game.waveDirector.wave),
+    createEnemyByType('chaser', 0, 0, game.elapsed, game.waveDirector.wave),
+  ];
+  game.spawner.timer = 0;
+  assert(game.spawner.update(1, game.elapsed, game.enemies, game.camera, 1280, 720, {
+    spawnLimit: 1, wave: game.waveDirector.wave, spawnSettings: debug.settings.spawn, debug,
+  }) === 0, '[Debug] alive cap');
+  game.enemies.length = 0;
+  debug.setSpawnSettings({ aliveCap: 10, intervalMult: 0.5 });
+  game.spawner.timer = 0;
+  const expectedInterval = Math.max(CONFIG.spawner.minInterval,
+    CONFIG.spawner.startInterval - (game.waveDirector.wave - 1) * CONFIG.spawner.intervalPerWave) * 0.5;
+  assert(game.spawner.update(0, game.elapsed, game.enemies, game.camera, 1280, 720, {
+    spawnLimit: 1, wave: game.waveDirector.wave, spawnSettings: debug.settings.spawn, debug,
+  }) === 1, '[Debug] interval test spawn');
+  closeTo(game.spawner.timer, expectedInterval, '[Debug] interval multiplier');
+  game.hostileProjectiles.push({ dead: false });
+  debug.setWave(7);
+  assert(game.waveDirector.wave === 7 && game.waveDirector.phase === 'wave'
+    && game.waveDirector.spawned === 0 && game.enemies.length === 0 && game.hostileProjectiles.length === 0,
+  '[Debug] setWave clear/jump');
+  const directorSpawnedBeforeManual = game.waveDirector.spawned;
+  const spawned = debug.spawnEnemies('chaser', 3);
+  assert(spawned.length === 3 && game.enemies.length === 3, '[Debug] spawnEnemies count');
+  assert(game.waveDirector.spawned === directorSpawnedBeforeManual, '[Debug] spawnEnemies changed director.spawned');
+  game.hostileProjectiles.push({ dead: false });
+  debug.clearEnemies();
+  assert(game.enemies.length === 0 && game.hostileProjectiles.length === 0, '[Debug] clearEnemies');
+
+  // Basic serialization round trip.
+  debug.setInvincible(true);
+  debug.setPlayerSettings({ damageMult: 2.25, xpMult: 1.75 });
+  debug.setEnemyMultipliers({ hpMult: 2.5, damageMult: 1.5, speedMult: 1.25 });
+  debug.setSpawnSettings({ quotaMult: 2, aliveCap: 9, intervalMult: 0.75, paused: true });
+  debug.setWave(8);
+  const serialized = debug.serialize();
+  debug.setInvincible(false);
+  debug.setPlayerSettings({ damageMult: 1, xpMult: 1 });
+  debug.setEnemyMultipliers({ hpMult: 1, damageMult: 1, speedMult: 1 });
+  debug.setSpawnSettings({ quotaMult: 1, aliveCap: null, intervalMult: 1, paused: false });
+  debug.setWeaponLevel(WEAPON_CARDS[0].id, 0);
+  debug.setWave(2);
+  const restored = debug.applySerialized(JSON.stringify(serialized));
+  assert(restored && restored.wave === serialized.wave, '[Debug] serialized wave round trip');
+  assert(restored.settings.invincible === serialized.settings.invincible
+    && restored.settings.player.damageMult === serialized.settings.player.damageMult
+    && restored.settings.player.xpMult === serialized.settings.player.xpMult
+    && restored.settings.enemy.hpMult === serialized.settings.enemy.hpMult
+    && restored.settings.spawn.aliveCap === serialized.settings.spawn.aliveCap,
+  '[Debug] serialized settings round trip');
+  assert(JSON.stringify(restored.weaponLevels) === JSON.stringify(serialized.weaponLevels),
+    '[Debug] serialized weapon round trip');
+
+  // Debug settings survive reset by design, so restore them before [10].
+  debug.resetDefaults();
+  debug.clearEnemies();
+  game.reset();
+  game.state = 'playing';
+  assert(debug.settings.invincible === false && debug.settings.player.damageMult === 1
+    && debug.settings.enemy.hpMult === 1 && debug.settings.spawn.paused === false
+    && game.weapons.length === 0, '[Debug] cleanup failed');
+  console.log('[Debug] Debug Runtime OK');
+}
+
+// ========== [10] 死亡与 R 重开 ==========
 game.player.hp = 1;
 game.player.iFrames = 0;
-if (game.enemies.length === 0) pump(120);
-assert(game.enemies.length > 0, '[9] 没有敌人，无法验证死亡');
-game.player.x = game.enemies[0].x;
-game.player.y = game.enemies[0].y;
-pump(120);
-assert(game.state === 'dead', '[9] 玩家应该已死亡，实际 ' + game.state);
+game.hurtPlayer(999);
+game._handleCollisions();
+assert(game.state === 'dead', '[10] 玩家应该已死亡，实际 ' + game.state);
 
 key('keydown', 'KeyR');
 key('keyup', 'KeyR');
 pump(3);
-assert(game.state === 'opening', '[9] 重开应回到开局选卡，实际 ' + game.state);
-assert(game.weapons.length === 0, '[9] 重开后武器应清空');
-assert(game.level === 1, '[9] 重开后等级应重置为 1');
-assert(game.kills === 0, '[9] 重开后击杀数应清零');
+assert(game.state === 'opening', '[10] 重开应回到开局选卡，实际 ' + game.state);
+assert(game.weapons.length === 0, '[10] 重开后武器应清空');
+assert(game.level === 1, '[10] 重开后等级应重置为 1');
+assert(game.kills === 0, '[10] 重开后击杀数应清零');
+assert(game.waveDirector.wave === 1, '[10] 重开后波次应重置为 1');
+assert(Object.keys(game.rareInventory).length === 0, '[10] 重开后稀有物品应清空');
 
 pumpWithChoices(3);
-assert(game.state === 'playing' && game.weapons.length === 1, '[9] 重开后选卡应回到战斗');
-console.log('[9] 死亡 / 重开 OK');
+assert(game.state === 'playing' && game.weapons.length === 1, '[10] 重开后选卡应回到战斗');
+console.log('[10] 死亡 / 重开 OK');
 
-console.log('✅ 冒烟测试全部通过（卡牌、武器与敌人原型）');
+console.log('✅ 冒烟测试全部通过（卡牌、武器、波次、精英与 Boss）');

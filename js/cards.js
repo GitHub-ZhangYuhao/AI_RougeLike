@@ -20,34 +20,36 @@ export const ATTR_CARDS = [
     apply(mods, n) { mods.damageMult += 0.15 * n; },
   },
   {
-    id: 'projectile', kind: 'attr', name: '弹道数量', icon: '🎆',
-    desc: '每层 +1 发弹道（只作用于有弹道的武器，如雷符咒）',
-    apply(mods, n) { mods.projectileBonus += n; },
+    id: 'armor', kind: 'attr', name: '护甲提升', icon: '🛡️',
+    desc: '每层 +15 护甲（递减减伤，最高 50%）',
+    apply(mods, n) { mods.armor += 15 * n; },
   },
   {
-    id: 'xp', kind: 'attr', name: '经验获取倍率', icon: '📖',
-    desc: '每层 +25% 经验获取',
-    apply(mods, n) { mods.xpMult += 0.25 * n; },
+    id: 'magnet', kind: 'attr', name: '拾取范围', icon: '🧲',
+    desc: '每层 +50px 经验吸附范围',
+    apply(mods, n) { mods.magnetRadiusBonus += 50 * n; },
   },
   {
-    id: 'area', kind: 'attr', name: '武器范围', icon: '🔮',
-    desc: '每层 +10% 武器攻击范围与面积',
-    apply(mods, n) { mods.areaMult += 0.10 * n; },
+    id: 'xp', kind: 'attr', name: '经验倍率', icon: '📖',
+    desc: '每层 +15% 经验获取',
+    apply(mods, n) { mods.xpMult += 0.15 * n; },
+  },
+  {
+    id: 'maxHp', kind: 'attr', name: '血量提升', icon: '❤️',
+    desc: '每层 +20 最大生命，并立即恢复 20',
+    apply(mods, n) { mods.maxHpBonus += 20 * n; },
+    onAcquire(game) {
+      if (typeof game.increaseMaxHp === 'function') game.increaseMaxHp(20, 20);
+      else {
+        game.player.maxHp += 20;
+        game.player.hp = Math.min(game.player.maxHp, game.player.hp + 20);
+      }
+    },
   },
   {
     id: 'moveSpeed', kind: 'attr', name: '移动速度', icon: '👟',
-    desc: '每层 +8% 移动速度',
-    apply(mods, n) { mods.moveSpeedMult += 0.08 * n; },
-  },
-  {
-    id: 'attackSpeed', kind: 'attr', name: '攻速提升', icon: '⚡',
-    desc: '每层 +10% 攻击频率（挥砍 / 射击 / 环绕转速）',
-    apply(mods, n) { mods.attackSpeedMult += 0.10 * n; },
-  },
-  {
-    id: 'cooldown', kind: 'attr', name: '冷却时间', icon: '⏳',
-    desc: '每层 -8% 特殊冷却（披风灼烧 / 丹火残留 / 召唤内置CD）',
-    apply(mods, n) { mods.cooldownMult -= 0.08 * n; },
+    desc: '每层 +6% 移动速度',
+    apply(mods, n) { mods.moveSpeedMult += 0.06 * n; },
   },
 ];
 
@@ -59,10 +61,15 @@ export const CARD_BY_ID = new Map(
 export function computeMods(attrStacks) {
   const mods = {
     damageMult: 1,
-    projectileBonus: 0,
     xpMult: 1,
-    areaMult: 1,
     moveSpeedMult: 1,
+    armor: 0,
+    damageReduction: 0,
+    magnetRadiusBonus: 0,
+    maxHpBonus: 0,
+    // Neutral compatibility fields for old saves and external debug tools. Weapons no longer consume them.
+    projectileBonus: 0,
+    areaMult: 1,
     attackSpeedMult: 1,
     cooldownMult: 1,
   };
@@ -70,7 +77,7 @@ export function computeMods(attrStacks) {
     const n = attrStacks[card.id] || 0;
     if (n > 0) card.apply(mods, n);
   }
-  mods.cooldownMult = Math.max(0.2, mods.cooldownMult); // 叠满也不至于归零
+  mods.damageReduction = Math.min(0.5, mods.armor / (mods.armor + 100));
   return mods;
 }
 

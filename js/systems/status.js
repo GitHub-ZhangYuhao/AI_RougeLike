@@ -1,10 +1,11 @@
 // ================= 状态系统：DoT / 减速 / 冰冻 =================
-// 三种独立 debuff（设计上互相独立，各武器挂各的）：
-//   burn   灼烧/烈焰（火系，炽热披风与丹火共用）
+// 四种独立 DoT（设计上互相独立，各武器挂各的）：
+//   burn   灼烧（炽热披风）
+//   blaze  烈焰（丹火）
 //   bleed  流血（道剑飞剑）
 //   poison 尸毒（死灵法杖仆从）
 // 规则：同类 debuff 不叠加，只刷新持续时间；dps 取较高者
-export const DOT_TYPES = ['burn', 'bleed', 'poison'];
+export const DOT_TYPES = ['burn', 'blaze', 'bleed', 'poison'];
 
 // 挂 debuff（由 world.applyDot 转发）
 export function applyDot(e, type, dps, duration) {
@@ -74,6 +75,7 @@ export function drawStatus(ctx, e) {
   if (!e.dots) return;
   const marks = [];
   if (e.dots.burn) marks.push('#ff9800');
+  if (e.dots.blaze) marks.push('#ff5722');
   if (e.dots.bleed) marks.push('#e53935');
   if (e.dots.poison) marks.push('#9ccc65');
   for (let i = 0; i < marks.length; i++) {

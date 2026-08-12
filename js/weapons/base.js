@@ -25,12 +25,12 @@ export function nearestN(enemies, x, y, n, maxDist2 = Infinity) {
 
 // AoE 辅助：对 (x,y) 半径内所有敌人结算伤害（走 world.damageEnemy，保证击杀计数/掉宝石）
 // onHit(e) 可选：对每个被命中的敌人额外做事（如挂 debuff）。返回命中数
-export function hitEnemiesInRadius(world, x, y, radius, damage, onHit) {
+export function hitEnemiesInRadius(world, x, y, radius, damage, onHit, damageOptions) {
   let hits = 0;
   for (const e of world.enemies) {
     if (e.dead) continue;
     if (dist2(x, y, e.x, e.y) <= (radius + e.radius) ** 2) {
-      world.damageEnemy(e, damage);
+      world.damageEnemy(e, damage, damageOptions);
       if (onHit) onHit(e);
       hits++;
     }

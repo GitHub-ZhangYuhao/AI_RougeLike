@@ -16,7 +16,9 @@ const BLAST_DMG_MULT = 2;      // 自爆伤害 = 仆从伤害 x2（su.damage 已
 
 // 百鬼夜行参数
 const CORPSE_LIFE = 10;        // 尸体仆从存活时间（建议区间 8~12s）
-const CORPSE_CAP = 4;          // 尸体仆从上限（规格 3~5，取 4）
+const REGULAR_CAP = 3;
+const CORPSE_CAP = 5;
+const TOTAL_CAP = 8;          // regular + corpse summon hard cap
 const CONVERT_CHANCE = 0.2;    // 每次击杀转化概率
 const PITY_KILLS = 10;         // 保底：每 10 杀至少转化 1 个
 const NIGHT_DMG_MULT = 1.5;    // 夜行强化：伤害
@@ -36,11 +38,15 @@ export class StaffWeapon extends WeaponBase {
   update(dt, world) {
     const s = this.stats;
     // 槽位数随等级变化
-    while (this.slots.length < s.count) {
+    const regularCount = Math.min(REGULAR_CAP, s.count);
+    while (this.slots.length < regularCount) {
       const isFirst = this.slots.length === 0;
       this.slots.push({ phase: 'cd', timer: isFirst ? 0.5 : s.cd, summon: null });
     }
-    if (this.slots.length > s.count) this.slots.length = s.count;
+    while (this.slots.length > regularCount) {
+      const removed = this.slots.pop();
+      if (removed.summon) removed.summon.dead = true;
+    }
 
     for (const slot of this.slots) {
       if (slot.phase === 'cd') {
@@ -71,7 +77,7 @@ export class StaffWeapon extends WeaponBase {
           }
           slot.summon = null;
           slot.phase = 'cd';
-          slot.timer = s.cd * world.mods.cooldownMult;
+          slot.timer = s.cd;
         }
       }
     }
@@ -85,7 +91,7 @@ export class StaffWeapon extends WeaponBase {
     for (const k of world.killLog) {
       if (k.id <= this.lastKillId) continue;
       this.lastKillId = k.id;
-      if (!s.nightParade) continue;
+      if (!s.nightParade || k.noSummon) continue;
       this.pity++;
       if (Math.random() < CONVERT_CHANCE || this.pity >= PITY_KILLS) {
         this.pity = 0;
@@ -105,12 +111,12 @@ export class StaffWeapon extends WeaponBase {
       }
     }
 
-    // 连接回血：按当前存活仆从总数，1 点/秒 + 每多 1 个 +0.5，封顶 3 点/秒
+    // Link healing: 1 HP/s with one summon, +0.5 per extra summon, capped at 2 HP/s.
     if (s.nightParade) {
       let alive = 0;
       for (const su of world.summons) if (!su.dead) alive++;
       if (alive > 0) {
-        const hps = Math.min(3, 1 + 0.5 * (alive - 1));
+        const hps = Math.min(2, 1 + 0.5 * (alive - 1));
         world.healPlayer(hps * dt);
       }
     }
@@ -125,16 +131,18 @@ export class StaffWeapon extends WeaponBase {
 
   // 自爆：消散瞬间对半径内敌人结算伤害（走统一伤害入口），并记录特效
   detonate(su, s, world) {
-    const r = (s.blastRadius || 70) * world.mods.areaMult;
-    hitEnemiesInRadius(world, su.x, su.y, r, su.damage * BLAST_DMG_MULT);
+    const r = s.blastRadius || 70;
+    hitEnemiesInRadius(world, su.x, su.y, r, su.damage * BLAST_DMG_MULT, null, { noSummon: true });
     this.blasts.push({ x: su.x, y: su.y, maxR: r, t: BLAST_FX_DUR, dur: BLAST_FX_DUR });
   }
 
   // 在击杀点转化一具尸体仆从；超出上限时顶掉最旧的
   spawnCorpse(x, y, s, world) {
-    while (this.corpses.length >= CORPSE_CAP) {
+    const regularAlive = this.slots.reduce((n, slot) => n + (slot.summon && !slot.summon.dead ? 1 : 0), 0);
+    while (this.corpses.length >= CORPSE_CAP || regularAlive + this.corpses.length >= TOTAL_CAP) {
       const oldest = this.corpses.shift();
-      oldest.dead = true; // 顶替不算存活到期，不触发自爆
+      if (!oldest) return;
+      oldest.dead = true;
     }
     const summon = {
       x: x + rand(-8, 8),

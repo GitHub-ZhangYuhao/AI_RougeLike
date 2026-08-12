@@ -1,111 +1,378 @@
-import { WeaponBase, hitEnemiesInRadius } from './base.js';
+﻿import { WeaponBase } from './base.js';
 import { dist2 } from '../utils.js';
 
-// ---------- 丹火：移动留下灼烧路径 ----------
+const LOOP_MIN_LENGTH = 260;
+const LOOP_MIN_AREA = 9000;
+const LOOP_CLOSE_RADIUS = 55;
+const LOOP_MIN_AGE = 1.2;
+const LOOP_COOLDOWN = 1.5;
+const FURNACE_DURATION = 4.5;
+const FURNACE_TICK = 0.4;
+const FURNACE_FUEL = 9;
+const FURNACE_MAX_REMAINING = 8;
+const PATH_POINT_CAP = 180;
+const FURNACE_CAP = 6;
+const HOT_ZONE_CAP = 8;
+const EFFECT_CAP = 16;
+
+function polygonArea(points) {
+  let sum = 0;
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i];
+    const b = points[(i + 1) % points.length];
+    sum += a.x * b.y - b.x * a.y;
+  }
+  return Math.abs(sum) * 0.5;
+}
+
+function polygonCenter(points) {
+  let crossSum = 0;
+  let xSum = 0;
+  let ySum = 0;
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i];
+    const b = points[(i + 1) % points.length];
+    const cross = a.x * b.y - b.x * a.y;
+    crossSum += cross;
+    xSum += (a.x + b.x) * cross;
+    ySum += (a.y + b.y) * cross;
+  }
+  if (Math.abs(crossSum) < 0.001) {
+    const total = points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
+    return { x: total.x / points.length, y: total.y / points.length };
+  }
+  return { x: xSum / (3 * crossSum), y: ySum / (3 * crossSum) };
+}
+
+function pointInPolygon(x, y, points) {
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const a = points[i];
+    const b = points[j];
+    const crosses = ((a.y > y) !== (b.y > y))
+      && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y || 0.00001) + a.x;
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+
+function pointSegmentDist2(x, y, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const length2 = dx * dx + dy * dy;
+  if (length2 <= 0.0001) return dist2(x, y, a.x, a.y);
+  const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / length2));
+  return dist2(x, y, a.x + dx * t, a.y + dy * t);
+}
+
+function circleTouchesPolygon(x, y, radius, points) {
+  if (pointInPolygon(x, y, points)) return true;
+  const radius2 = radius * radius;
+  for (let i = 0; i < points.length; i++) {
+    if (pointSegmentDist2(x, y, points[i], points[(i + 1) % points.length]) <= radius2) return true;
+  }
+  return false;
+}
+
+function pathLength(points) {
+  let length = 0;
+  for (let i = 1; i < points.length; i++) {
+    length += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+  }
+  if (points.length > 1) {
+    length += Math.hypot(points[0].x - points.at(-1).x, points[0].y - points.at(-1).y);
+  }
+  return length;
+}
+
+function drawPolygon(ctx, points) {
+  if (points.length < 3) return;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+  ctx.closePath();
+}
+
+// ---------- 丹火：移动铺火，闭环后画地为炉 ----------
 export class TrailWeapon extends WeaponBase {
   constructor(card) {
     super(card);
-    this.lastKillId = 0; // killLog 增量消费游标
-    this.blasts = [];    // 爆燃爆炸特效（自绘，不进 game.effects）
-    this.healTimer = 0;  // Lv6 火中回血节流计时
+    this.pathPoints = [];
+    this.furnaces = [];
+    this.hotZones = [];
+    this.bursts = [];
+    this.loopCooldown = 0;
+    this.healTimer = 0;
+    this.lastDropAt = -Infinity;
   }
 
   update(dt, world) {
     const s = this.stats;
+    this.loopCooldown = Math.max(0, this.loopCooldown - dt);
+    this._updateBursts(dt);
+    this._updateFurnaces(dt, world, s);
+    this._updateHotZones(dt, world, s);
 
-    // killLog 消费：无论爆燃是否解锁都推进游标，
-    // 避免解锁 Lv4（或中途拿到本武器）时回爆历史击杀
-    if (world.killLog && world.killLog.length) {
-      for (const k of world.killLog) {
-        if (k.id <= this.lastKillId) continue;
-        this.lastKillId = k.id;
-        // 爆燃：带烈焰（burned=true）的敌人死亡时在死亡点爆炸
-        if (!s.blast || !k.burned) continue;
-        const radius = s.blastRadius * world.mods.areaMult;
-        // 伤害 ≈ 地面 tick ×2；爆炸击杀会写回 killLog，天然支持连锁（每条只爆一次）
-        hitEnemiesInRadius(world, k.x, k.y, radius, s.damage * world.mods.damageMult * 2);
-        this.blasts.push({ x: k.x, y: k.y, r: radius, ttl: 0.35, maxTtl: 0.35 });
-        // Lv6 质变：爆燃爆炸时 20% 概率在该点掉血包（同屏上限由系统控制）
-        if (s.blastDrop && Math.random() < 0.2) world.dropPickup(k.x, k.y);
-      }
-    }
-
-    // 爆燃特效衰减
-    if (this.blasts.length) {
-      for (const b of this.blasts) b.ttl -= dt;
-      this.blasts = this.blasts.filter((b) => b.ttl > 0);
-    }
-
-    // Lv6 质变：玩家站在自己的丹火地面上回血（封顶 1 点/0.5s）
-    if (s.healOnTrail) {
-      const p = world.player;
-      let onFire = false;
-      for (const t of world.trails) {
-        if (t.dead) continue;
-        if (dist2(t.x, t.y, p.x, p.y) <= (t.radius + p.radius) ** 2) { onFire = true; break; }
-      }
-      if (onFire) {
-        this.healTimer -= dt;
-        if (this.healTimer <= 0) {
-          world.healPlayer(1);
-          this.healTimer = 0.5;
-        }
-      } else {
-        this.healTimer = 0; // 离开火面重置，重新踩入立即生效
-      }
-    }
-
-    // ---------- 地面段落投放（原有逻辑保持不变） ----------
-    this.timer -= dt;
-    if (this.timer < 0) this.timer = 0;
+    this.timer = Math.max(0, this.timer - dt);
     if (this.timer > 0 || !world.player.moving) return;
-    this.timer = s.dropInterval * world.mods.cooldownMult;
-    world.trails.push({
-      x: world.player.x, y: world.player.y,
-      radius: s.radius * world.mods.areaMult,
+    this.timer = s.dropInterval;
+
+    // 长时间停步后从新路径开始，避免两段不连续轨迹被误判为闭环。
+    if (world.elapsed - this.lastDropAt > 0.7) this.pathPoints.length = 0;
+    this.lastDropAt = world.elapsed;
+
+    const trail = {
+      x: world.player.x,
+      y: world.player.y,
+      radius: s.radius,
       damage: s.damage * world.mods.damageMult,
-      life: s.life, maxLife: s.life,
-      tickTimer: 0, tick: 0.4, // 每 0.4s 对站在上面的敌人结算一次
-      burnDps: s.burn ? s.burnDps : 0, // 烈焰：tick 命中挂 burn 的威力（0=未解锁，旧对象无此字段也安全）
+      life: s.life,
+      maxLife: s.life,
+      tickTimer: 0,
+      tick: 0.4,
+      burnDps: s.burn ? s.burnDps : 0,
       dead: false,
-    });
-    if (world.trails.length > 60) world.trails.shift();
+    };
+    world.trails.push(trail);
+    while (world.trails.length > 80) world.trails.shift();
+
+    this.pathPoints.push({ x: trail.x, y: trail.y, at: world.elapsed, trail });
+    if (this.pathPoints.length > PATH_POINT_CAP) this.pathPoints.shift();
+
+    if (s.furnace && this.loopCooldown <= 0) this._tryCreateFurnace(world, s);
   }
 
-  // 爆燃爆炸特效：扩张火环 + 内部闪光
-  draw(ctx, world, phase) {
-    if (phase !== 'over' || this.blasts.length === 0) return;
-    for (const b of this.blasts) {
-      const p = 1 - b.ttl / b.maxTtl; // 0→1 扩张进度
-      const rr = b.r * (0.4 + 0.6 * p);
-      ctx.globalAlpha = 0.6 * (1 - p);
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, rr, 0, Math.PI * 2);
-      ctx.strokeStyle = '#ff5722';
-      ctx.lineWidth = 4;
-      ctx.stroke();
-      ctx.globalAlpha = 0.3 * (1 - p);
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, rr * 0.55, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffcc80';
-      ctx.fill();
+  _tryCreateFurnace(world, s) {
+    const current = this.pathPoints.at(-1);
+    if (!current) return;
+
+    // 从最近的合格旧点开始找，优先生成玩家刚刚完成的闭环。
+    for (let i = this.pathPoints.length - 2; i >= 0; i--) {
+      const old = this.pathPoints[i];
+      if (current.at - old.at < LOOP_MIN_AGE) continue;
+      if (dist2(current.x, current.y, old.x, old.y) > LOOP_CLOSE_RADIUS ** 2) continue;
+
+      const loop = this.pathPoints.slice(i).map((p) => ({ x: p.x, y: p.y }));
+      if (loop.length < 4 || pathLength(loop) < LOOP_MIN_LENGTH) continue;
+      const area = polygonArea(loop);
+      if (area < LOOP_MIN_AREA) continue;
+
+      const consumed = this.pathPoints.slice(i);
+      for (const p of consumed) p.trail.dead = true;
+      this.pathPoints.length = 0;
+      this.loopCooldown = LOOP_COOLDOWN;
+      this._createFurnace(loop, area, world, s);
+      return;
     }
+  }
+
+  _createFurnace(points, area, world, s) {
+    const zone = {
+      points,
+      center: polygonCenter(points),
+      area,
+      life: FURNACE_DURATION,
+      maxLife: FURNACE_DURATION,
+      tickTimer: FURNACE_TICK,
+      damage: s.damage * world.mods.damageMult,
+      pullSpeed: 25,
+      fuel: 0,
+      opens: 0,
+      maxOpens: s.enhancedFurnace ? 2 : 1,
+      openCooldown: 0,
+      eliteFuelAt: new Map(),
+      dead: false,
+    };
+    this.furnaces.push(zone);
+    while (this.furnaces.length > FURNACE_CAP) this.furnaces.shift();
+
+    this._damageZone(zone, world, zone.damage * 4, true);
+    this._addBurst(zone, 'ignite');
+    this._tryOpen(zone, world, s);
+  }
+
+  _updateFurnaces(dt, world, s) {
+    for (const zone of this.furnaces) {
+      zone.life -= dt;
+      zone.openCooldown = Math.max(0, zone.openCooldown - dt);
+      if (zone.life <= 0) { zone.dead = true; continue; }
+
+      for (const e of world.enemies) {
+        if (e.dead || !circleTouchesPolygon(e.x, e.y, e.radius, zone.points)) continue;
+        const dx = zone.center.x - e.x;
+        const dy = zone.center.y - e.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance > 1) {
+          const step = Math.min(distance, zone.pullSpeed * dt);
+          e.x += dx / distance * step;
+          e.y += dy / distance * step;
+        }
+      }
+
+      zone.tickTimer -= dt;
+      if (zone.tickTimer <= 0) {
+        zone.tickTimer += FURNACE_TICK;
+        this._damageZone(zone, world, zone.damage * 1.25, true);
+        this._tryOpen(zone, world, s);
+      }
+    }
+    this.furnaces = this.furnaces.filter((zone) => !zone.dead);
+  }
+
+  _damageZone(zone, world, damage, grantsFuel) {
+    for (const e of world.enemies) {
+      if (e.dead || !circleTouchesPolygon(e.x, e.y, e.radius, zone.points)) continue;
+      const wasAlive = !e.dead;
+      world.damageEnemy(e, damage);
+      if (!grantsFuel) continue;
+
+      if (wasAlive && e.dead) zone.fuel++;
+      if (!e.dead && (e.rank === 'elite' || e.rank === 'boss')) {
+        const nextFuelAt = zone.eliteFuelAt.get(e) ?? -Infinity;
+        if (world.elapsed >= nextFuelAt) {
+          zone.fuel++;
+          zone.eliteFuelAt.set(e, world.elapsed + 1);
+        }
+      }
+    }
+  }
+
+  _tryOpen(zone, world, s) {
+    if (zone.fuel < FURNACE_FUEL || zone.opens >= zone.maxOpens || zone.openCooldown > 0) return;
+    zone.fuel -= FURNACE_FUEL;
+    zone.opens++;
+    zone.openCooldown = 0.75;
+    this._damageZone(zone, world, zone.damage * 6, false);
+    zone.life = Math.min(FURNACE_MAX_REMAINING, zone.life + 2);
+    zone.maxLife = Math.max(zone.maxLife, zone.life);
+    this._addBurst(zone, 'open');
+
+    if (s.nineTurn) {
+      this.hotZones.push({
+        points: zone.points.map((p) => ({ ...p })),
+        center: { ...zone.center },
+        life: 3,
+        maxLife: 3,
+        tickTimer: 0,
+        damage: zone.damage * 1.25 * 1.5,
+        dead: false,
+      });
+      while (this.hotZones.length > HOT_ZONE_CAP) this.hotZones.shift();
+    }
+  }
+
+  _updateHotZones(dt, world, s) {
+    let playerInHotZone = false;
+    for (const zone of this.hotZones) {
+      zone.life -= dt;
+      if (zone.life <= 0) { zone.dead = true; continue; }
+      if (circleTouchesPolygon(world.player.x, world.player.y, world.player.radius, zone.points)) {
+        playerInHotZone = true;
+      }
+      zone.tickTimer -= dt;
+      if (zone.tickTimer <= 0) {
+        zone.tickTimer += FURNACE_TICK;
+        for (const e of world.enemies) {
+          if (e.dead || !circleTouchesPolygon(e.x, e.y, e.radius, zone.points)) continue;
+          world.damageEnemy(e, zone.damage);
+        }
+      }
+    }
+    this.hotZones = this.hotZones.filter((zone) => !zone.dead);
+
+    if (!s.nineTurn || !playerInHotZone) {
+      this.healTimer = 0;
+      return;
+    }
+    world.setPlayerMoveSpeedBonus(this, 1.12, 0.12);
+    this.healTimer -= dt;
+    if (this.healTimer <= 0) {
+      world.healPlayer(1);
+      this.healTimer = 0.5;
+    }
+  }
+
+  _addBurst(zone, kind) {
+    const radius = Math.sqrt(zone.area / Math.PI);
+    this.bursts.push({
+      x: zone.center.x,
+      y: zone.center.y,
+      radius,
+      points: zone.points.map((p) => ({ ...p })),
+      kind,
+      ttl: kind === 'open' ? 0.5 : 0.35,
+      maxTtl: kind === 'open' ? 0.5 : 0.35,
+    });
+    while (this.bursts.length > EFFECT_CAP) this.bursts.shift();
+  }
+
+  _updateBursts(dt) {
+    for (const burst of this.bursts) burst.ttl -= dt;
+    this.bursts = this.bursts.filter((burst) => burst.ttl > 0);
+  }
+
+  draw(ctx, world, phase) {
+    if (phase === 'under') {
+      for (const zone of this.furnaces) this._drawFurnace(ctx, zone);
+      for (const zone of this.hotZones) this._drawHotZone(ctx, zone);
+      return;
+    }
+    if (phase !== 'over') return;
+    for (const burst of this.bursts) {
+      const progress = 1 - burst.ttl / burst.maxTtl;
+      ctx.globalAlpha = (1 - progress) * (burst.kind === 'open' ? 0.9 : 0.6);
+      drawPolygon(ctx, burst.points);
+      ctx.strokeStyle = burst.kind === 'open' ? '#fff59d' : '#ff7043';
+      ctx.lineWidth = burst.kind === 'open' ? 7 : 4;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(burst.x, burst.y, burst.radius * (0.35 + progress * 0.9), 0, Math.PI * 2);
+      ctx.strokeStyle = burst.kind === 'open' ? '#ffffff' : '#ffca28';
+      ctx.lineWidth = 5 * (1 - progress) + 1;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  _drawFurnace(ctx, zone) {
+    const lifeRatio = Math.max(0, zone.life / zone.maxLife);
+    drawPolygon(ctx, zone.points);
+    ctx.globalAlpha = 0.13 + lifeRatio * 0.09;
+    ctx.fillStyle = '#e65100';
+    ctx.fill();
+    ctx.globalAlpha = 0.55 + lifeRatio * 0.25;
+    ctx.strokeStyle = zone.opens > 0 ? '#ffd54f' : '#ff8f00';
+    ctx.lineWidth = zone.opens > 0 ? 5 : 3;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  _drawHotZone(ctx, zone) {
+    const lifeRatio = Math.max(0, zone.life / zone.maxLife);
+    drawPolygon(ctx, zone.points);
+    ctx.globalAlpha = 0.18 + lifeRatio * 0.13;
+    ctx.fillStyle = '#ffeb3b';
+    ctx.fill();
+    ctx.globalAlpha = 0.75;
+    ctx.strokeStyle = '#fff9c4';
+    ctx.lineWidth = 6;
+    ctx.stroke();
     ctx.globalAlpha = 1;
   }
 }
 
-// 丹火地面段落的更新与绘制（由 game 统一驱动）
+// 丹火轨迹段的更新与绘制（由 game 统一驱动）
 export function updateTrail(t, world, dt) {
+  if (t.dead) return;
   t.life -= dt;
   if (t.life <= 0) { t.dead = true; return; }
   t.tickTimer -= dt;
   if (t.tickTimer <= 0) {
-    t.tickTimer = t.tick;
+    t.tickTimer += t.tick;
     for (const e of world.enemies) {
       if (e.dead) continue;
       if (dist2(t.x, t.y, e.x, e.y) <= (t.radius + e.radius) ** 2) {
-        // 烈焰（Lv2+）：先挂 burn 再结算伤害，本次 tick 直接击杀也计入 burned，供爆燃消费
-        if (t.burnDps) world.applyDot(e, 'burn', t.burnDps, 2);
+        if (t.burnDps) world.applyDot(e, 'blaze', t.burnDps, 2);
         world.damageEnemy(e, t.damage);
       }
     }
@@ -129,20 +396,14 @@ export function drawTrail(ctx, t) {
 
 export const CARD = {
   id: 'trail', kind: 'weapon', name: '丹火', icon: '🔥', maxLevel: 6,
-  desc: '移动时在脚下留下燃烧路径，踩上的敌人持续扣血。高解锁烈焰灼烧与爆燃（带火敌人死亡时爆炸），满级站火回血。',
+  desc: '移动留下丹火轨迹；四级起闭环成炉，积蓄炉火开炉爆发，满级生成九转高温火域。',
   levels: [
-    // Lv1 基础数值
-    { damage: 6, radius: 26, life: 2.5, dropInterval: 0.25 },
-    // Lv2 机制「烈焰」：地面 tick 命中挂 burn（dps 随级成长，持续 2s）
-    { damage: 8, radius: 29, life: 2.9, dropInterval: 0.25, burn: true, burnDps: 10 },
-    // Lv3 数值成长
-    { damage: 11, radius: 32, life: 3.2, dropInterval: 0.25, burn: true, burnDps: 12 },
-    // Lv4 机制「爆燃」：burned 击杀在死亡点爆炸（半径 60~70 区间，伤害 ≈ tick×2）
-    { damage: 13, radius: 35, life: 3.6, dropInterval: 0.25, burn: true, burnDps: 13, blast: true, blastRadius: 64 },
-    // Lv5 数值成长
-    { damage: 16, radius: 38, life: 4.0, dropInterval: 0.25, burn: true, burnDps: 14, blast: true, blastRadius: 66 },
-    // Lv6 质变：站火回血 1点/0.5s + 爆燃 20% 掉血包 + 爆燃半径 +50%（66→99）
-    { damage: 19, radius: 42, life: 4.5, dropInterval: 0.25, burn: true, burnDps: 16, blast: true, blastRadius: 99, healOnTrail: true, blastDrop: true },
+    { damage: 8, radius: 32, life: 3.0, dropInterval: 0.22 },
+    { damage: 11, radius: 35, life: 3.4, dropInterval: 0.22, burn: true, burnDps: 12 },
+    { damage: 15, radius: 38, life: 3.9, dropInterval: 0.18, burn: true, burnDps: 14 },
+    { damage: 18, radius: 42, life: 4.2, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true },
+    { damage: 23, radius: 46, life: 4.6, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true, enhancedFurnace: true },
+    { damage: 29, radius: 50, life: 5.0, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true, enhancedFurnace: true, nineTurn: true },
   ],
   create() { return new TrailWeapon(this); },
 };

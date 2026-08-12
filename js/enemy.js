@@ -47,4 +47,27 @@ export function separateEnemies(enemies, dt) {
 
 export function drawEnemy(ctx, enemy) {
   enemy.draw(ctx);
+  if (enemy.rank !== 'elite') return;
+
+  // 精英怪统一显示：金色外环、菱形标记与文字，不依赖具体敌人的 draw 实现。
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(enemy.x, enemy.y, enemy.radius + 9, 0, Math.PI * 2);
+  ctx.strokeStyle = '#ffd54f';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([5, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const markerY = enemy.y - enemy.radius - 25;
+  ctx.translate(enemy.x, markerY);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillStyle = '#ffd54f';
+  ctx.fillRect(-5, -5, 10, 10);
+  ctx.rotate(-Math.PI / 4);
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 12px "Segoe UI", "Microsoft YaHei", sans-serif';
+  ctx.fillStyle = '#fff3b0';
+  ctx.fillText('精英', 0, -9);
+  ctx.restore();
 }

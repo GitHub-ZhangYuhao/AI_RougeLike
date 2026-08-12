@@ -3,12 +3,15 @@ import { Camera } from './camera.js';
 import { createPlayer, updatePlayer, hurtPlayer as applyPlayerDamage, drawPlayer } from './player.js';
 import { updateEnemy, separateEnemies, drawEnemy } from './enemy.js';
 import { Spawner } from './spawner.js';
+import { WaveDirector } from './systems/waves.js';
+import { DebugRuntime } from './debug-runtime.js';
 import { updateProjectile, drawProjectile } from './projectile.js';
 import {
   createHostileProjectile, updateHostileProjectile, drawHostileProjectile,
 } from './enemies/hostile-projectile.js';
 import { updateTrail, drawTrail, drawSummon } from './weapons/index.js';
 import { createGem, updateGem, drawGem } from './gems.js';
+import { createRarePickup, applyRareItem, drawRarePickup } from './rare-items.js';
 import { openingOffers, generateOffers, computeMods } from './cards.js';
 import { drawHUD, drawGameOver } from './hud.js';
 import { getCardRects, drawChoiceUI } from './ui-cards.js';
@@ -22,6 +25,7 @@ import {
 export class Game {
   constructor(input) {
     this.input = input;
+    this.debug = new DebugRuntime(this);
     this.reset();
   }
 
@@ -36,7 +40,15 @@ export class Game {
     this.pendingChoices = 0; // 待处理的选卡次数（可能一次升多级）
     // 卡牌：属性卡叠加层数 -> 全局乘数
     this.attrStacks = {};
+    this.rareInventory = {};
+    this.rareBonuses = {
+      damageMult: 1,
+      xpMult: 1,
+      moveSpeedMult: 1,
+      magnetRadiusBonus: 0,
+    };
     this.mods = computeMods(this.attrStacks);
+    this.playerMoveSpeedBonuses = new Map();
 
     this.player = createPlayer(0, 0);
     this.camera = new Camera(0, 0);
@@ -49,11 +61,14 @@ export class Game {
     this.effects = [];
     this.weapons = [];
     this.spawner = new Spawner();
+    this.waveDirector = new WaveDirector();
     this.hitShake = 0;
+    this.bossesDefeated = 0;
+    this.rareMessage = null;
 
     // ---------- 击杀日志 / 尸体 / 掉落 ----------
     // killLog：最近击杀记录，供武器监听（丹火爆燃、死灵转化、击杀计数类质变）
-    // 条目：{id: 全局递增序号, x, y, burned: 死亡时是否带火系 debuff}
+    // 条目包含 burn/blaze 标记与 noSummon 伤害来源标记
     this.killLog = [];
     this.nextKillId = 1;
     this.corpses = [];  // 纯视觉血迹
@@ -62,6 +77,10 @@ export class Game {
     // 开局展示全部武器卡任选 1（槽位上限走 CONFIG.cards.maxWeaponSlots，不写死）
     this.choiceOrigin = 'opening';
     this.currentOffers = openingOffers();
+
+    // The runtime object survives resets; its active settings and requested
+    // weapon levels are reapplied to the fresh game state.
+    this.debug?.onGameReset();
   }
 
   // ---------- 经验 / 等级 ----------
@@ -69,8 +88,50 @@ export class Game {
     return CONFIG.xp.base + (this.level - 1) * CONFIG.xp.perLevel;
   }
 
-  gainXp(amount) {
-    this.xp += amount * this.mods.xpMult;
+  recomputeMods() {
+    const mods = computeMods(this.attrStacks);
+    const debugPlayer = this.debug?.settings.player;
+    mods.damageMult *= this.rareBonuses.damageMult * (debugPlayer?.damageMult ?? 1);
+    mods.xpMult *= this.rareBonuses.xpMult * (debugPlayer?.xpMult ?? 1);
+    mods.moveSpeedMult *= this.rareBonuses.moveSpeedMult * (debugPlayer?.moveSpeedMult ?? 1);
+    mods.armor += debugPlayer?.armorBonus ?? 0;
+    mods.damageReduction = Math.min(0.5, mods.armor / (mods.armor + 100));
+
+    this.mods = mods;
+    this.debug?.syncPlayerMaxHp();
+  }
+
+  gemMagnetRadius() {
+    const baseRadius = CONFIG.gems.magnetRadius
+      + this.mods.magnetRadiusBonus
+      + this.rareBonuses.magnetRadiusBonus;
+    return baseRadius * (this.debug?.settings.player.pickupRangeMult ?? 1);
+  }
+
+  // Short-lived speed bonuses multiply with existing attribute and rare-item movement sources.
+  setPlayerMoveSpeedBonus(source, multiplier, duration = 0.12) {
+    if (!source || !Number.isFinite(multiplier) || multiplier <= 0) return;
+    this.playerMoveSpeedBonuses.set(source, {
+      multiplier,
+      expiresAt: this.elapsed + Math.max(0, duration),
+    });
+  }
+
+  playerMoveSpeedBonusMult() {
+    let multiplier = 1;
+    for (const [source, bonus] of this.playerMoveSpeedBonuses) {
+      if (bonus.expiresAt < this.elapsed) {
+        this.playerMoveSpeedBonuses.delete(source);
+        continue;
+      }
+      multiplier *= bonus.multiplier;
+    }
+    return multiplier;
+  }
+
+  gainXp(amount, options = {}) {
+    const multiplier = options.applyMultiplier === false ? 1 : this.mods.xpMult;
+    this.xp += amount * multiplier;
     while (this.xp >= this.xpToNext()) {
       this.xp -= this.xpToNext();
       this.level++;
@@ -79,7 +140,7 @@ export class Game {
   }
 
   // ---------- 统一伤害入口（武器 / 弹道 / 召唤物 / DoT 都走这里） ----------
-  damageEnemy(e, damage) {
+  damageEnemy(e, damage, options = {}) {
     if (e.dead) return;
     const finalDamage = typeof e.modifyIncomingDamage === 'function'
       ? e.modifyIncomingDamage(damage)
@@ -87,12 +148,14 @@ export class Game {
     if (finalDamage <= 0) return;
     e.hp -= finalDamage;
     e.hitFlash = 0.08;
-    if (e.hp <= 0) this._killEnemy(e);
+    if (e.hp <= 0) this._killEnemy(e, options);
   }
 
   // Shared player damage entry for enemy contact, bullets and special attacks.
   hurtPlayer(damage) {
-    if (!applyPlayerDamage(this.player, damage)) return false;
+    if (this.debug?.settings.invincible) return false;
+    const finalDamage = damage * (1 - this.mods.damageReduction);
+    if (!applyPlayerDamage(this.player, finalDamage)) return false;
     this.hitShake = 0.25;
     this.player.lastHurtAt = this.elapsed;
     return true;
@@ -114,16 +177,25 @@ export class Game {
     });
   }
 
-  _killEnemy(e) {
+  _killEnemy(e, options = {}) {
     if (e.dead) return;
     e.dead = true;
     this.kills++;
     this._dropGem(e.x, e.y);
+    if (e.rank === 'elite') {
+      this.dropRarePickup(e.x, e.y);
+    } else if (e.rank === 'boss') {
+      this.bossesDefeated++;
+      this.dropRarePickup(e.x - 14, e.y);
+      this.dropRarePickup(e.x + 14, e.y);
+    }
     // 击杀日志：武器按 id 增量消费
     this.killLog.push({
       id: this.nextKillId++,
       x: e.x, y: e.y,
       burned: hasDot(e, 'burn'),
+      blazed: hasDot(e, 'blaze'),
+      noSummon: !!options.noSummon,
     });
     if (this.killLog.length > CONFIG.killLog.cap) {
       this.killLog.splice(0, this.killLog.length - CONFIG.killLog.cap);
@@ -148,16 +220,27 @@ export class Game {
     p.hp = Math.min(p.maxHp, p.hp + amount);
   }
 
+  increaseMaxHp(amount, healAmount = amount) {
+    const value = Number.isFinite(amount) ? amount : 0;
+    const multiplier = this.debug?.settings.player.maxHpMult ?? 1;
+    this.player.maxHp = Math.max(1, this.player.maxHp + value * multiplier);
+    this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
+  }
+
   // 掉一个血包（同屏数量有上限，防止爆屏）
   dropPickup(x, y, kind = 'hp') {
     let alive = 0;
-    for (const pk of this.pickups) if (!pk.dead) alive++;
+    for (const pk of this.pickups) if (!pk.dead && pk.kind === 'hp') alive++;
     if (alive >= CONFIG.pickups.maxAlive) return;
     this.pickups.push({
       x, y, kind,
       value: CONFIG.pickups.hpValue,
       dead: false,
     });
+  }
+
+  dropRarePickup(x, y) {
+    this.pickups.push(createRarePickup(x, y));
   }
 
   // ---------- 卡牌流程 ----------
@@ -174,7 +257,8 @@ export class Game {
       const n = this.attrStacks[card.id] || 0;
       if (n >= CONFIG.cards.attrMaxStack) return;
       this.attrStacks[card.id] = n + 1;
-      this.mods = computeMods(this.attrStacks);
+      if (typeof card.onAcquire === 'function') card.onAcquire(this);
+      this.recomputeMods();
     }
   }
 
@@ -225,6 +309,9 @@ export class Game {
 
   // ---------- 主循环 ----------
   update(dt, viewW, viewH) {
+    this._viewW = viewW;
+    this._viewH = viewH;
+
     if (this.state === 'opening' || this.state === 'choice') {
       this._handleChoice(viewW, viewH);
       return; // 选卡期间世界暂停
@@ -248,12 +335,16 @@ export class Game {
       }
     }
 
+    // Debug pause freezes only live gameplay. Choice screens and the dead-state
+    // restart path above remain interactive.
+    if (this.debug?.settings.paused) return;
+
     this.elapsed += dt;
-    this.player.speed = CONFIG.player.speed * this.mods.moveSpeedMult;
+    this.player.speed = CONFIG.player.speed * this.mods.moveSpeedMult * this.playerMoveSpeedBonusMult();
 
     updatePlayer(this.player, this.input, dt);
     this.camera.follow(this.player, dt, CONFIG.camera.lerp);
-    this.spawner.update(dt, this.elapsed, this.enemies, this.camera, viewW, viewH);
+    this.waveDirector.update(dt, this, this.camera, viewW, viewH);
 
     const world = this._world();
 
@@ -292,6 +383,10 @@ export class Game {
     this.effects = this.effects.filter((fx) => fx.ttl > 0);
 
     if (this.hitShake > 0) this.hitShake -= dt;
+    if (this.rareMessage) {
+      this.rareMessage.ttl -= dt;
+      if (this.rareMessage.ttl <= 0) this.rareMessage = null;
+    }
   }
 
   // 注入给武器的世界上下文（避免武器与 game 循环依赖）
@@ -308,11 +403,12 @@ export class Game {
       elapsed: this.elapsed,
       kills: this.kills,
       killLog: this.killLog,
-      damageEnemy: (e, dmg) => this.damageEnemy(e, dmg),
+      damageEnemy: (e, dmg, options) => this.damageEnemy(e, dmg, options),
       hurtPlayer: (damage) => this.hurtPlayer(damage),
       spawnHostileProjectile: (options) => this.spawnHostileProjectile(options),
       spawnEnemyBlast: (options) => this.spawnEnemyBlast(options),
       healPlayer: (amount) => this.healPlayer(amount),
+      setPlayerMoveSpeedBonus: (source, multiplier, duration) => this.setPlayerMoveSpeedBonus(source, multiplier, duration),
       dropPickup: (x, y, kind) => this.dropPickup(x, y, kind),
       // 状态系统
       applyDot: (e, type, dps, duration) => applyDot(e, type, dps, duration),
@@ -324,10 +420,12 @@ export class Game {
 
   _updateGems(dt) {
     const pl = this.player;
-    const pickup2 = CONFIG.gems.pickupRadius * CONFIG.gems.pickupRadius;
+    const pickupRadius = CONFIG.gems.pickupRadius
+      * (this.debug?.settings.player.pickupRangeMult ?? 1);
+    const pickup2 = pickupRadius * pickupRadius;
     for (const g of this.gems) {
       if (g.dead) continue;
-      updateGem(g, pl, dt);
+      updateGem(g, pl, dt, this.gemMagnetRadius());
       if (dist2(g.x, g.y, pl.x, pl.y) <= pickup2) {
         g.dead = true;
         this.gainXp(g.value);
@@ -335,15 +433,31 @@ export class Game {
     }
   }
 
-  // 血包等掉落物：不吸附，走到上面才拾取
+  // 血包与稀有物品：走到上面拾取；稀有物品会显示获得提示并永久生效。
   _updatePickups(dt) {
     const pl = this.player;
-    const pickup2 = CONFIG.pickups.pickupRadius * CONFIG.pickups.pickupRadius;
     for (const pk of this.pickups) {
       if (pk.dead) continue;
-      if (dist2(pk.x, pk.y, pl.x, pl.y) <= pickup2) {
+      const baseRadius = pk.kind === 'rare'
+        ? CONFIG.pickups.rarePickupRadius
+        : CONFIG.pickups.pickupRadius;
+      const radius = baseRadius * (this.debug?.settings.player.pickupRangeMult ?? 1);
+      if (dist2(pk.x, pk.y, pl.x, pl.y) <= radius * radius) {
         pk.dead = true;
-        if (pk.kind === 'hp') this.healPlayer(pk.value);
+        if (pk.kind === 'hp') {
+          this.healPlayer(pk.value);
+        } else if (pk.kind === 'rare') {
+          const item = applyRareItem(this, pk);
+          if (item) {
+            this.rareMessage = {
+              text: `获得稀有物品：${item.name}`,
+              detail: item.desc,
+              color: item.color,
+              ttl: 3.5,
+              maxTtl: 3.5,
+            };
+          }
+        }
       }
     }
   }
@@ -372,7 +486,7 @@ export class Game {
 
     // 子弹命中敌人（走统一伤害入口，保证击杀掉宝石）
     // 弹道可选特性（武器在 createProjectile 后自行设置字段）：
-    //   p.pierce = true   穿透：不消失，同一敌人只命中一次（p.hitSet 自动维护）
+    //   p.pierce = true   穿透：同一敌人只命中一次；p.maxHits 可限制总命中数
     //   p.onHit = (e)=>{} 命中回调：每次命中敌人时触发（引雷/闪电链等机制用）
     for (const p of this.projectiles) {
       if (p.dead) continue;
@@ -386,6 +500,11 @@ export class Game {
           if (p.pierce) {
             if (!p.hitSet) p.hitSet = new Set();
             p.hitSet.add(e);
+            p.hitCount = (p.hitCount || 0) + 1;
+            if (Number.isFinite(p.maxHits) && p.hitCount >= p.maxHits) {
+              p.dead = true;
+              break;
+            }
           } else {
             p.dead = true;
             break;
@@ -399,6 +518,8 @@ export class Game {
 
   // ---------- 渲染 ----------
   render(ctx, viewW, viewH) {
+    this._viewW = viewW;
+    this._viewH = viewH;
     ctx.fillStyle = CONFIG.view.background;
     ctx.fillRect(0, 0, viewW, viewH);
 
@@ -454,6 +575,10 @@ export class Game {
   _drawPickups(ctx) {
     for (const pk of this.pickups) {
       if (pk.dead) continue;
+      if (pk.kind === 'rare') {
+        drawRarePickup(ctx, pk);
+        continue;
+      }
       // 血包：粉底白十字
       ctx.beginPath();
       ctx.arc(pk.x, pk.y, 8, 0, Math.PI * 2);
