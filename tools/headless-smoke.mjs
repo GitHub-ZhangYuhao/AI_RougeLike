@@ -506,11 +506,11 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   const waveOneEnemy = createEnemyByType('chaser', 0, 0, 60, 1);
   const waveElevenEnemy = createEnemyByType('chaser', 0, 0, 60, 11);
   Math.random = savedRandomForWave;
-  assert(Math.abs(waveElevenEnemy.maxHp / waveOneEnemy.maxHp - 2.2) < 1e-6,
+  assert(Math.abs(waveElevenEnemy.maxHp / waveOneEnemy.maxHp - 2.6) < 1e-6,
     '[8] enemy HP wave scaling incorrect');
-  assert(Math.abs(waveElevenEnemy.damage / waveOneEnemy.damage - 1.7) < 1e-6,
+  assert(Math.abs(waveElevenEnemy.damage / waveOneEnemy.damage - 1.85) < 1e-6,
     '[8] enemy damage wave scaling incorrect');
-  assert(Math.abs(waveElevenEnemy.speed / waveOneEnemy.speed - 1.15) < 1e-6,
+  assert(Math.abs(waveElevenEnemy.speed / waveOneEnemy.speed - 1.2) < 1e-6,
     '[8] enemy speed wave scaling incorrect');
 
   const enhanced = new EnhancedChaserEnemy(0, 0, 0);

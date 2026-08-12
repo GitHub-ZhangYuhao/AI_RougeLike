@@ -171,7 +171,9 @@ export class WaveDirector {
   }
 
   _bossReinforcementsFor(wave) {
-    if (wave < 15) return 0;
+    // W5/W10 Boss 护卫：首个 Boss 波不再 1v1，强制玩家边跑位边输出
+    if (wave === 5) return 4;
+    if (wave === 10) return 6;
     // Explicit targets: wave 15 => 8, wave 20 => 10, wave 25+ capped at 12.
     return Math.min(12, 6 + Math.floor((wave - 10) / 5) * 2);
   }
