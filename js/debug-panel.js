@@ -12,8 +12,15 @@ const ENEMY_TYPES = [
 ];
 
 const STATE_LABELS = {
+  menu: '主菜单',
+  shop: '商城',
+  storage: '仓库',
+  opening: '开局选卡',
   playing: '战斗中',
+  choice: '选择升级',
   choosing: '选择升级',
+  extraction: '撤离抉择',
+  summary: '撤离结算',
   dead: '已死亡',
 };
 

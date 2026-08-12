@@ -58,7 +58,8 @@ export const CARD_BY_ID = new Map(
 );
 
 // 由属性卡叠加层数计算最终乘数（供武器每帧读取）
-export function computeMods(attrStacks) {
+// attrStacks：局内属性卡层数；metaStacks：局外商城永久属性等级（每级等效 1 层，加法叠加）
+export function computeMods(attrStacks, metaStacks = {}) {
   const mods = {
     damageMult: 1,
     xpMult: 1,
@@ -74,7 +75,7 @@ export function computeMods(attrStacks) {
     cooldownMult: 1,
   };
   for (const card of ATTR_CARDS) {
-    const n = attrStacks[card.id] || 0;
+    const n = (attrStacks[card.id] || 0) + (metaStacks[card.id] || 0);
     if (n > 0) card.apply(mods, n);
   }
   mods.damageReduction = Math.min(0.5, mods.armor / (mods.armor + 100));
