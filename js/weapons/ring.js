@@ -1,8 +1,8 @@
 import { WeaponBase } from './base.js';
 import { dist2 } from '../utils.js';
 
-const RING_HIT_COOLDOWN = 0.42;
-const FRENZY_KILL_STEP = 80;
+const RING_HIT_COOLDOWN = 0.34;
+const FRENZY_KILL_STEP = 50;
 
 // ---------- 玉环：环绕玩家旋转的玉环 ----------
 export class RingWeapon extends WeaponBase {
@@ -40,13 +40,13 @@ export class RingWeapon extends WeaponBase {
     this.angle += s.orbitSpeed * dt;
     const frenzy = !!s.ultimate && this.frenzyTimer > 0;
 
-    // Lv6 frenzy: every 80 cumulative kills grants 3 seconds of frenzy.
+    // Lv6 狂暴：每累计 50 击杀获得 4 秒狂暴
     if (s.ultimate) {
       this.frenzyTimer = Math.max(0, this.frenzyTimer - dt);
       this.counterCd = Math.max(0, this.counterCd - dt);
       while (world.kills >= this.nextFrenzyKills) {
         this.nextFrenzyKills += FRENZY_KILL_STEP;
-        this.frenzyTimer = 3;  // 狂暴 3 秒
+        this.frenzyTimer = 4;  // 狂暴 4 秒
         this.dropT = 0;        // 立即进入扩张段，狂暴即时生效
       }
       // 受击监听：lastHurtAt 变化且内置 CD 转好 → 冰霜新星反制
@@ -54,13 +54,13 @@ export class RingWeapon extends WeaponBase {
       if (hurtAt !== this.lastHurtSeen) {
         this.lastHurtSeen = hurtAt;
         if (hurtAt >= 0 && this.counterCd <= 0) {
-          this.counterCd = (s.counterCd || 24); // 内置 CD（基准 24s，保证减 CD 后仍 ≥20s 左右）
+          this.counterCd = (s.counterCd || 16); // 内置 CD（基准 16s）
           const radius = (s.counterRadius || 240);
           const dmg = (s.counterDamage || 130) * world.mods.damageMult;
           for (const e of world.enemies) {
             if (e.dead) continue;
             if (dist2(world.player.x, world.player.y, e.x, e.y) <= (radius + e.radius) ** 2) {
-              world.applyFreeze(e, 1.5); // 冻结 1.5s
+              world.applyFreeze(e, 2); // 冻结 2s
               world.damageEnemy(e, dmg); // 一次高额范围伤害（走统一伤害入口）
             }
           }
@@ -75,7 +75,7 @@ export class RingWeapon extends WeaponBase {
       const speed = frenzy ? 2 : 1;               // 狂暴：扩张速度 ×2
       const expandDur = 1 / speed;                // 扩张段 ~1s
       const contractDur = 1 / speed;              // 收回段对称 ~1s
-      const period = 4; // fixed four-second cycle
+      const period = 3.2; // 3.2s 一个来回，节奏更紧凑
       this.dropT += dt;
       while (this.dropT >= period) this.dropT -= period;
       if (this.dropT < expandDur) {
@@ -92,16 +92,16 @@ export class RingWeapon extends WeaponBase {
     this.expanding = expanding;
 
     // Shared contact cooldown prevents multiple rings from dealing damage in the same frame.
-    // 扩张段伤害 ×1.5；狂暴期间再 ×2（即扩张段 ×3）
-    const damage = s.damage * world.mods.damageMult * (frenzy ? 2 : 1) * (expanding ? 1.5 : 1);
+    // 扩张段伤害 ×2；狂暴期间再 ×2（即扩张段 ×4）
+    const damage = s.damage * world.mods.damageMult * (frenzy ? 2 : 1) * (expanding ? 2 : 1);
     const positions = this.ringPositions(world);
     for (const e of world.enemies) {
       if (e.dead || e.ringCd > 0) continue;
       for (const p of positions) {
-        if (dist2(p.x, p.y, e.x, e.y) <= (12 + e.radius) ** 2) {
+        if (dist2(p.x, p.y, e.x, e.y) <= (14 + e.radius) ** 2) {
           e.ringCd = RING_HIT_COOLDOWN;
           world.damageEnemy(e, damage);
-          if (s.coldJade) world.applySlow(e, 0.25, 1.2); // 寒玉：减速 25%，持续 1.2s
+          if (s.coldJade) world.applySlow(e, 0.35, 1.6); // 寒玉：减速 35%，持续 1.6s
           break;
         }
       }
@@ -119,7 +119,7 @@ export class RingWeapon extends WeaponBase {
     const frenzy = !!s.ultimate && this.frenzyTimer > 0;
     const expanding = !!s.bloodDrop && this.expanding;
     // 血滴子视觉：扩张段变血红并略微放大；狂暴期间亮红
-    const ringR = expanding ? 14 : 12;
+    const ringR = expanding ? 16 : 14;
     const color = frenzy ? '#ff1744' : expanding ? '#ff5252' : '#69f0ae';
     for (const p of this.ringPositions(world)) {
       ctx.beginPath();
@@ -157,18 +157,18 @@ export const CARD = {
   desc: '玉环围绕玩家旋转，触碰的敌人受到伤害。升级增加玉环数量与转速，高阶解锁寒玉减速、血滴子外扩与狂暴反制。',
   levels: [
     // Lv1：基础数值
-    { damage: 10, count: 1, orbitRadius: 84, orbitSpeed: 2.4 },
-    // Lv2：寒玉——命中的敌人减速 25%，持续 1.2s
-    { damage: 13, count: 1, orbitRadius: 91, orbitSpeed: 2.7, coldJade: true },
+    { damage: 12, count: 1, orbitRadius: 84, orbitSpeed: 2.6 },
+    // Lv2：寒玉——命中的敌人减速 35%，持续 1.6s
+    { damage: 16, count: 1, orbitRadius: 91, orbitSpeed: 2.8, coldJade: true },
     // Lv3：数值成长 + 环数加一
-    { damage: 16, count: 2, orbitRadius: 99, orbitSpeed: 2.9, coldJade: true },
-    // Lv4：血滴子——周期性全部玉环外扩再收回（一个来回），扩张段伤害 ×1.5
-    { damage: 20, count: 2, orbitRadius: 107, orbitSpeed: 3.2, coldJade: true, bloodDrop: true, expandRadius: 96 },
+    { damage: 20, count: 2, orbitRadius: 99, orbitSpeed: 3.0, coldJade: true },
+    // Lv4：血滴子——周期性全部玉环外扩再收回（一个来回），扩张段伤害 ×2
+    { damage: 26, count: 2, orbitRadius: 107, orbitSpeed: 3.3, coldJade: true, bloodDrop: true, expandRadius: 105 },
     // Lv5：数值成长 + 环数加一
-    { damage: 24, count: 3, orbitRadius: 114, orbitSpeed: 3.5, coldJade: true, bloodDrop: true, expandRadius: 103 },
-    // Lv6: frenzy every 80 kills plus the reactive frost nova.
-    { damage: 28, count: 3, orbitRadius: 122, orbitSpeed: 3.8, coldJade: true, bloodDrop: true, expandRadius: 110,
-      ultimate: true, counterDamage: 130, counterRadius: 275, counterCd: 24 },
+    { damage: 32, count: 3, orbitRadius: 114, orbitSpeed: 3.6, coldJade: true, bloodDrop: true, expandRadius: 115 },
+    // Lv6：每 50 杀狂暴 4 秒 + 受击冰霜新星反制（CD 16s，冻结 2s），环数加到 4 个
+    { damage: 40, count: 4, orbitRadius: 122, orbitSpeed: 4.0, coldJade: true, bloodDrop: true, expandRadius: 125,
+      ultimate: true, counterDamage: 200, counterRadius: 300, counterCd: 16 },
   ],
   create() { return new RingWeapon(this); },
 };
