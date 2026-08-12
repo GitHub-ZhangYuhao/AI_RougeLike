@@ -323,8 +323,21 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   ringWorld.enemies[0].x = 20;
   let bleedApplications = 0;
   ringWorld.applyDot = (enemy, type) => { if (type === 'bleed') bleedApplications++; };
-  for (let i = 0; i < 3; i++) ringSword.update(2, ringWorld);
-  assert(ringSword.rings.length === 1 && bleedApplications === 1, '[6] every third sword attack must add draw slash and bleed');
+  // 拔剑斩只在攻击命中时充能：模拟飞剑命中敌人，第 3 次命中后的下一帧释放
+  for (let i = 0; i < 3; i++) {
+    ringSword.update(2, ringWorld);
+    ringWorld.projectiles.at(-1).onHit(ringWorld.enemies[0]);
+  }
+  ringSword.update(2, ringWorld);
+  assert(ringSword.rings.length === 1 && bleedApplications === 1, '[6] every third HIT sword attack must add draw slash and bleed');
+
+  // 攻击未命中时拔剑斩不充能，避免无怪时 CD 空转
+  const whiffSword = CARD_BY_ID.get('sword').create();
+  whiffSword.level = 4;
+  const whiffWorld = baseWorld();
+  whiffWorld.enemies = [];
+  for (let i = 0; i < 6; i++) whiffSword.update(2, whiffWorld);
+  assert(whiffSword.rings.length === 0 && whiffSword.attackCount === 0, '[6] draw slash must not charge on whiffed attacks');
 
   // Cloak kill shock is extra and must not reset normal cooldown.
   const cloak = CARD_BY_ID.get('cloak').create();
@@ -506,11 +519,11 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   const waveOneEnemy = createEnemyByType('chaser', 0, 0, 60, 1);
   const waveElevenEnemy = createEnemyByType('chaser', 0, 0, 60, 11);
   Math.random = savedRandomForWave;
-  assert(Math.abs(waveElevenEnemy.maxHp / waveOneEnemy.maxHp - 2.6) < 1e-6,
+  assert(Math.abs(waveElevenEnemy.maxHp / waveOneEnemy.maxHp - 2.9) < 1e-6,
     '[8] enemy HP wave scaling incorrect');
-  assert(Math.abs(waveElevenEnemy.damage / waveOneEnemy.damage - 1.85) < 1e-6,
+  assert(Math.abs(waveElevenEnemy.damage / waveOneEnemy.damage - 2.0) < 1e-6,
     '[8] enemy damage wave scaling incorrect');
-  assert(Math.abs(waveElevenEnemy.speed / waveOneEnemy.speed - 1.2) < 1e-6,
+  assert(Math.abs(waveElevenEnemy.speed / waveOneEnemy.speed - 1.275) < 1e-6,
     '[8] enemy speed wave scaling incorrect');
 
   const enhanced = new EnhancedChaserEnemy(0, 0, 0);
@@ -580,8 +593,8 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   director.update(1 / 60, fakeGame, { x: 0, y: 0 }, 1280, 720);
   assert(director.phase === 'rest', '[9] 清空波次后未进入休整');
 
-  assert(new WaveDirector()._quotaFor(1) === 12, '[9] wave 1 quota must be 12');
-  assert(new WaveDirector()._quotaFor(9) === 60, '[9] normal-wave quota growth incorrect');
+  assert(new WaveDirector()._quotaFor(1) === 16, '[9] wave 1 quota must be 16');
+  assert(new WaveDirector()._quotaFor(9) === 80, '[9] normal-wave quota growth incorrect');
   assert(new WaveDirector()._quotaFor(15) === 9, '[9] wave 15 boss reinforcement quota incorrect');
   assert(new WaveDirector()._quotaFor(20) === 11, '[9] late boss reinforcement cap incorrect');
 

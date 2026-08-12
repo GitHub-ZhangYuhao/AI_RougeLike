@@ -7,6 +7,7 @@ export class SwordWeapon extends WeaponBase {
   constructor(card) {
     super(card);
     this.attackCount = 0;
+    this.pendingRing = false; // 拔剑斩命中充能后延迟到下一帧释放（使用当前帧敌人列表）
     this.hitCarry = 0; // 剑意累积：每命中 10 次凝一柄飞剑（Lv6）
     this.flyingSwords = [];
     this.rings = [];
@@ -18,6 +19,11 @@ export class SwordWeapon extends WeaponBase {
 
     for (const r of this.rings) r.ttl -= dt;
     this.rings = this.rings.filter((r) => r.ttl > 0);
+
+    if (this.pendingRing) {
+      this.pendingRing = false;
+      this._fireRing(world, s, s.damage * world.mods.damageMult);
+    }
 
     this.timer -= dt;
     if (this.timer > 0) return;
@@ -31,14 +37,12 @@ export class SwordWeapon extends WeaponBase {
     const damage = s.damage * world.mods.damageMult;
 
     if (s.projectile) this._fireMainSword(world, s, px, py, angle, damage);
-    else this._meleeSlash(world, s, px, py, angle, damage);
-
-    this.attackCount++;
-    if (s.drawSlash && this.attackCount % 3 === 0) this._fireRing(world, s, damage);
+    else if (this._meleeSlash(world, s, px, py, angle, damage)) this._countMainHit(s);
   }
 
   _meleeSlash(world, s, px, py, angle, damage) {
     const halfArc = ((s.arc * Math.PI) / 180) / 2;
+    let hitAny = false;
     for (const e of world.enemies) {
       if (e.dead) continue;
       if (dist2(px, py, e.x, e.y) > (s.meleeRange + e.radius) ** 2) continue;
@@ -46,12 +50,14 @@ export class SwordWeapon extends WeaponBase {
       if (angleDiff(enemyAngle, angle) <= halfArc) {
         world.damageEnemy(e, damage);
         this._registerHit(world, s);
+        hitAny = true;
       }
     }
     world.effects.push({
       type: 'slash', x: px, y: py, angle,
       range: s.meleeRange, arc: halfArc * 2, ttl: 0.18, maxTtl: 0.18,
     });
+    return hitAny;
   }
 
   _fireMainSword(world, s, px, py, angle, damage) {
@@ -65,8 +71,18 @@ export class SwordWeapon extends WeaponBase {
     p.pierce = true;
     p.maxHits = s.maxHits;
     p.swordQi = true;
-    p.onHit = () => this._registerHit(world, s);
+    let counted = false;
+    p.onHit = () => {
+      if (!counted) { counted = true; this._countMainHit(s); }
+      this._registerHit(world, s);
+    };
     world.projectiles.push(p);
+  }
+
+  // 拔剑斩只为「命中敌人的攻击」充能；空挥不计次，避免周围无怪时 CD 空转浪费
+  _countMainHit(s) {
+    this.attackCount++;
+    if (s.drawSlash && this.attackCount % 3 === 0) this.pendingRing = true;
   }
 
   _fireRing(world, s, mainDamage) {
@@ -243,7 +259,7 @@ export class SwordWeapon extends WeaponBase {
 
 export const CARD = {
   id: 'sword', kind: 'weapon', name: '道剑', icon: '⚔️', maxLevel: 6,
-  desc: 'Lv1 近战挥砍，Lv2 起御剑远程贯穿；Lv4 每 3 次攻击追加拔剑斩；Lv6 觉醒剑意：每命中 10 次凝一柄飞剑，飞剑贯穿沿途所有敌人。',
+  desc: 'Lv1 近战挥砍，Lv2 起御剑远程贯穿；Lv4 命中 3 次攻击后追加拔剑斩（空挥不充能）；Lv6 觉醒剑意：每命中 10 次凝一柄飞剑，飞剑贯穿沿途所有敌人。',
   levels: [
     { damage: 16, meleeRange: 125, interval: 1.15, arc: 120 },
     { damage: 20, projectile: true, projectileRange: 520, projectileSpeed: 500, maxHits: 2, interval: 1.08 },
