@@ -1,0 +1,33 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="AIGame Godot Port"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7")
+
+[autoload]
+
+Config="*res://autoload/config.gd"
+Rng="*res://autoload/rng.gd"
+Events="*res://autoload/events.gd"
+MetaSave="*res://autoload/meta_save.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="disabled"
+window/stretch/aspect="ignore"
+
+[physics]
+
+common/physics_ticks_per_second=60

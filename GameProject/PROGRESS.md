@@ -8,7 +8,7 @@
 
 | 里程碑 | 主题 | 验收（Godot 侧 smoke 章节） | 状态 | 完成日期 |
 | --- | --- | --- | --- | --- |
-| M0 | 工程脚手架 | runner 空跑 OK | ⬜ 未开始 | — |
+| M0 | 工程脚手架 | runner 空跑 OK | ✅ 完成 | 2026-08-13 |
 | M1 | 核心循环 | [0][1][2][3][4][5][7] | ⬜ 未开始 | — |
 | M2 | 六武器 | [6] | ⬜ 未开始 | — |
 | M3 | 敌人 / Boss / 局流程 | [8][9][10][11][12][13][14][17] | ⬜ 未开始 | — |
@@ -18,28 +18,28 @@
 
 状态图例：⬜ 未开始 ｜ 🟨 进行中 ｜ ✅ 完成 ｜ ⛔ 受阻（必须同步登记到 §5）
 
-- 里程碑完成度：**0 / 7**
+- 里程碑完成度：**1 / 7**
 - smoke 章节移植：**0 / 23**（矩阵见 §4）
 - 每次全绿检查：Godot smoke 与根目录 `npm run smoke` 必须双绿。
 
 ## 2. 当前焦点（最多 3 项，随进度滚动）
 
-1. **M0 脚手架**：project.godot + autoload 四件套 + 目录骨架 + 空跑 runner。
+1. **M1 核心循环**：logic/ 纯 RefCounted 核心（utils/input_state/player/camera/game_run/cards/gems/spawner/waves）+ scenes/main.tscn 定步长驱动 + smoke [0][1][2][3][4][5][7]。
 2. （空）
 3. （空）
 
 ## 3. 里程碑任务分解
 
-### M0 工程脚手架 ｜ ⬜ 未开始
+### M0 工程脚手架 ｜ ✅ 完成（2026-08-13）
 验收：`GameEngine\Godot.exe --headless --path GameProject --script res://tools/run_smoke.gd` 打印 OK、退出码 0；根目录 `npm run smoke` 无回归。
-- [ ] `project.godot`（60Hz physics tick；1280×720 无 stretch；autoload 注册）
-- [ ] `.gitignore` 生效验证（`.godot/`、`build/` 不进 git）
-- [ ] `autoload/config.gd`（与 RULES.md 附录 A 逐键一致，camelCase）
-- [ ] `autoload/rng.gd`（可注入随机源）
-- [ ] `autoload/events.gd`（表现层信号总线）
-- [ ] `autoload/meta_save.gd`（user://save.json，结构见 RULES.md §15.5）
-- [ ] 目录骨架：logic/（含 enemies/ weapons/ systems/ meta/）、scenes/（game/ ui/）、tests/scenarios/、tools/、assets/（空）
-- [ ] `tools/run_smoke.gd` + `tests/smoke_runner.gd` 空跑（0 场景也算 OK）
+- [x] `project.godot`（60Hz physics tick；1280×720 无 stretch；autoload 注册）
+- [x] `.gitignore` 生效验证（`.godot/`、`build/` 不进 git）
+- [x] `autoload/config.gd`（与 RULES.md 附录 A 逐键一致，camelCase）
+- [x] `autoload/rng.gd`（可注入随机源）
+- [x] `autoload/events.gd`（表现层信号总线）
+- [x] `autoload/meta_save.gd`（user://save.json，结构见 RULES.md §15.5）
+- [x] 目录骨架：logic/（含 enemies/ weapons/ systems/ meta/）、scenes/（game/ ui/）、tests/scenarios/、tools/、assets/（空）
+- [x] `tools/run_smoke.gd` + `tests/smoke_runner.gd` 空跑（0 场景也算 OK）
 
 ### M1 核心循环 ｜ ⬜ 未开始
 验收：Godot 侧 [0][1][2][3][4][5][7] 全绿。
@@ -129,3 +129,4 @@
 | 日期 | 里程碑 | 变更说明 | 提交 |
 | --- | --- | --- | --- |
 | 2026-08-13 | — | 立项：完成 RULES.md / AGENTS.md / PORT_PLAN.md / PROGRESS.md 四份规划文档；原型 `npm run smoke` 全绿基线 | 待提交 |
+| 2026-08-13 | M0 | 脚手架完成：project.godot（60Hz tick、1280×720 无 stretch、Config/Rng/Events/MetaSave 四 autoload、main.tscn 指向）、config.gd 1:1 镜像附录 A、rng.gd 可注入源、events.gd 信号总线、meta_save.gd（user://save.json，§15.5 结构）、目录骨架、headless smoke 入口空跑 OK（45 项自检，注册表/失败/缺场景路径三种分支均已验证） | 待提交 |
