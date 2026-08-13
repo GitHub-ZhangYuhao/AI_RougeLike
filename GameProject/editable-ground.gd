@@ -8,6 +8,12 @@ extends Node2D
 @export var tint := Color.WHITE
 @export var shader_enabled := true
 
+@export_group('Shader Layers')
+@export var layer_1_path := '../ArtAsset/Image/Environment/GroundTextures/Production/v09_crisp_cartoon_ground_refinement/final/grass_warm_meadow_crisp.png'
+@export var layer_2_path := '../ArtAsset/Image/Environment/GroundTextures/Production/v09_crisp_cartoon_ground_refinement/final/dirt_sandy_loam_crisp.png'
+@export var layer_3_path := '../ArtAsset/Image/Environment/GroundTextures/Production/v09_crisp_cartoon_ground_refinement/final/grass_moss_cushion_crisp.png'
+@export var layer_4_path := '../ArtAsset/Image/Environment/GroundTextures/Production/v09_crisp_cartoon_ground_refinement/final/dirt_red_clay_crisp.png'
+
 const GROUND_SHADER_PATH := 'res://ground-shader.gdshader'
 
 var _signature := ''
@@ -18,9 +24,14 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if Engine.is_editor_hint():
-		var signature := '%s|%s|%s|%s|%s|%s' % [asset_path, map_size, tile_size, alternate_flip, tint, shader_enabled]
-		if signature != _signature:
+		if _signature_string() != _signature:
 			_refresh()
+
+func _signature_string() -> String:
+	return '%s|%s|%s|%s|%s|%s|%s|%s|%s|%s' % [
+		asset_path, map_size, tile_size, alternate_flip, tint, shader_enabled,
+		layer_1_path, layer_2_path, layer_3_path, layer_4_path,
+	]
 
 func _refresh() -> void:
 	if not is_inside_tree():
@@ -30,7 +41,7 @@ func _refresh() -> void:
 			remove_child(tile)
 			tile.queue_free()
 	_tiles.clear()
-	_signature = '%s|%s|%s|%s|%s|%s' % [asset_path, map_size, tile_size, alternate_flip, tint, shader_enabled]
+	_signature = _signature_string()
 	var texture := _load_texture(asset_path)
 	var ground_material := _create_ground_material()
 	var columns := ceili(map_size.x / tile_size)
@@ -69,6 +80,13 @@ func _create_ground_material() -> ShaderMaterial:
 		return null
 	var material := ShaderMaterial.new()
 	material.shader = shader
+	var layer_paths: Array[String] = [layer_1_path, layer_2_path, layer_3_path, layer_4_path]
+	for i in range(layer_paths.size()):
+		var layer_texture: Texture2D = null
+		if layer_paths[i] != '':
+			layer_texture = _load_texture(layer_paths[i])
+		if layer_texture:
+			material.set_shader_parameter('layer_%d' % (i + 1), layer_texture)
 	return material
 
 func _load_texture(relative_path: String) -> Texture2D:
