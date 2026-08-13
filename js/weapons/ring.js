@@ -2,6 +2,14 @@ import { WeaponBase } from './base.js';
 import { dist2 } from '../utils.js';
 
 const RING_HIT_COOLDOWN = 0.34;
+const RING_RADIUS = 42;
+const CHARGED_BURST_RADIUS = 55;
+const CHARGED_DAMAGE_MULTIPLIER = 0.75;
+const DEFAULT_BURN_DPS = 12;
+const BURN_DURATION = 2;
+const GUARDIAN_SYNERGY_ID = 'ring-staff-guardian';
+const GUARDIAN_ORBIT_RADIUS = 25;
+const GUARDIAN_AURA_RADIUS = 34;
 const FRENZY_KILL_STEP = 50;
 
 // ---------- 玉环：环绕玩家旋转的玉环 ----------
@@ -20,6 +28,8 @@ export class RingWeapon extends WeaponBase {
     this.lastHurtSeen = -1;    // 上次观察到的 player.lastHurtAt
     this.counterCd = 0;        // 受击反制剩余内置 CD
     this.counterFx = [];       // 受击反制临时特效（存在武器实例内部）
+    this.burningRings = [];
+    this.ringCharge = [];
   }
   // 玉环位置（含血滴子扩张半径，命中判定与 draw 同步）
   ringPositions(world) {
@@ -35,6 +45,91 @@ export class RingWeapon extends WeaponBase {
     }
     return out;
   }
+  _syncRingSynergies(world, positions) {
+    const burningActive = world.hasSynergy('ring-cloak-burning');
+    const cloak = burningActive ? world.getWeapon('cloak') : null;
+    if (cloak) {
+      const cloakRadius = cloak.stats.radius || 0;
+      const cloakRadius2 = cloakRadius ** 2;
+      this.burningRings = positions.map((p) => (
+        dist2(world.player.x, world.player.y, p.x, p.y) <= cloakRadius2
+      ));
+    } else {
+      this.burningRings = positions.map(() => false);
+    }
+
+    const chargeActive = world.hasSynergy('ring-trail-charge');
+    const trail = chargeActive ? world.getWeapon('trail') : null;
+    if (!trail || typeof trail.findFurnaceAt !== 'function') {
+      this.ringCharge = [];
+      return cloak;
+    }
+
+    while (this.ringCharge.length < positions.length) {
+      this.ringCharge.push({ charged: false, insideFurnace: null });
+    }
+    this.ringCharge.length = positions.length;
+    for (let i = 0; i < positions.length; i++) {
+      const p = positions[i];
+      const state = this.ringCharge[i];
+      const furnace = trail.findFurnaceAt(p.x, p.y, RING_RADIUS);
+      if (furnace) {
+        if (!state.insideFurnace && !state.charged) {
+          state.charged = true;
+          world.effects.push({
+            type: 'synergyBurst',
+            style: 'jadeCharge',
+            x: p.x,
+            y: p.y,
+            radius: 28,
+            color: '#ffb74d',
+            accent: '#d1ff8a',
+            ttl: 0.28,
+            maxTtl: 0.28,
+          });
+        }
+        state.insideFurnace = furnace;
+      } else {
+        state.insideFurnace = null;
+      }
+    }
+    return cloak;
+  }
+
+  _releaseFurnaceCharge(ringIndex, position, damage, world) {
+    const state = this.ringCharge[ringIndex];
+    if (!state?.charged || state.insideFurnace) return;
+
+    state.charged = false;
+    const burstDamage = damage * CHARGED_DAMAGE_MULTIPLIER;
+    let hits = 0;
+    for (const e of world.enemies) {
+      if (e.dead) continue;
+      if (dist2(position.x, position.y, e.x, e.y) > (CHARGED_BURST_RADIUS + e.radius) ** 2) continue;
+      world.damageEnemy(e, burstDamage, {
+        sourceWeaponId: 'ring',
+        sourceAction: 'furnace-charge-burst',
+        sourceTags: ['ring', 'fire', 'area', 'synergy'],
+        synergyId: 'ring-trail-charge',
+        noSynergy: true,
+        noSummon: true,
+      });
+      hits++;
+    }
+    world.recordSynergyTrigger('ring-trail-charge', Math.max(1, hits));
+    world.effects.push({
+      type: 'synergyBurst',
+      style: 'jadeCharge',
+      x: position.x,
+      y: position.y,
+      radius: CHARGED_BURST_RADIUS,
+      color: '#ff8a50',
+      accent: '#d1ff8a',
+      ttl: 0.3,
+      maxTtl: 0.3,
+    });
+  }
+
   update(dt, world) {
     const s = this.stats;
     this.angle += s.orbitSpeed * dt;
@@ -61,7 +156,11 @@ export class RingWeapon extends WeaponBase {
             if (e.dead) continue;
             if (dist2(world.player.x, world.player.y, e.x, e.y) <= (radius + e.radius) ** 2) {
               world.applyFreeze(e, 2); // 冻结 2s
-              world.damageEnemy(e, dmg); // 一次高额范围伤害（走统一伤害入口）
+              world.damageEnemy(e, dmg, {
+                sourceWeaponId: 'ring',
+                sourceAction: 'counter-nova',
+                sourceTags: ['ring', 'cold', 'area'],
+              });
             }
           }
           this.counterFx.push({ t: 0, dur: 0.6, r: radius });
@@ -95,13 +194,25 @@ export class RingWeapon extends WeaponBase {
     // 扩张段伤害 ×2；狂暴期间再 ×2（即扩张段 ×4）
     const damage = s.damage * world.mods.damageMult * (frenzy ? 2 : 1) * (expanding ? 2 : 1);
     const positions = this.ringPositions(world);
+    const cloak = this._syncRingSynergies(world, positions);
+    const burnDps = cloak?.stats.burnDps || DEFAULT_BURN_DPS;
     for (const e of world.enemies) {
       if (e.dead || e.ringCd > 0) continue;
-      for (const p of positions) {
-        if (dist2(p.x, p.y, e.x, e.y) <= (42 + e.radius) ** 2) {
+      for (let ringIndex = 0; ringIndex < positions.length; ringIndex++) {
+        const p = positions[ringIndex];
+        if (dist2(p.x, p.y, e.x, e.y) <= (RING_RADIUS + e.radius) ** 2) {
           e.ringCd = RING_HIT_COOLDOWN;
-          world.damageEnemy(e, damage);
-          if (s.coldJade) world.applySlow(e, 0.35, 1.6); // 寒玉：减速 35%，持续 1.6s
+          world.damageEnemy(e, damage, {
+            sourceWeaponId: 'ring',
+            sourceAction: 'contact',
+            sourceTags: ['ring', 'contact'],
+          });
+          if (this.burningRings[ringIndex] && !e.dead) {
+            world.applyDot(e, 'burn', burnDps, BURN_DURATION);
+            world.recordSynergyTrigger('ring-cloak-burning', 1);
+          }
+          if (s.coldJade && !e.dead) world.applySlow(e, 0.35, 1.6);
+          this._releaseFurnaceCharge(ringIndex, p, damage, world);
           break;
         }
       }
@@ -119,13 +230,79 @@ export class RingWeapon extends WeaponBase {
     const frenzy = !!s.ultimate && this.frenzyTimer > 0;
     const expanding = !!s.bloodDrop && this.expanding;
     // 血滴子视觉：扩张段变血红并略微放大；狂暴期间亮红
-    const ringR = expanding ? 48 : 42;
+    const ringR = expanding ? 48 : RING_RADIUS;
     const color = frenzy ? '#ff1744' : expanding ? '#ff5252' : '#69f0ae';
-    for (const p of this.ringPositions(world)) {
+    const positions = this.ringPositions(world);
+    const staff = (world.hasSynergy?.(GUARDIAN_SYNERGY_ID) ?? false)
+      ? world.getWeapon?.('staff')
+      : null;
+    const guardianWards = staff?.getGuardianWards?.() ?? [];
+    for (let wardIndex = 0; wardIndex < guardianWards.length; wardIndex++) {
+      const ward = guardianWards[wardIndex];
+      const summon = ward.summon;
+      if (!summon || summon.dead || summon.life <= 0 || !summon.guardianWardActive) continue;
+
+      const pulse = 0.5 + Math.sin(world.elapsed * 5 + ward.phase) * 0.5;
+      const auraRadius = GUARDIAN_AURA_RADIUS + pulse * 3;
+      const orbitAngle = world.elapsed * 3.4 + ward.phase;
+      const jadeX = summon.x + Math.cos(orbitAngle) * GUARDIAN_ORBIT_RADIUS;
+      const jadeY = summon.y + Math.sin(orbitAngle) * GUARDIAN_ORBIT_RADIUS;
+
+      ctx.save();
+      ctx.globalAlpha = 0.16 + pulse * 0.08;
+      ctx.fillStyle = '#80cbc4';
+      ctx.beginPath();
+      ctx.arc(summon.x, summon.y, auraRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.72;
+      ctx.strokeStyle = '#b2ffef';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 7]);
+      ctx.lineDashOffset = -world.elapsed * 20;
+      ctx.beginPath();
+      ctx.arc(summon.x, summon.y, auraRadius - 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.translate(jadeX, jadeY);
+      ctx.rotate(orbitAngle + Math.PI / 4);
+      ctx.fillStyle = '#69f0ae';
+      ctx.strokeStyle = '#e0fff7';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -7);
+      ctx.lineTo(5, 0);
+      ctx.lineTo(0, 7);
+      ctx.lineTo(-5, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    for (let ringIndex = 0; ringIndex < positions.length; ringIndex++) {
+      const p = positions[ringIndex];
       ctx.beginPath();
       ctx.arc(p.x, p.y, ringR, 0, Math.PI * 2);
-      ctx.fillStyle = color;
+      const burning = this.burningRings[ringIndex];
+      const charged = this.ringCharge[ringIndex]?.charged;
+      ctx.fillStyle = burning ? '#ff5722' : color;
       ctx.fill();
+      if (burning) {
+        const pulse = 3 + Math.sin(world.elapsed * 9 + ringIndex) * 2;
+        ctx.strokeStyle = '#ffca66';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, ringR + pulse, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (charged) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(world.elapsed * 2.6 + ringIndex);
+        ctx.strokeStyle = '#d1ff8a';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(-ringR - 7, -ringR - 7, (ringR + 7) * 2, (ringR + 7) * 2);
+        ctx.restore();
+      }
       ctx.beginPath();
       ctx.arc(p.x, p.y, 18, 0, Math.PI * 2);
       ctx.fillStyle = '#0e0e16';

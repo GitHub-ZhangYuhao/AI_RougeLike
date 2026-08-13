@@ -134,7 +134,7 @@ export function drawMenu(ctx, viewW, viewH, game) {
   ctx.font = `14px ${UI_FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
   ctx.fillText(
-    `累计 ${stats.runs ?? 0} 局 · 成功撤离 ${stats.extractions ?? 0} 次 · 最佳波数 ${stats.bestWave ?? 0}`,
+    `累计 ${stats.runs ?? 0} 局 · 撤离 ${stats.extractions ?? 0} 次 · 通关 ${stats.completions ?? 0} 次 · 最佳波数 ${stats.bestWave ?? 0}`,
     viewW / 2, viewH * 0.84,
   );
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
@@ -480,8 +480,8 @@ export function drawSummary(ctx, viewW, viewH, game) {
 
   ctx.textAlign = 'center';
   ctx.font = `bold 34px ${UI_FONT}`;
-  ctx.fillStyle = '#66bb6a';
-  ctx.fillText('成功撤离', panel.x + panel.w / 2, panel.y + 56);
+  ctx.fillStyle = summary.completed ? '#ffd54f' : '#66bb6a';
+  ctx.fillText(summary.completed ? '恭喜通关' : '成功撤离', panel.x + panel.w / 2, panel.y + 56);
 
   // 本局统计
   const statRows = [
@@ -509,7 +509,7 @@ export function drawSummary(ctx, viewW, viewH, game) {
   ctx.textAlign = 'center';
   ctx.font = `bold 18px ${UI_FONT}`;
   ctx.fillStyle = '#ffd54f';
-  ctx.fillText('撤离收益', panel.x + panel.w / 2, panel.y + 296);
+  ctx.fillText(summary.completed ? '通关收益' : '撤离收益', panel.x + panel.w / 2, panel.y + 296);
 
   ctx.font = `bold 17px ${UI_FONT}`;
   ctx.fillStyle = '#b39ddb';

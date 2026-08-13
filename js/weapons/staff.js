@@ -13,6 +13,29 @@ const POISON_RADIUS = 50;      // 尸毒溅射的小范围
 // 自爆特效时长
 const BLAST_FX_DUR = 0.35;
 const BLAST_DMG_MULT = 2;      // 自爆伤害 = 仆从伤害 x2（su.damage 已含 damageMult）
+const SUMMON_DAMAGE_META = { sourceWeaponId: 'staff', sourceAction: 'summon', sourceTags: ['summon'] };
+
+const GHOSTFIRE_SYNERGY_ID = 'cloak-staff-ghostfire';
+const GHOSTFIRE_RADIUS = 55;
+const GHOSTFIRE_TICK = 0.5;
+const GHOSTFIRE_LINGER = 0.5;
+const GHOSTFIRE_DAMAGE_MULT = 0.35;
+const GHOSTFIRE_DAMAGE_META = {
+  sourceWeaponId: 'staff',
+  sourceAction: 'ghostfire',
+  sourceTags: ['summon', 'fire', 'aura'],
+  synergyId: GHOSTFIRE_SYNERGY_ID,
+  noSynergy: true,
+  noSummon: true,
+};
+const CORPSE_FIRE_SYNERGY_ID = 'trail-staff-corpse-fire';
+const CORPSE_FIRE_FUEL = 1.5;
+const GUARDIAN_SYNERGY_ID = 'ring-staff-guardian';
+const GUARDIAN_WARD_CAP = 2;
+const GUARDIAN_ROTATION_INTERVAL = 2.4;
+const GUARDIAN_SLOW_FACTOR = 0.35;
+const GUARDIAN_SLOW_DURATION = 1.6;
+const GUARDIAN_PULSE_DURATION = 0.24;
 
 // 百鬼夜行参数
 const CORPSE_LIFE = 10;        // 尸体仆从存活时间（建议区间 8~12s）
@@ -34,6 +57,9 @@ export class StaffWeapon extends WeaponBase {
     this.blasts = [];     // 自爆特效（武器实例自持，draw 里画）
     this.lastKillId = 0;  // killLog 增量消费游标
     this.pity = 0;        // 距上次成功转化的击杀数（保底计数）
+    this.guardianWards = [];
+    this.guardianRotationTimer = 0;
+    this.guardianCursor = 0;
   }
 
   // 缰绳范围内是否有活着的敌人（召唤待命判定用）
@@ -45,6 +71,72 @@ export class StaffWeapon extends WeaponBase {
       if (dist2(p.x, p.y, e.x, e.y) <= r2) return true;
     }
     return false;
+  }
+
+
+  _aliveStaffSummons() {
+    const alive = [];
+    const seen = new Set();
+    for (const slot of this.slots) {
+      const summon = slot.summon;
+      if (!summon || summon.dead || summon.life <= 0 || seen.has(summon)) continue;
+      seen.add(summon);
+      alive.push(summon);
+    }
+    for (const summon of this.corpses) {
+      if (!summon || summon.dead || summon.life <= 0 || seen.has(summon)) continue;
+      seen.add(summon);
+      alive.push(summon);
+    }
+    return alive;
+  }
+
+  _clearGuardianWards(world) {
+    for (const ward of this.guardianWards) clearGuardianWardState(ward.summon, this);
+    for (const summon of world.summons ?? []) clearGuardianWardState(summon, this);
+    this.guardianWards = [];
+    this.guardianRotationTimer = 0;
+    this.guardianCursor = 0;
+  }
+
+  _syncGuardianWards(dt, world) {
+    const active = world.hasSynergy?.(GUARDIAN_SYNERGY_ID) ?? false;
+    const ring = active ? world.getWeapon?.('ring') : null;
+    if (!ring) {
+      this._clearGuardianWards(world);
+      return;
+    }
+
+    const alive = this._aliveStaffSummons();
+    const cap = Math.min(GUARDIAN_WARD_CAP, ring.stats.count || 0, alive.length);
+    if (cap <= 0) {
+      this._clearGuardianWards(world);
+      return;
+    }
+
+    this.guardianRotationTimer -= dt;
+    const aliveSet = new Set(alive);
+    const currentValid = this.guardianWards.length === cap
+      && this.guardianWards.every((ward) => aliveSet.has(ward.summon));
+    if (currentValid && this.guardianRotationTimer > 0) {
+      for (const ward of this.guardianWards) activateGuardianWard(ward.summon, this);
+      return;
+    }
+
+    for (const ward of this.guardianWards) clearGuardianWardState(ward.summon, this);
+    const startIndex = this.guardianCursor % alive.length;
+    this.guardianWards = [];
+    for (let i = 0; i < cap; i++) {
+      const summon = alive[(startIndex + i) % alive.length];
+      activateGuardianWard(summon, this);
+      this.guardianWards.push({ summon, phase: (startIndex + i) * Math.PI * 0.73 });
+    }
+    this.guardianCursor = (startIndex + cap) % alive.length;
+    this.guardianRotationTimer = GUARDIAN_ROTATION_INTERVAL;
+  }
+
+  getGuardianWards() {
+    return this.guardianWards;
   }
 
   // 部署仆从：槽位由 cd/ready 转入 active，仆从寿命从此刻开始消耗
@@ -74,7 +166,7 @@ export class StaffWeapon extends WeaponBase {
     }
     while (this.slots.length > regularCount) {
       const removed = this.slots.pop();
-      if (removed.summon) removed.summon.dead = true;
+      if (removed.summon) this._retireSummon(removed.summon, s, world, !!s.blast);
     }
 
     // 附近有敌人才召唤：CD 转好后进入待命，敌人进入缰绳范围立即部署，
@@ -93,10 +185,7 @@ export class StaffWeapon extends WeaponBase {
         slot.timer -= dt;
         if (slot.timer <= 0) {
           // 存活时间结束：仆从消散，槽位进入内置 CD；若已解锁自爆，在消散那一刻结算
-          if (slot.summon) {
-            if (s.blast) this.detonate(slot.summon, s, world);
-            slot.summon.dead = true;
-          }
+          if (slot.summon) this._retireSummon(slot.summon, s, world, !!s.blast);
           slot.summon = null;
           slot.phase = 'cd';
           slot.timer = s.cd;
@@ -104,6 +193,7 @@ export class StaffWeapon extends WeaponBase {
       }
     }
 
+    this._syncGuardianWards(dt, world);
     for (const slot of this.slots) {
       if (slot.summon && !slot.summon.dead) updateSummon(slot.summon, world, s, dt);
     }
@@ -124,11 +214,14 @@ export class StaffWeapon extends WeaponBase {
     // 尸体仆从维护：与召唤仆从共用 AI；存活结束同样自爆
     for (let i = this.corpses.length - 1; i >= 0; i--) {
       const su = this.corpses[i];
-      if (su.dead) { this.corpses.splice(i, 1); continue; } // 被上限顶掉等原因
+      if (su.dead) {
+        this._retireSummon(su, s, world, true);
+        this.corpses.splice(i, 1);
+        continue;
+      }
       updateSummon(su, world, s, dt);
       if (su.life <= 0) {
-        this.detonate(su, s, world);
-        su.dead = true;
+        this._retireSummon(su, s, world, true);
         this.corpses.splice(i, 1);
       }
     }
@@ -151,10 +244,58 @@ export class StaffWeapon extends WeaponBase {
     }
   }
 
+  // 尸火炼丹：仆从经任意受控消亡路径离场时尝试转化，每个仆从只结算一次
+  _retireSummon(su, s, world, shouldDetonate) {
+    if (!su || su.staffRetired) return false;
+    su.staffRetired = true;
+    this._convertCorpseFire(su, world);
+    if (shouldDetonate) this.detonate(su, s, world);
+    clearGuardianWardState(su, this);
+    su.dead = true;
+    return true;
+  }
+
+  _convertCorpseFire(su, world) {
+    if (su.corpseFireConverted || !(world.hasSynergy?.(CORPSE_FIRE_SYNERGY_ID) ?? false)) return false;
+    const trail = world.getWeapon?.('trail');
+    if (!trail || typeof trail.findFurnaceAt !== 'function' || typeof trail.chargeFurnaceAt !== 'function') return false;
+    if (!trail.findFurnaceAt(su.x, su.y)) return false;
+
+    const furnace = trail.chargeFurnaceAt(su.x, su.y, CORPSE_FIRE_FUEL, world);
+    if (!furnace) return false;
+    su.corpseFireConverted = true;
+    world.recordSynergyTrigger?.(CORPSE_FIRE_SYNERGY_ID, CORPSE_FIRE_FUEL);
+    world.effects.push({
+      type: 'synergyArc',
+      x1: su.x,
+      y1: su.y,
+      x2: furnace.center.x,
+      y2: furnace.center.y,
+      color: '#d68cff',
+      ttl: 0.32,
+      maxTtl: 0.32,
+    });
+    world.effects.push({
+      type: 'synergyBurst',
+      style: 'corpseFire',
+      x: furnace.center.x,
+      y: furnace.center.y,
+      radius: 42,
+      color: '#ff7a2f',
+      accent: '#d68cff',
+      ttl: 0.32,
+      maxTtl: 0.32,
+    });
+    return true;
+  }
+
   // 自爆：消散瞬间对半径内敌人结算伤害（走统一伤害入口），并记录特效
   detonate(su, s, world) {
     const r = s.blastRadius || 70;
-    hitEnemiesInRadius(world, su.x, su.y, r, su.damage * BLAST_DMG_MULT, null, { noSummon: true });
+    hitEnemiesInRadius(world, su.x, su.y, r, su.damage * BLAST_DMG_MULT, null, {
+      ...SUMMON_DAMAGE_META,
+      noSummon: true,
+    });
     this.blasts.push({ x: su.x, y: su.y, maxR: r, t: BLAST_FX_DUR, dur: BLAST_FX_DUR });
   }
 
@@ -164,7 +305,7 @@ export class StaffWeapon extends WeaponBase {
     while (this.corpses.length >= CORPSE_CAP || regularAlive + this.corpses.length >= TOTAL_CAP) {
       const oldest = this.corpses.shift();
       if (!oldest) return;
-      oldest.dead = true;
+      this._retireSummon(oldest, s, world, true);
     }
     const summon = {
       x: x + rand(-8, 8),
@@ -227,20 +368,33 @@ export class StaffWeapon extends WeaponBase {
 function updateSummon(su, world, s, dt) {
   su.life -= dt;
   su.hitTimer -= dt;
+  su.guardianPulseTimer = Math.max(0, (su.guardianPulseTimer || 0) - dt);
   const p = world.player;
   const leash = s.leash;
   const night = !!s.nightParade;
 
   // 体型：夜行 17 / 尸体 12 / 普通 11（drawSummon 已支持 su.radius）
   su.radius = night ? NIGHT_RADIUS : (su.corpse ? 12 : 11);
+  updateGhostfire(su, world);
 
   let target = null;
   let best = Infinity;
+  const commandActive = world.hasSynergy?.('sword-staff-command') ?? false;
+  let commandedTarget = null;
+  let commandedBest = Infinity;
   for (const e of world.enemies) {
     if (e.dead) continue;
     if (dist2(p.x, p.y, e.x, e.y) > leash * leash) continue; // 不追击 leash 外敌人
     const d = dist2(su.x, su.y, e.x, e.y);
     if (d < best) { best = d; target = e; }
+    if (commandActive && e.synergyMarks?.swordCommandUntil > world.elapsed && d < commandedBest) {
+      commandedBest = d;
+      commandedTarget = e;
+    }
+  }
+  if (commandedTarget) {
+    target = commandedTarget;
+    best = commandedBest;
   }
 
   let tx, ty;
@@ -270,7 +424,8 @@ function updateSummon(su, world, s, dt) {
   const reach = (night ? NIGHT_REACH : 14) + (target ? target.radius : 0);
   if (target && best <= reach * reach && su.hitTimer <= 0) {
     su.hitTimer = 0.5;
-    world.damageEnemy(target, su.damage * (night ? NIGHT_DMG_MULT : 1));
+    world.damageEnemy(target, su.damage * (night ? NIGHT_DMG_MULT : 1), SUMMON_DAMAGE_META);
+    shareGuardianSlow(su, target, world);
     // 尸毒：对目标及其小范围内敌人挂 poison（不叠加只刷新）
     if (s.poison) {
       world.applyDot(target, 'poison', POISON_DPS, POISON_DUR);
@@ -284,10 +439,100 @@ function updateSummon(su, world, s, dt) {
   }
 }
 
+function activateGuardianWard(summon, owner) {
+  summon.guardianWardActive = true;
+  summon.guardianWardOwner = owner;
+}
+
+function clearGuardianWardState(summon, owner) {
+  if (!summon || summon.guardianWardOwner !== owner) return;
+  summon.guardianWardActive = false;
+  summon.guardianWardOwner = null;
+  summon.guardianPulseTimer = 0;
+}
+
+function shareGuardianSlow(summon, target, world) {
+  if (!summon.guardianWardActive || summon.life <= 0 || target.dead) return false;
+  if (!(world.hasSynergy?.(GUARDIAN_SYNERGY_ID) ?? false)) return false;
+  const ring = world.getWeapon?.('ring');
+  if (!ring?.stats?.coldJade) return false;
+
+  world.applySlow(target, GUARDIAN_SLOW_FACTOR, GUARDIAN_SLOW_DURATION);
+  summon.guardianPulseTimer = GUARDIAN_PULSE_DURATION;
+  world.recordSynergyTrigger?.(GUARDIAN_SYNERGY_ID, 1);
+  return true;
+}
+
+function updateGhostfire(su, world) {
+  const active = world.hasSynergy?.(GHOSTFIRE_SYNERGY_ID) ?? false;
+  if (!active) {
+    su.ghostfireActive = false;
+    su.ghostfireUntil = -Infinity;
+    return;
+  }
+
+  const cloak = world.getWeapon?.('cloak');
+  const cloakRadius = cloak?.stats?.radius ?? 0;
+  if (cloakRadius > 0 && dist2(su.x, su.y, world.player.x, world.player.y) <= cloakRadius * cloakRadius) {
+    su.ghostfireUntil = world.elapsed + GHOSTFIRE_LINGER;
+  }
+
+  const wasActive = !!su.ghostfireActive;
+  su.ghostfireActive = (su.ghostfireUntil ?? -Infinity) > world.elapsed;
+  if (!su.ghostfireActive) return;
+  if (!wasActive) su.ghostfireNextTickAt = world.elapsed;
+  if (world.elapsed < (su.ghostfireNextTickAt ?? -Infinity)) return;
+  su.ghostfireNextTickAt = world.elapsed + GHOSTFIRE_TICK;
+
+  let hits = 0;
+  for (const e of world.enemies) {
+    if (e.dead || world.elapsed < (e.ghostfireCdUntil ?? -Infinity)) continue;
+    if (dist2(su.x, su.y, e.x, e.y) > (GHOSTFIRE_RADIUS + e.radius) ** 2) continue;
+    e.ghostfireCdUntil = world.elapsed + GHOSTFIRE_TICK;
+    world.damageEnemy(e, su.damage * GHOSTFIRE_DAMAGE_MULT, GHOSTFIRE_DAMAGE_META);
+    hits++;
+  }
+  if (hits > 0) world.recordSynergyTrigger?.(GHOSTFIRE_SYNERGY_ID, hits);
+}
+
 export function drawSummon(ctx, su) {
   const fading = su.life < 1 && Math.floor(su.life * 8) % 2 === 0;
+  const alpha = fading ? 0.35 : 1;
   ctx.save();
-  ctx.globalAlpha = fading ? 0.35 : 1;
+  ctx.globalAlpha = alpha;
+  if (su.guardianWardActive) {
+    const pulse = su.guardianPulseTimer > 0
+      ? su.guardianPulseTimer / GUARDIAN_PULSE_DURATION
+      : 0;
+    const radius = (su.radius || 11) + 10 + pulse * 6;
+    ctx.globalAlpha = alpha * (0.18 + pulse * 0.2);
+    ctx.fillStyle = '#69f0ae';
+    ctx.beginPath();
+    ctx.arc(su.x, su.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = alpha * (0.72 + pulse * 0.2);
+    ctx.strokeStyle = '#b2ffef';
+    ctx.lineWidth = 2 + pulse * 2;
+    ctx.beginPath();
+    ctx.arc(su.x, su.y, radius - 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = alpha;
+  }
+  if (su.ghostfireActive) {
+    const radius = (su.radius || 11) + 9;
+    ctx.globalAlpha = alpha * 0.24;
+    ctx.fillStyle = '#00e5ff';
+    ctx.beginPath();
+    ctx.arc(su.x, su.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = alpha * 0.8;
+    ctx.strokeStyle = '#80ffea';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(su.x, su.y, radius - 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = alpha;
+  }
   ctx.beginPath();
   ctx.arc(su.x, su.y, su.radius || 11, 0, Math.PI * 2);
   ctx.fillStyle = su.corpse ? '#8d9e63' : '#b39ddb';

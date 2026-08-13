@@ -4,6 +4,7 @@ import { createPlayer, updatePlayer, hurtPlayer as applyPlayerDamage, drawPlayer
 import { updateEnemy, separateEnemies, drawEnemy } from './enemy.js';
 import { Spawner } from './spawner.js';
 import { WaveDirector } from './systems/waves.js';
+import { SynergySystem } from './systems/synergies.js';
 import { DebugRuntime } from './debug-runtime.js';
 import { updateProjectile, drawProjectile } from './projectile.js';
 import {
@@ -13,7 +14,7 @@ import { updateTrail, drawTrail, drawSummon } from './weapons/index.js';
 import { createGem, updateGem, drawGem } from './gems.js';
 import { createRarePickup, applyRareItem, drawRarePickup } from './rare-items.js';
 import { openingOffers, generateOffers, computeMods } from './cards.js';
-import { drawHUD, drawGameOver } from './hud.js';
+import { drawHUD, drawGameOver, getWeaponSlotRects } from './hud.js';
 import { rollBossDrops } from './meta/drops.js';
 import { tryBuy } from './meta/shop.js';
 import { META_ITEMS, META_ITEM_LIST } from './meta/items.js';
@@ -30,7 +31,7 @@ import {
 
 // 游戏主状态机
 // state: 'menu' 主菜单 | 'shop' 商城 | 'storage' 仓库 | 'opening' 开局选卡 | 'playing' 战斗中
-//      | 'choice' 升级选卡 | 'extraction' 撤离抉择 | 'summary' 撤离结算 | 'dead' 死亡
+//      | 'choice' 升级选卡 | 'extraction' 撤离抉择 | 'summary' 撤离/通关结算 | 'dead' 死亡
 export class Game {
   constructor(input) {
     this.input = input;
@@ -77,6 +78,7 @@ export class Game {
     this.weapons = [];
     this.spawner = new Spawner();
     this.waveDirector = new WaveDirector();
+    this.synergies = new SynergySystem();
     this.hitShake = 0;
     this.bossesDefeated = 0;
     this.rareMessage = null;
@@ -157,13 +159,24 @@ export class Game {
   // ---------- 统一伤害入口（武器 / 弹道 / 召唤物 / DoT 都走这里） ----------
   damageEnemy(e, damage, options = {}) {
     if (e.dead) return;
+    const source = {
+      sourceWeaponId: options.sourceWeaponId ?? null,
+      sourceAction: options.sourceAction ?? null,
+      sourceTags: options.sourceTags ?? [],
+      synergyId: options.synergyId ?? null,
+      noSynergy: !!options.noSynergy,
+      noSummon: !!options.noSummon,
+    };
     const finalDamage = typeof e.modifyIncomingDamage === 'function'
       ? e.modifyIncomingDamage(damage)
       : damage;
     if (finalDamage <= 0) return;
     e.hp -= finalDamage;
     e.hitFlash = 0.08;
-    if (e.hp <= 0) this._killEnemy(e, options);
+    if (e.hp <= 0) this._killEnemy(e, source);
+    if (!source.noSynergy) {
+      this.synergies.onDamage({ target: e, damage: finalDamage, options: source }, this._world());
+    }
   }
 
   // Shared player damage entry for enemy contact, bullets and special attacks.
@@ -212,6 +225,10 @@ export class Game {
       x: e.x, y: e.y,
       burned: hasDot(e, 'burn'),
       blazed: hasDot(e, 'blaze'),
+      sourceWeaponId: options.sourceWeaponId ?? null,
+      sourceAction: options.sourceAction ?? null,
+      synergyId: options.synergyId ?? null,
+      noSynergy: !!options.noSynergy,
       noSummon: !!options.noSummon,
     });
     if (this.killLog.length > CONFIG.killLog.cap) {
@@ -270,6 +287,7 @@ export class Game {
         const owned = this.weapons.find((w) => w.card.id === card.id);
         if (owned && owned.level < card.maxLevel) owned.level++;
       }
+      this.synergies.refresh(this.weapons, this.elapsed);
     } else {
       const n = this.attrStacks[card.id] || 0;
       if (n >= CONFIG.cards.attrMaxStack) return;
@@ -324,21 +342,55 @@ export class Game {
     }
   }
 
+  _handleWeaponBuildClick() {
+    if (!this.input.mouseClicked()) return false;
+    const { x, y } = this.input.mouse;
+    const rects = getWeaponSlotRects();
+    for (let i = 0; i < rects.length; i++) {
+      const weapon = this.weapons[i];
+      if (!weapon) continue;
+      const rect = rects[i];
+      if (x < rect.x || x > rect.x + rect.w || y < rect.y || y > rect.y + rect.h) continue;
+      return this.synergies.toggleBuildWeapon(weapon.card.id, this.weapons, this.elapsed);
+    }
+    return false;
+  }
+
   // ---------- 局外成长：撤离抉择 / 商城 / 仓库 ----------
   // Boss 波（含援军）清空钩子：掉落掷骰进临时背包，进入撤离抉择
   onBossWaveCleared() {
+    // Timed boss checkpoints clear leftover reinforcements and hostile projectiles.
+    this.enemies.length = 0;
+    this.hostileProjectiles.length = 0;
     const drops = rollBossDrops(this.bossesDefeated);
     for (const id of drops) this.tempBackpack[id] = (this.tempBackpack[id] || 0) + 1;
+    if (this.waveDirector.wave >= CONFIG.waves.maxWave) {
+      this.onFinalWaveCleared();
+      return;
+    }
     this.state = 'extraction';
+  }
+
+  onFinalWaveCleared() {
+    if (this.state === 'summary') return;
+    this._finishRun(true);
   }
 
   chooseExtraction(extract) {
     if (this.state !== 'extraction') return;
     if (!extract) {
+      if (this.waveDirector.wave >= CONFIG.waves.maxWave) {
+        this.onFinalWaveCleared();
+        return;
+      }
       this.state = 'playing';
       this.waveDirector.beginRest();
       return;
     }
+    this._finishRun(false);
+  }
+
+  _finishRun(completed) {
     const wave = this.waveDirector.wave;
     const darkCrystalsGained = Math.round(wave * CONFIG.meta.waveRewardMult);
     this.save.darkCrystals += darkCrystalsGained;
@@ -348,9 +400,11 @@ export class Game {
     }
     this.tempBackpack = { shard: 0, essence: 0, soulCrystal: 0 };
     this.save.stats.extractions += 1;
+    if (completed) this.save.stats.completions += 1;
     this.save.stats.bestWave = Math.max(this.save.stats.bestWave, wave);
     persistSave(this.save);
     this.lastRunSummary = {
+      completed,
       wave,
       kills: this.kills,
       level: this.level,
@@ -459,11 +513,14 @@ export class Game {
       }
     }
 
+    this._handleWeaponBuildClick();
+
     // Debug pause freezes only live gameplay. Choice screens and the dead-state
     // restart path above remain interactive.
     if (this.debug?.settings.paused) return;
 
     this.elapsed += dt;
+    this.synergies.update(dt);
     this.player.speed = CONFIG.player.speed * this.mods.moveSpeedMult * this.playerMoveSpeedBonusMult();
 
     updatePlayer(this.player, this.input, dt);
@@ -523,10 +580,15 @@ export class Game {
       trails: this.trails,
       summons: this.summons,
       effects: this.effects,
+      weapons: this.weapons,
+      synergies: this.synergies,
       mods: this.mods,
       elapsed: this.elapsed,
       kills: this.kills,
       killLog: this.killLog,
+      hasSynergy: (id) => this.synergies.isActive(id),
+      getWeapon: (id) => this.weapons.find((weapon) => weapon.card.id === id) ?? null,
+      recordSynergyTrigger: (id, contribution) => this.synergies.recordTrigger(id, contribution),
       damageEnemy: (e, dmg, options) => this.damageEnemy(e, dmg, options),
       hurtPlayer: (damage) => this.hurtPlayer(damage),
       spawnHostileProjectile: (options) => this.spawnHostileProjectile(options),
@@ -619,7 +681,7 @@ export class Game {
         if (p.hitSet && p.hitSet.has(e)) continue;
         const rr = e.radius + p.radius;
         if (dist2(p.x, p.y, e.x, e.y) <= rr * rr) {
-          this.damageEnemy(e, p.damage);
+          this.damageEnemy(e, p.damage, p.damageOptions);
           if (typeof p.onHit === 'function') p.onHit(e);
           if (p.pierce) {
             if (!p.hitSet) p.hitSet = new Set();
@@ -750,6 +812,98 @@ export class Game {
         ctx.arc(fx.x, fx.y, fx.radius * (0.35 + progress * 0.65), 0, Math.PI * 2);
         ctx.fillStyle = fx.color;
         ctx.fill();
+        ctx.restore();
+      } else if (fx.type === 'synergyArc') {
+        const alpha = Math.max(0, fx.ttl / fx.maxTtl);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = fx.color ?? '#80deea';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(fx.x1, fx.y1);
+        ctx.lineTo((fx.x1 + fx.x2) * 0.5 + 8, (fx.y1 + fx.y2) * 0.5 - 8);
+        ctx.lineTo(fx.x2, fx.y2);
+        ctx.stroke();
+        ctx.restore();
+      } else if (fx.type === 'synergyCommandMark') {
+        const progress = 1 - Math.max(0, fx.ttl / fx.maxTtl);
+        ctx.save();
+        ctx.translate(fx.x, fx.y - 24 - progress * 8);
+        ctx.rotate(Math.PI / 4);
+        ctx.globalAlpha = 0.9 * (1 - progress);
+        ctx.strokeStyle = '#d7a4ff';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(-8, -8, 16, 16);
+        ctx.beginPath();
+        ctx.moveTo(-12, 0);
+        ctx.lineTo(12, 0);
+        ctx.moveTo(0, -12);
+        ctx.lineTo(0, 12);
+        ctx.stroke();
+        ctx.restore();
+      } else if (fx.type === 'synergyFlameBlade') {
+        const progress = 1 - Math.max(0, fx.ttl / fx.maxTtl);
+        ctx.save();
+        ctx.globalAlpha = 0.9 * (1 - progress);
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#ff5722';
+        ctx.lineWidth = fx.width * (1 - progress * 0.65);
+        ctx.beginPath();
+        ctx.moveTo(fx.x1, fx.y1);
+        ctx.lineTo(fx.x2, fx.y2);
+        ctx.stroke();
+        ctx.strokeStyle = '#fff176';
+        ctx.lineWidth = Math.max(2, fx.width * 0.24 * (1 - progress));
+        ctx.stroke();
+        ctx.restore();
+      } else if (fx.type === 'synergyBurst') {
+        const progress = 1 - Math.max(0, fx.ttl / fx.maxTtl);
+        const radius = fx.radius * (0.35 + progress * 0.65);
+        ctx.save();
+        ctx.globalAlpha = 0.4 * (1 - progress);
+        ctx.fillStyle = fx.color ?? '#ff8a50';
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.9 * (1 - progress);
+        ctx.strokeStyle = fx.accent ?? '#fff176';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        if (fx.style === 'lightningFire') {
+          ctx.strokeStyle = '#9be8ff';
+          ctx.lineWidth = 2;
+          for (let i = 0; i < 8; i++) {
+            const angle = (i * Math.PI * 2) / 8 + progress * 0.4;
+            ctx.beginPath();
+            ctx.moveTo(fx.x + Math.cos(angle) * radius * 0.45, fx.y + Math.sin(angle) * radius * 0.45);
+            ctx.lineTo(fx.x + Math.cos(angle + 0.12) * radius * 0.72, fx.y + Math.sin(angle + 0.12) * radius * 0.72);
+            ctx.lineTo(fx.x + Math.cos(angle) * radius, fx.y + Math.sin(angle) * radius);
+            ctx.stroke();
+          }
+        } else if (fx.style === 'corpseFire') {
+          ctx.fillStyle = '#d68cff';
+          for (let i = 0; i < 5; i++) {
+            const angle = (i * Math.PI * 2) / 5 - progress;
+            const distance = radius * (0.25 + progress * 0.65);
+            ctx.beginPath();
+            ctx.arc(fx.x + Math.cos(angle) * distance, fx.y + Math.sin(angle) * distance, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (fx.style === 'jadeCharge') {
+          ctx.save();
+          ctx.translate(fx.x, fx.y);
+          ctx.rotate(progress * Math.PI);
+          ctx.strokeStyle = '#d1ff8a';
+          ctx.strokeRect(-radius * 0.45, -radius * 0.45, radius * 0.9, radius * 0.9);
+          ctx.restore();
+        } else if (fx.style === 'alchemy') {
+          ctx.fillStyle = '#80deea';
+          ctx.beginPath();
+          ctx.arc(fx.x, fx.y, Math.max(3, radius * 0.22), 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.restore();
       }
     }

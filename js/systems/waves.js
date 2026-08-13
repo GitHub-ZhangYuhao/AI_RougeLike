@@ -1,6 +1,7 @@
 import { CONFIG } from '../config.js';
 
-// WaveDirector owns quotas and per-wave composition counters. Spawner owns pacing.
+// WaveDirector owns the 90-second wave clock and planned spawn composition.
+// Spawner owns pacing, population caps and spawn positions.
 export class WaveDirector {
   constructor() {
     this.reset();
@@ -8,7 +9,8 @@ export class WaveDirector {
 
   reset() {
     this.wave = 1;
-    this.phase = 'wave'; // wave | rest
+    this.phase = 'wave'; // wave | overtime | rest
+    this.waveTimer = CONFIG.waves.duration;
     this.spawned = 0;
     this.baseQuota = this._quotaFor(1);
     this.quota = this.baseQuota;
@@ -27,6 +29,16 @@ export class WaveDirector {
     return Math.max(0, this.quota - this.spawned);
   }
 
+  get timeRemaining() {
+    return Math.max(0, this.waveTimer);
+  }
+
+  get spawnInterval() {
+    const immediateSpawns = this.isBossWave ? 1 : 0;
+    const pacedSpawns = Math.max(1, this.quota - immediateSpawns);
+    return CONFIG.waves.duration / pacedSpawns;
+  }
+
   applySpawnSettings(settings) {
     if (!settings || typeof settings !== 'object') return this.quota;
     const quotaMult = Number.isFinite(settings.quotaMult)
@@ -41,8 +53,10 @@ export class WaveDirector {
   }
 
   startWave(game, wave) {
-    this.wave = Number.isFinite(wave) ? Math.max(1, Math.floor(wave)) : 1;
+    const requestedWave = Number.isFinite(wave) ? Math.max(1, Math.floor(wave)) : 1;
+    this.wave = Math.min(CONFIG.waves.maxWave, requestedWave);
     this.phase = 'wave';
+    this.waveTimer = CONFIG.waves.duration;
     this.spawned = 0;
     this.baseQuota = this._quotaFor(this.wave);
     this.quota = this.baseQuota;
@@ -60,23 +74,30 @@ export class WaveDirector {
     const spawnSettings = game.debug?.settings.spawn;
     this.applySpawnSettings(spawnSettings);
     if (this.bannerTimer > 0) this.bannerTimer -= dt;
+
     if (this.phase === 'rest') {
       this.restTimer -= dt;
       if (this.restTimer <= 0) this._startNextWave(game);
       return;
     }
 
-    if (this.isBossWave) {
-      this._updateBossWave(dt, game, camera, viewW, viewH);
+    if (this.phase === 'overtime') {
+      if (!this._bossAlive(game)) game.onBossWaveCleared(this);
       return;
     }
 
+    this.waveTimer = Math.max(0, this.waveTimer - dt);
+    if (this.isBossWave) this._updateBossWave(dt, game, camera, viewW, viewH, spawnSettings);
+    else this._updateNormalWave(dt, game, camera, viewW, viewH, spawnSettings);
+  }
+
+  _updateNormalWave(dt, game, camera, viewW, viewH, spawnSettings) {
     const shouldGuaranteeElite = this.wave % CONFIG.waves.eliteEvery === 0;
     if (
       shouldGuaranteeElite
       && !this.eliteSpawned
       && spawnSettings?.paused !== true
-      && this.spawned < this.quota
+      && this.remaining > 0
     ) {
       const elite = game.spawner.spawnType(
         'shield', game.elapsed, game.enemies, camera, viewW, viewH,
@@ -89,6 +110,7 @@ export class WaveDirector {
       if (elite) {
         this.eliteSpawned = true;
         this.spawned++;
+        game.spawner.timer = this.spawnInterval;
       }
     }
 
@@ -97,6 +119,7 @@ export class WaveDirector {
         dt, game.elapsed, game.enemies, camera, viewW, viewH,
         {
           spawnLimit: this.remaining,
+          spawnInterval: this.spawnInterval,
           wave: this.wave,
           quota: this.quota,
           spawnedByType: this.spawnedByType,
@@ -107,17 +130,12 @@ export class WaveDirector {
       );
     }
 
-    if (this.spawned >= this.quota && !game.enemies.some((enemy) => !enemy.dead)) {
-      this._beginRest();
-    }
+    // Normal waves advance strictly by time. Living enemies carry into the next wave.
+    if (this.waveTimer <= 0) this._startNextWave(game);
   }
 
-  _updateBossWave(dt, game, camera, viewW, viewH) {
-    if (
-      !this.bossSpawned
-      && game.debug?.settings.spawn.paused !== true
-      && this.remaining > 0
-    ) {
+  _updateBossWave(dt, game, camera, viewW, viewH, spawnSettings) {
+    if (!this.bossSpawned && spawnSettings?.paused !== true && this.remaining > 0) {
       const boss = game.spawner.spawnType(
         'boss', game.elapsed, game.enemies, camera, viewW, viewH,
         {
@@ -129,8 +147,8 @@ export class WaveDirector {
       if (boss) {
         this.bossSpawned = true;
         this.spawned = 1;
+        game.spawner.timer = this.spawnInterval;
       }
-      return;
     }
 
     if (this.remaining > 0) {
@@ -138,24 +156,32 @@ export class WaveDirector {
         dt, game.elapsed, game.enemies, camera, viewW, viewH,
         {
           spawnLimit: this.remaining,
+          spawnInterval: this.spawnInterval,
           wave: this.wave,
           quota: this.quota,
           spawnedByType: this.spawnedByType,
           bossWave: true,
           forceType: 'enhancedChaser',
-          spawnSettings: game.debug?.settings.spawn,
+          spawnSettings,
           debug: game.debug,
         },
       );
     }
 
-    // Boss waves finish only after the boss and every reinforcement are dead.
-    if (this.spawned >= this.quota && !game.enemies.some((enemy) => !enemy.dead)) {
-      game.onBossWaveCleared(this);
+    if (this.waveTimer > 0 || !this.bossSpawned) return;
+    if (this._bossAlive(game)) {
+      this.phase = 'overtime';
+      this.bannerTimer = CONFIG.waves.bannerDuration;
+      return;
     }
+    game.onBossWaveCleared(this);
   }
 
-  // Boss 撤离抉择选「继续深入」后，由 game 调用进入休整
+  _bossAlive(game) {
+    return game.enemies.some((enemy) => !enemy.dead && enemy.rank === 'boss');
+  }
+
+  // Continuing after a boss checkpoint enters a short rest before the next wave.
   beginRest() {
     this._beginRest();
   }
@@ -167,24 +193,32 @@ export class WaveDirector {
   }
 
   _startNextWave(game) {
+    if (this.wave >= CONFIG.waves.maxWave) {
+      game.onFinalWaveCleared(this);
+      return;
+    }
     this.startWave(game, this.wave + 1);
   }
 
   _bossReinforcementsFor(wave) {
-    // W5/W10 Boss 护卫：首个 Boss 波不再 1v1，强制玩家边跑位边输出
     if (wave === 5) return 4;
     if (wave === 10) return 6;
-    // Explicit targets: wave 15 => 8, wave 20 => 10, wave 25+ capped at 12.
     return Math.min(12, 6 + Math.floor((wave - 10) / 5) * 2);
   }
 
-  _quotaFor(wave) {
-    if (wave % CONFIG.waves.bossEvery === 0) {
-      return 1 + this._bossReinforcementsFor(wave);
+  quantityMultiplierFor(wave) {
+    const requestedWave = Number.isFinite(wave) ? Math.max(1, Math.floor(wave)) : 1;
+    const normalizedWave = Math.min(CONFIG.waves.maxWave, requestedWave);
+    if (normalizedWave % CONFIG.waves.bossEvery === 0) {
+      return (1 + this._bossReinforcementsFor(normalizedWave)) / CONFIG.waves.baseQuota;
     }
     return Math.min(
-      CONFIG.waves.quotaCap,
-      CONFIG.waves.baseQuota + (wave - 1) * CONFIG.waves.quotaPerWave,
+      CONFIG.waves.quantityWaveCap,
+      1 + (normalizedWave - 1) * CONFIG.waves.quantityPerWave,
     );
+  }
+
+  _quotaFor(wave) {
+    return Math.round(CONFIG.waves.baseQuota * this.quantityMultiplierFor(wave));
   }
 }

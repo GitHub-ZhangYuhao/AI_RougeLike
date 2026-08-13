@@ -2,8 +2,8 @@ import { CONFIG } from './config.js';
 import { chooseEnemyType, createEnemyByType } from './enemies/index.js';
 import { rand } from './utils.js';
 
-// Spawn outside the view. WaveDirector controls the finite per-wave quota;
-// Spawner controls wave-based pacing, population cap and spawn position.
+// Spawn outside the view. WaveDirector controls timed-wave composition;
+// Spawner controls pacing, population caps and spawn positions.
 export class Spawner {
   constructor() { this.timer = 0; }
 
@@ -14,10 +14,10 @@ export class Spawner {
     const spawnSettings = options.spawnSettings ?? options.debug?.settings.spawn ?? {};
     if (spawnLimit <= 0 || spawnSettings.paused === true) return 0;
 
-    const baseInterval = Math.max(
-      config.minInterval,
-      config.startInterval - (wave - 1) * config.intervalPerWave,
-    );
+    const requestedInterval = Number.isFinite(options.spawnInterval)
+      ? options.spawnInterval
+      : config.startInterval - (wave - 1) * config.intervalPerWave;
+    const baseInterval = Math.max(config.minInterval, requestedInterval);
     const intervalMult = Number.isFinite(spawnSettings.intervalMult)
       ? Math.max(0.01, spawnSettings.intervalMult)
       : 1;

@@ -11,7 +11,7 @@ export function defaultSave() {
     darkCrystals: 0,
     storage: Object.fromEntries(META_ITEM_LIST.map((item) => [item.id, 0])),
     metaLevels: Object.fromEntries(SHOP_ATTRS.map((attr) => [attr, 0])),
-    stats: { runs: 0, extractions: 0, bestWave: 0, totalBossKills: 0 },
+    stats: { runs: 0, extractions: 0, completions: 0, bestWave: 0, totalBossKills: 0 },
   };
 }
 

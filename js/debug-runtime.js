@@ -314,6 +314,7 @@ export class DebugRuntime {
     const matching = this.game.weapons.filter((weapon) => weapon.card?.id === card.id);
     if (level <= 0) {
       this.game.weapons = this.game.weapons.filter((weapon) => weapon.card?.id !== card.id);
+      this.game.synergies?.refresh(this.game.weapons, this.game.elapsed);
       return;
     }
 
@@ -328,6 +329,7 @@ export class DebugRuntime {
         return false;
       });
     }
+    this.game.synergies?.refresh(this.game.weapons, this.game.elapsed);
   }
 }
 

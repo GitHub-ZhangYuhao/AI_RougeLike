@@ -39,6 +39,11 @@ export class TalismanWeapon extends WeaponBase {
       speed: s.speed, radius: 5, damage, lifetime, color: '#8be0ff',
     });
     p.attackSeq = this.attackSeq;
+    p.damageOptions = {
+      sourceWeaponId: 'talisman',
+      sourceAction: 'projectile',
+      sourceTags: ['lightning', 'projectile'],
+    };
     p.onHit = (e) => this._onProjectileHit(e, p);
     world.projectiles.push(p);
   }
@@ -70,27 +75,64 @@ export class TalismanWeapon extends WeaponBase {
   }
 
   // 引雷落雷：Lv2~5 单体，Lv6 变为范围伤害（半径 95，设计上限）
+  triggerSwordThunder(e, world) {
+    if (!e) return false;
+    const damage = this.stats.damage * world.mods.damageMult * 0.6;
+    if (!e.dead) world.damageEnemy(e, damage, {
+      sourceWeaponId: 'talisman',
+      sourceAction: 'sword-thunder',
+      sourceTags: ['lightning', 'thunder', 'synergy'],
+      synergyId: 'sword-talisman-mark',
+      noSynergy: true,
+      noSummon: true,
+    });
+    const total = 0.22;
+    this.boltFx.push({ x: e.x, y: e.y, ttl: total, total, aoe: false, swordSynergy: true });
+    world.recordSynergyTrigger?.('sword-talisman-mark', damage);
+    return true;
+  }
+
   _strikeThunder(e, dmg, world) {
     const s = this.stats;
     const total = 0.18;
     if (s.thunderAoE) {
       // 范围落雷：内部自动跳过死亡敌人，击杀走统一伤害入口
-      hitEnemiesInRadius(world, e.x, e.y, 95, dmg);
+      hitEnemiesInRadius(world, e.x, e.y, 95, dmg, null, {
+        sourceWeaponId: 'talisman',
+        sourceAction: 'thunder',
+        sourceTags: ['lightning', 'thunder', 'area'],
+      });
     } else if (!e.dead) {
-      world.damageEnemy(e, dmg);
+      world.damageEnemy(e, dmg, {
+        sourceWeaponId: 'talisman',
+        sourceAction: 'thunder',
+        sourceTags: ['lightning', 'thunder'],
+      });
     }
     this.boltFx.push({ x: e.x, y: e.y, ttl: total, total, aoe: !!s.thunderAoE });
   }
 
   // 闪电链：从命中目标出发，逐跳找 160px 内最近的未命中敌人弹射
+  // Chain lightning can use one jade ring as a relay when no enemy is directly reachable. The relay does not consume a bounce.
   _chainLightning(origin, dmg, world) {
     const s = this.stats;
     const bounces = s.chainBounces || 2;
-    const R2 = 180 * 180; // 弹射搜索半径上限（设计定稿 ≤180px）
+    const R2 = 180 * 180; // Maximum search radius per segment.
     const total = 0.15;
-    const hitSet = new Set([origin]); // 同一条链不重复命中同一目标
+    const hitSet = new Set([origin]); // A chain cannot hit the same enemy twice.
+    const ring = world.hasSynergy?.('talisman-ring-relay') ? world.getWeapon?.('ring') : null;
+    const ringRelayPositions = ring ? ring.ringPositions(world) : [];
+    const corpseRelayPositions = world.hasSynergy?.('talisman-staff-corpse-relay')
+      ? (world.summons || []).filter((summon) => !summon.dead)
+      : [];
+    let ringRelayUsed = false;
+    let corpseRelayUsed = false;
     let cur = origin;
-    for (let i = 0; i < bounces; i++) {
+    let hits = 0;
+    let steps = 0;
+
+    while (hits < bounces && steps < bounces + 2) {
+      steps++;
       let best = null;
       let bestD = R2;
       for (const en of world.enemies) {
@@ -98,11 +140,69 @@ export class TalismanWeapon extends WeaponBase {
         const d = dist2(cur.x, cur.y, en.x, en.y);
         if (d <= bestD) { bestD = d; best = en; }
       }
-      if (!best) break; // 附近没有可弹射目标，链终止
+
+      if (!best) {
+        const relayCandidates = [];
+        const findRelay = (type, positions) => {
+          let candidate = null;
+          let candidateScore = Infinity;
+          let candidateEntryDistance = Infinity;
+          for (const position of positions) {
+            const entryDistance2 = dist2(cur.x, cur.y, position.x, position.y);
+            if (entryDistance2 > R2) continue;
+            for (const en of world.enemies) {
+              if (en.dead || hitSet.has(en)) continue;
+              const exitDistance2 = dist2(position.x, position.y, en.x, en.y);
+              if (exitDistance2 > R2) continue;
+              const score = Math.sqrt(entryDistance2) + Math.sqrt(exitDistance2);
+              if (score < candidateScore || (score === candidateScore && entryDistance2 < candidateEntryDistance)) {
+                candidate = position;
+                candidateScore = score;
+                candidateEntryDistance = entryDistance2;
+              }
+            }
+          }
+          if (candidate) relayCandidates.push({ type, position: candidate, score: candidateScore });
+        };
+
+        if (!ringRelayUsed) findRelay('ring', ringRelayPositions);
+        if (!corpseRelayUsed) findRelay('corpse', corpseRelayPositions);
+        relayCandidates.sort((a, b) => a.score - b.score);
+        const relay = relayCandidates[0];
+        if (relay) {
+          const corpseRelay = relay.type === 'corpse';
+          this.chainFx.push({
+            x1: cur.x,
+            y1: cur.y,
+            x2: relay.position.x,
+            y2: relay.position.y,
+            ttl: total,
+            total,
+            relay: !corpseRelay,
+            corpseRelay,
+          });
+          cur = relay.position;
+          if (corpseRelay) {
+            corpseRelayUsed = true;
+            world.recordSynergyTrigger?.('talisman-staff-corpse-relay', 1);
+          } else {
+            ringRelayUsed = true;
+            world.recordSynergyTrigger?.('talisman-ring-relay', 1);
+          }
+          continue;
+        }
+      }
+
+      if (!best) break;
       hitSet.add(best);
-      world.damageEnemy(best, dmg);
+      world.damageEnemy(best, dmg, {
+        sourceWeaponId: 'talisman',
+        sourceAction: 'chain',
+        sourceTags: ['lightning', 'chain'],
+      });
       this.chainFx.push({ x1: cur.x, y1: cur.y, x2: best.x, y2: best.y, ttl: total, total });
       cur = best;
+      hits++;
     }
   }
 
@@ -112,7 +212,8 @@ export class TalismanWeapon extends WeaponBase {
     for (const fx of this.chainFx) {
       ctx.save();
       ctx.globalAlpha = Math.max(0, fx.ttl / fx.total);
-      this._drawBoltLine(ctx, fx.x1, fx.y1, fx.x2, fx.y2, '#9be8ff', 2);
+      const color = fx.corpseRelay ? '#c78cff' : fx.relay ? '#ffad5c' : '#9be8ff';
+      this._drawBoltLine(ctx, fx.x1, fx.y1, fx.x2, fx.y2, color, fx.relay || fx.corpseRelay ? 3 : 2);
       ctx.restore();
     }
     // 引雷：从天落雷 + Lv6 范围圈
@@ -120,7 +221,18 @@ export class TalismanWeapon extends WeaponBase {
       const a = Math.max(0, fx.ttl / fx.total);
       ctx.save();
       ctx.globalAlpha = a;
-      this._drawBoltLine(ctx, fx.x + 14, fx.y - 150, fx.x, fx.y, '#ffe98a', 3);
+      const boltColor = fx.swordSynergy ? '#b8f7ff' : '#ffe98a';
+      this._drawBoltLine(ctx, fx.x + 14, fx.y - 150, fx.x, fx.y, boltColor, fx.swordSynergy ? 4 : 3);
+      if (fx.swordSynergy) {
+        ctx.strokeStyle = '#fff59d';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(fx.x - 13, fx.y - 8);
+        ctx.lineTo(fx.x + 13, fx.y + 8);
+        ctx.moveTo(fx.x + 13, fx.y - 8);
+        ctx.lineTo(fx.x - 13, fx.y + 8);
+        ctx.stroke();
+      }
       if (fx.aoe) {
         ctx.beginPath();
         ctx.arc(fx.x, fx.y, 95 * (1 - fx.ttl / fx.total), 0, Math.PI * 2);

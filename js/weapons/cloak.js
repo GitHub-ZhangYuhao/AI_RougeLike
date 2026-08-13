@@ -22,7 +22,11 @@ export class CloakWeapon extends WeaponBase {
       for (const e of world.enemies) {
         if (e.dead) continue;
         if (dist2(px, py, e.x, e.y) <= (s.radius + e.radius) ** 2) {
-          world.damageEnemy(e, damage);
+          world.damageEnemy(e, damage, {
+            sourceWeaponId: 'cloak',
+            sourceAction: 'aura',
+            sourceTags: ['fire', 'aura'],
+          });
           if (s.burn && !e.dead) world.applyDot(e, 'burn', s.burnDps, 2);
         }
       }
@@ -62,7 +66,11 @@ export class CloakWeapon extends WeaponBase {
     for (const e of world.enemies) {
       if (e.dead) continue;
       if (dist2(px, py, e.x, e.y) <= (radius + e.radius) ** 2) {
-        world.damageEnemy(e, damage);
+        world.damageEnemy(e, damage, {
+          sourceWeaponId: 'cloak',
+          sourceAction: enhanced ? 'enhanced-shock' : 'shock',
+          sourceTags: ['fire', 'area'],
+        });
         if (e.dead) continue;
         world.applyDot(e, 'burn', s.burnDps, 2);
         if (slowDuration > 0) world.applySlow(e, 0.3, slowDuration);

@@ -43,6 +43,7 @@ await import('../js/main.js');
 const { CONFIG } = await import('../js/config.js');
 const { computeMods, generateOffers, WEAPON_CARDS, ATTR_CARDS, CARD_BY_ID } = await import('../js/cards.js');
 const { getCardRects } = await import('../js/ui-cards.js');
+const { getWeaponSlotRects } = await import('../js/hud.js');
 const { EnemyBase } = await import('../js/enemies/base.js');
 const { ChaserEnemy } = await import('../js/enemy.js');
 const { ChargerEnemy } = await import('../js/enemies/charger.js');
@@ -53,6 +54,7 @@ const { BossEnemy } = await import('../js/enemies/boss.js');
 const { EnhancedChaserEnemy } = await import('../js/enemies/enhanced-chaser.js');
 const { chooseEnemyType, createEnemyByType } = await import('../js/enemies/index.js');
 const { WaveDirector } = await import('../js/systems/waves.js');
+const { SynergySystem, SYNERGY_DEFINITIONS } = await import('../js/systems/synergies.js');
 const { createGem, updateGem } = await import('../js/gems.js');
 const { drawEnemy } = await import('../js/enemy.js');
 const { applyDot } = await import('../js/systems/status.js');
@@ -158,7 +160,7 @@ assert(moved > 100, '[2] 玩家移动异常');
 game.player.maxHp = 100000;
 game.player.hp = 100000;
 
-// ========== [3] 站桩 60 秒：击杀 / 升级选卡 / 武器槽上限 ==========
+// ========== [3] 站桩 60 秒：定时波不会提前推进 ==========
 pumpWithChoices(60 * 60);
 console.log('[3] 60 秒后：elapsed=' + game.elapsed.toFixed(1) + 's 击杀=' + game.kills
   + ' 等级=' + game.level + ' 武器=' + game.weapons.length + ' 波次=' + game.waveDirector.wave);
@@ -166,7 +168,8 @@ assert(game.kills > 0, '[3] 没有产生击杀');
 assert(game.level >= 2, '[3] 玩家应该至少升到 2 级');
 assert(game.state === 'playing', '[3] 应处于战斗状态，实际 ' + game.state);
 assert(game.weapons.length <= CONFIG.cards.maxWeaponSlots, '[3] 武器数量超过槽位上限');
-assert(game.waveDirector.wave >= 2, '[3] 波次系统未推进');
+assert(game.waveDirector.wave === 1 && game.waveDirector.timeRemaining < 31,
+  '[3] 90 秒定时波不应在 60 秒时提前推进');
 
 // ========== [4] 强制升级：鼠标点击选卡 ==========
 game.pendingChoices = 0;
@@ -283,23 +286,18 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   talisman._onProjectileHit(targetA, hitProjectile);
   assert(thunderHits === 1, '[6] second hit on same target must trigger thunder');
 
-  // Sword finite piercing, infinite piercing and every-third-attack draw slash.
+  // Sword becomes an unlimited piercing projectile from Lv2 onward.
   const sword = CARD_BY_ID.get('sword').create();
-  sword.level = 2;
   const swordWorld = baseWorld();
-  sword.update(1 / 60, swordWorld);
-  assert(swordWorld.projectiles.length === 1 && swordWorld.projectiles[0].maxHits === 2,
-    '[6] sword Lv2 must be one ranged sword with total 2 hits');
-  sword.level = 5;
-  sword.timer = 0;
-  swordWorld.projectiles.length = 0;
-  sword.update(1 / 60, swordWorld);
-  assert(swordWorld.projectiles[0].maxHits === 4, '[6] sword Lv5 must pierce 3 enemies');
-  sword.level = 6;
-  sword.timer = 0;
-  swordWorld.projectiles.length = 0;
-  sword.update(1 / 60, swordWorld);
-  assert(swordWorld.projectiles[0].maxHits === Infinity, '[6] sword Lv6 must pierce infinitely');
+  for (let level = 2; level <= sword.card.maxLevel; level++) {
+    sword.level = level;
+    sword.timer = 0;
+    swordWorld.projectiles.length = 0;
+    sword.update(1 / 60, swordWorld);
+    assert(swordWorld.projectiles.length === 1
+      && swordWorld.projectiles[0].maxHits === Infinity,
+    `[6] sword Lv${level} must pierce infinitely`);
+  }
 
   const savedEnemies = game.enemies;
   const savedProjectiles = game.projectiles;
@@ -380,6 +378,8 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   assert(game.killLog.at(-1).blazed, '[6] trail blaze was not recorded');
 
   // Trail Lv4 creates a furnace from a valid loop; Lv6 opening creates a hot zone.
+  assert(CARD_BY_ID.get('trail').levels.map((level) => level.damage).join(',') === '7,10,14,16,21,26',
+    '[6] trail damage nerf curve changed unexpectedly');
   const trailWeapon = CARD_BY_ID.get('trail').create();
   trailWeapon.level = 6;
   const trailWorld = baseWorld();
@@ -536,15 +536,31 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   // Wave scaling and enhanced chaser enrage.
   const savedRandomForWave = Math.random;
   Math.random = () => 0.5;
+  const initialWaveEnemy = createEnemyByType('chaser', 0, 0, 0, 1);
   const waveOneEnemy = createEnemyByType('chaser', 0, 0, 60, 1);
   const waveElevenEnemy = createEnemyByType('chaser', 0, 0, 60, 11);
+  const waveTwentyEnemy = createEnemyByType('chaser', 0, 0, 60, 20);
+  const waveTwentyFiveEnemy = createEnemyByType('chaser', 0, 0, 60, 25);
   Math.random = savedRandomForWave;
-  assert(Math.abs(waveElevenEnemy.maxHp / waveOneEnemy.maxHp - 2.9) < 1e-6,
-    '[8] enemy HP wave scaling incorrect');
+  const timedBaseSpeed = CONFIG.enemy.speed * (1 + CONFIG.enemy.speedPerMin);
+  assert(Math.abs(initialWaveEnemy.maxHp - 50) < 1e-6,
+    '[8] initial enemy HP should use the reduced 50 HP baseline');
+  assert(Math.abs(waveOneEnemy.speed / timedBaseSpeed - 1.5) < 1e-6,
+    '[8] enemy base speed should be increased by 50%');
+  assert(Math.abs(waveElevenEnemy.maxHp / waveOneEnemy.maxHp - 3.3) < 1e-6,
+    '[8] enemy early/mid HP wave scaling incorrect');
+  assert(Math.abs(waveTwentyFiveEnemy.maxHp / waveOneEnemy.maxHp - 7) < 1e-6,
+    '[8] enemy HP wave scaling should cap at 7');
   assert(Math.abs(waveElevenEnemy.damage / waveOneEnemy.damage - 2.0) < 1e-6,
     '[8] enemy damage wave scaling incorrect');
-  assert(Math.abs(waveElevenEnemy.speed / waveOneEnemy.speed - 1.275) < 1e-6,
+  assert(Math.abs(waveElevenEnemy.speed / timedBaseSpeed - (1.5 + 0.5 * 10 / 19)) < 1e-6,
     '[8] enemy speed wave scaling incorrect');
+  assert(Math.abs(waveTwentyEnemy.speed / timedBaseSpeed - 2) < 1e-6,
+    '[8] enemy speed should reach its cap on wave 20');
+  assert(Math.abs(waveTwentyFiveEnemy.speed / timedBaseSpeed - 2) < 1e-6,
+    '[8] enemy speed should remain capped after wave 20');
+  assert(Math.abs(waveTwentyFiveEnemy.speed - waveTwentyEnemy.speed) < 1e-6,
+    '[8] enemy speed should stop increasing after wave 20');
 
   const enhanced = new EnhancedChaserEnemy(0, 0, 0);
   const enhancedBaseDamage = enhanced.damage;
@@ -584,18 +600,17 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   updateGem(gem, gemPlayer, 1 / 60, CONFIG.gems.magnetRadius);
   assert(gem.magnetized && gem.vx > 0, '[9] 经验宝石离开初始范围后脱锁');
 
-  // 波次 3 保证精英；投放完并清场后进入休整。
+  // 波次 3 保证精英；清场不会推进波次，倒计时结束才进入下一波。
   const director = new WaveDirector();
-  director.wave = 3;
-  director.quota = 2;
-  director.spawned = 0;
   const fakeGame = {
     elapsed: 60,
     enemies: [],
+    bossCleared: 0,
+    onBossWaveCleared() { this.bossCleared++; },
     spawner: {
       timer: 0,
       spawnType(type, elapsed, enemies) {
-        const enemy = { type, rank: type === 'shield' ? 'elite' : 'normal', dead: false };
+        const enemy = { type, rank: type === 'shield' ? 'elite' : type === 'boss' ? 'boss' : 'normal', dead: false };
         enemies.push(enemy);
         return enemy;
       },
@@ -606,24 +621,56 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
       },
     },
   };
+  director.startWave(fakeGame, 3);
+  director.quota = 2;
+  director.baseQuota = 2;
   director.update(1 / 60, fakeGame, { x: 0, y: 0 }, 1280, 720);
-  assert(fakeGame.enemies.some((enemy) => enemy.rank === 'elite'), '[9] 精英波未保证生成精英怪');
-  assert(director.spawned === 2 && director.remaining === 0, '[9] 波次投放数量错误');
+  assert(fakeGame.enemies.some((enemy) => enemy.rank === 'elite'), '[9] timed elite wave did not guarantee an elite');
   for (const enemy of fakeGame.enemies) enemy.dead = true;
   director.update(1 / 60, fakeGame, { x: 0, y: 0 }, 1280, 720);
-  assert(director.phase === 'rest', '[9] 清空波次后未进入休整');
+  assert(director.wave === 3 && director.phase === 'wave',
+    '[9] clearing enemies must not advance a timed wave');
+  const carriedEnemy = { type: 'chaser', rank: 'normal', dead: false };
+  fakeGame.enemies.push(carriedEnemy);
+  director.waveTimer = 0.01;
+  director.update(0.02, fakeGame, { x: 0, y: 0 }, 1280, 720);
+  assert(director.wave === 4 && director.phase === 'wave', '[9] timed wave did not advance after 90 seconds');
+  assert(fakeGame.enemies.includes(carriedEnemy) && !carriedEnemy.dead,
+    '[9] living enemies should carry into the next normal wave');
+  assert(CONFIG.waves.duration === 90, '[9] wave duration must be 90 seconds');
 
-  assert(new WaveDirector()._quotaFor(1) === 16, '[9] wave 1 quota must be 16');
-  assert(new WaveDirector()._quotaFor(9) === 80, '[9] normal-wave quota growth incorrect');
-  assert(new WaveDirector()._quotaFor(15) === 9, '[9] wave 15 boss reinforcement quota incorrect');
-  assert(new WaveDirector()._quotaFor(20) === 11, '[9] late boss reinforcement cap incorrect');
+  const quotaDirector = new WaveDirector();
+  assert(quotaDirector._quotaFor(1) === 16, '[9] wave 1 quota must be 16');
+  assert(quotaDirector._quotaFor(9) === 80, '[9] normal-wave quota growth incorrect');
+  assert(quotaDirector._quotaFor(15) === 9, '[9] wave 15 boss reinforcement quota incorrect');
+  assert(quotaDirector._quotaFor(20) === 11, '[9] late boss reinforcement cap incorrect');
+  assert(quotaDirector._quotaFor(25) === 13, '[9] final boss wave quota incorrect');
+  assert(Math.abs(quotaDirector.quantityMultiplierFor(1) - 1) < 1e-9,
+    '[9] wave 1 quantity multiplier must be 1');
+  assert(Math.abs(quotaDirector.quantityMultiplierFor(9) - 5) < 1e-9,
+    '[9] normal-wave quantity multiplier incorrect');
+  assert(Math.abs(quotaDirector.quantityMultiplierFor(15) - 0.5625) < 1e-9,
+    '[9] boss-wave quantity multiplier incorrect');
+  assert(Math.abs(quotaDirector.quantityMultiplierFor(22) - 11.25) < 1e-9,
+    '[9] quantity multiplier cap incorrect');
 
   const bossDirector = new WaveDirector();
-  bossDirector.wave = CONFIG.waves.bossEvery;
+  fakeGame.enemies.length = 0;
+  bossDirector.startWave(fakeGame, CONFIG.waves.bossEvery);
   bossDirector.quota = 1;
+  bossDirector.baseQuota = 1;
   bossDirector.update(1 / 60, fakeGame, { x: 0, y: 0 }, 1280, 720);
-  assert(fakeGame.enemies.at(-1).type === 'boss' && bossDirector.bossSpawned,
-    '[9] Boss 波未通过波次系统生成 Boss');
+  const timedBoss = fakeGame.enemies.at(-1);
+  assert(timedBoss.type === 'boss' && bossDirector.bossSpawned,
+    '[9] Boss wave did not spawn its Boss');
+  bossDirector.waveTimer = 0;
+  bossDirector.update(1 / 60, fakeGame, { x: 0, y: 0 }, 1280, 720);
+  assert(bossDirector.phase === 'overtime' && fakeGame.bossCleared === 0,
+    '[9] living Boss should enter overtime after the 90-second clock');
+  timedBoss.dead = true;
+  bossDirector.update(1 / 60, fakeGame, { x: 0, y: 0 }, 1280, 720);
+  assert(fakeGame.bossCleared === 1, '[9] overtime should end when the Boss dies');
+
 
   // Boss 蓄力后应发射环形弹幕，并拥有独立 Boss 档位。
   const bossShots = [];
@@ -919,6 +966,7 @@ console.log('[10] 死亡 / 返回主菜单 OK');
   game.enemies.push(boss);
   game.waveDirector.bossSpawned = true;
   game.waveDirector.spawned = game.waveDirector.quota;
+  game.waveDirector.waveTimer = 0;
 
   // 掉落随机桩为 0.99 → 本次不掉材料，专注验证撤离主流程
   const origRandom = Math.random;
@@ -977,6 +1025,7 @@ console.log('[10] 死亡 / 返回主菜单 OK');
   game.enemies.push(boss);
   game.waveDirector.bossSpawned = true;
   game.waveDirector.spawned = game.waveDirector.quota;
+  game.waveDirector.waveTimer = 0;
 
   // rng=0 → 必掉：数量取下限、品阶被保底抬升
   const origRandom = Math.random;
@@ -1013,6 +1062,7 @@ console.log('[10] 死亡 / 返回主菜单 OK');
   game.enemies.push(boss2);
   game.waveDirector.bossSpawned = true;
   game.waveDirector.spawned = game.waveDirector.quota;
+  game.waveDirector.waveTimer = 0;
   Math.random = () => 0.99; // 本次不掉新材料
   game.damageEnemy(boss2, boss2.maxHp * 2);
   game.gems.length = 0;
@@ -1167,4 +1217,613 @@ console.log('[10] 死亡 / 返回主菜单 OK');
   console.log('[16] 仓库卖出 / 局外属性生效 OK');
 }
 
-console.log('✅ 冒烟测试全部通过（卡牌、武器、波次、精英与 Boss、撤离抉择与局外商城）');
+// ========== [17] 25 波上限与最终通关结算 ==========
+{
+  assert(CONFIG.waves.maxWave === 25, '[17] 单局最大波数应为 25');
+  assert(game.state === 'playing', '[17] 应从进行中的对局验证最终波，实际 ' + game.state);
+
+  game.pendingChoices = 0;
+  game.enemies.length = 0;
+  game.hostileProjectiles.length = 0;
+  game.gems.length = 0;
+  game.pickups.length = 0;
+
+  const requestedWave = CONFIG.waves.maxWave + 1;
+  const startedWave = game.waveDirector.startWave(game, requestedWave);
+  assert(startedWave === CONFIG.waves.maxWave && game.waveDirector.wave === CONFIG.waves.maxWave,
+    '[17] 请求第 26 波时应限制在第 25 波');
+  assert(game.waveDirector.isBossWave, '[17] 第 25 波应为 Boss 波');
+
+  game.tempBackpack = { shard: 2, essence: 1, soulCrystal: 0 };
+  const storageBefore = { ...game.save.storage };
+  const dcBefore = game.save.darkCrystals;
+  const extractionsBefore = game.save.stats.extractions;
+  const completionsBefore = game.save.stats.completions;
+  const expectedReward = Math.round(CONFIG.waves.maxWave * CONFIG.meta.waveRewardMult);
+
+  const boss = new BossEnemy(game.player.x + 60, game.player.y, game.elapsed);
+  game.enemies.push(boss);
+  game.waveDirector.bossSpawned = true;
+  game.waveDirector.spawned = game.waveDirector.quota;
+  game.waveDirector.waveTimer = 0;
+
+  const origRandom = Math.random;
+  Math.random = () => 0.99; // 不产生额外 Boss 材料，便于精确验证自动入库
+  game.damageEnemy(boss, boss.maxHp * 2);
+  game.gems.length = 0;
+  game.pickups.length = 0;
+  pump(1);
+  Math.random = origRandom;
+
+  assert(boss.dead, '[17] 最终 Boss 应被击杀');
+  assert(game.state === 'summary', '[17] 第 25 波清空后应直接进入通关结算，实际 ' + game.state);
+  assert(game.waveDirector.wave === CONFIG.waves.maxWave, '[17] 通关后不得进入第 26 波');
+  assert(game.lastRunSummary?.completed === true, '[17] 最终结算应标记为已通关');
+  assert(game.lastRunSummary?.wave === CONFIG.waves.maxWave, '[17] 通关结算波数应为 25');
+  assert(game.lastRunSummary?.darkCrystalsGained === expectedReward, '[17] 通关暗晶奖励错误');
+  assert(game.save.darkCrystals === dcBefore + expectedReward, '[17] 通关暗晶应自动入账');
+  assert(game.save.stats.extractions === extractionsBefore + 1, '[17] 通关应累计一次撤离');
+  assert(game.save.stats.completions === completionsBefore + 1, '[17] 通关次数应 +1');
+  assert(game.save.storage.shard === storageBefore.shard + 2
+    && game.save.storage.essence === storageBefore.essence + 1
+    && game.save.storage.soulCrystal === storageBefore.soulCrystal,
+    '[17] 通关时临时背包材料应自动入库');
+  assert(Object.values(game.tempBackpack).every((n) => n === 0), '[17] 通关后临时背包应清空');
+
+  const reloaded = loadSave();
+  assert(reloaded.stats.completions === game.save.stats.completions
+    && reloaded.stats.extractions === game.save.stats.extractions
+    && reloaded.darkCrystals === game.save.darkCrystals,
+    '[17] 通关结果应写入存档');
+
+  // 最终波回调即使被重复触发，也不能重复发放奖励。
+  game.onFinalWaveCleared();
+  assert(game.save.darkCrystals === dcBefore + expectedReward
+    && game.save.stats.completions === completionsBefore + 1,
+    '[17] 最终波重复回调不得重复结算');
+  console.log('[17] 25 波上限 / 最终通关 OK');
+}
+
+
+// ========== [18] Weapon synergy infrastructure + all fifteen implemented Builds ==========
+{
+  const weapon = (id, level = 4) => {
+    const instance = CARD_BY_ID.get(id).create();
+    instance.level = level;
+    return instance;
+  };
+  const sturdyEnemy = (x, y) => {
+    const enemy = new ChaserEnemy(x, y, game.elapsed);
+    enemy.hp = 10000;
+    enemy.maxHp = 10000;
+    enemy.speed = 0;
+    return enemy;
+  };
+  const squareZone = (damage = 10) => ({
+    points: [
+      { x: -120, y: -120 }, { x: 120, y: -120 },
+      { x: 120, y: 120 }, { x: -120, y: 120 },
+    ],
+    center: { x: 0, y: 0 },
+    area: 57600,
+    life: 5,
+    maxLife: 5,
+    tickTimer: 999,
+    coreTickTimer: 0,
+    damage,
+    pullSpeed: 25,
+    fuel: 0,
+    opens: 0,
+    maxOpens: 1,
+    openCooldown: 0,
+    eliteFuelAt: new Map(),
+    dead: false,
+  });
+
+  assert(SYNERGY_DEFINITIONS.length === 15, '[18] should register all 15 weapon-pair definitions');
+  assert(SYNERGY_DEFINITIONS.every((entry) => entry.implemented),
+    '[18] all fifteen registered weapon Builds should be implemented');
+
+  game.reset();
+  game.state = 'playing';
+  game.debug.weaponLevels = {};
+  game.weapons = [weapon('sword', 4), weapon('staff', 3)];
+  game.synergies = new SynergySystem();
+  assert(!game.synergies.isActive('sword-staff-command'), '[18] synergy must stay inactive while either weapon is below level 4');
+  game._applyOffer({ card: CARD_BY_ID.get('staff'), type: 'upgrade' });
+  assert(game.weapons[1].level === 4 && game.synergies.isActive('sword-staff-command'),
+    '[18] a normal weapon upgrade should auto-activate its level-4 synergy');
+  const announcementTtl = game.synergies.announcement?.ttl;
+  game.waveDirector.update = () => {};
+  game.update(0.1, 1280, 720);
+  assert(game.synergies.announcement?.ttl < announcementTtl,
+    '[18] the game loop should advance synergy announcements');
+
+  // Sword command: summons prefer the marked target over a closer unmarked target.
+  const sword = game.weapons[0];
+  const staff = game.weapons[1];
+  const nearEnemy = sturdyEnemy(-35, 0);
+  const commandedEnemy = sturdyEnemy(110, 0);
+  game.enemies = [nearEnemy, commandedEnemy];
+  sword._onDamageHit(commandedEnemy, game._world(), sword.stats, false);
+  assert(commandedEnemy.synergyMarks?.swordCommandUntil > game.elapsed, '[18] sword hits should apply the command mark');
+  const summon = {
+    x: 0, y: 0, damage: 1, life: 5, speed: 100,
+    hitTimer: 1, wander: 0, dead: false,
+  };
+  staff.slots = [{ phase: 'active', timer: 5, summon }];
+  game.summons = [summon];
+  staff.update(0.1, game._world());
+  assert(summon.x > 0, '[18] summon should move toward the commanded target');
+
+  // Lightning alchemy: thunder inside a furnace adds fuel and visual feedback.
+  const talisman = weapon('talisman');
+  const trail = weapon('trail');
+  game.weapons = [talisman, trail];
+  game.synergies = new SynergySystem();
+  game.synergies.refresh(game.weapons, game.elapsed);
+  const furnace = squareZone();
+  trail.furnaces = [furnace];
+  const furnaceEnemy = sturdyEnemy(10, 0);
+  game.enemies = [furnaceEnemy];
+  game.damageEnemy(furnaceEnemy, 1, {
+    sourceWeaponId: 'talisman',
+    sourceAction: 'thunder',
+    sourceTags: ['lightning', 'thunder'],
+  });
+  assert(furnace.fuel === 2, '[18] thunder should add two furnace fuel through lightning alchemy');
+  assert(game.effects.some((fx) => fx.type === 'synergyArc'), '[18] lightning alchemy should emit arc feedback');
+
+  // Inner/outer fire domain: overlapping enemies receive stronger pull and controlled bursts.
+  const cloak = weapon('cloak');
+  const coreTrail = weapon('trail');
+  game.weapons = [cloak, coreTrail];
+  game.synergies = new SynergySystem();
+  game.synergies.refresh(game.weapons, game.elapsed);
+  const coreZone = squareZone(10);
+  coreTrail.furnaces = [coreZone];
+  const coreEnemy = sturdyEnemy(80, 0);
+  game.enemies = [coreEnemy];
+  const hpBeforeCore = coreEnemy.hp;
+  coreTrail.update(0.1, game._world());
+  assert(coreEnemy.hp === hpBeforeCore - 15, '[18] inner/outer fire domain should deal its controlled burst damage');
+  assert(coreEnemy.x < 80 - 2.5, '[18] inner/outer fire domain should strengthen furnace pull');
+  assert(game.synergies.getRuntime('cloak-trail-core')?.triggerCount === 1,
+    '[18] inner/outer fire domain should record one trigger');
+
+  // Ring relay: a target outside the origin radius can still be reached through a jade ring.
+  const relayTalisman = weapon('talisman');
+  const ring = weapon('ring');
+  game.weapons = [relayTalisman, ring];
+  game.synergies = new SynergySystem();
+  game.synergies.refresh(game.weapons, game.elapsed);
+  const origin = sturdyEnemy(0, 0);
+  const relayTarget = sturdyEnemy(240, 0);
+  game.enemies = [origin, relayTarget];
+  const hpBeforeRelay = relayTarget.hp;
+  relayTalisman._chainLightning(origin, 10, game._world());
+  assert(relayTarget.hp === hpBeforeRelay - 10, '[18] chain lightning should hit an otherwise distant target through a ring');
+  assert(relayTalisman.chainFx.some((fx) => fx.relay), '[18] ring relay should emit a distinct relay segment');
+  assert(game.synergies.getRuntime('talisman-ring-relay')?.triggerCount === 1,
+    '[18] ring relay should record one trigger');
+
+  // Manual Build selection: clicking weapon slots locks one pair and filters the active set.
+  const buildTalisman = weapon('talisman');
+  const buildTrail = weapon('trail');
+  const buildRing = weapon('ring');
+  game.weapons = [buildTalisman, buildTrail, buildRing];
+  game.synergies = new SynergySystem();
+  game.synergies.refresh(game.weapons, game.elapsed);
+  game.enemies = [];
+  game.pendingChoices = 0;
+  game.state = 'playing';
+  assert(game.synergies.isActive('talisman-fire-alchemy') && game.synergies.isActive('talisman-ring-relay'),
+    '[18] automatic mode should activate every eligible implemented synergy');
+
+  const slotRects = getWeaponSlotRects();
+  const clickWeaponSlot = (index) => {
+    const rect = slotRects[index];
+    game.input.mouse.x = rect.x + rect.w / 2;
+    game.input.mouse.y = rect.y + rect.h / 2;
+    game.input._clicked = true;
+    assert(game._handleWeaponBuildClick(), `[18] weapon slot ${index + 1} click should be handled`);
+    game.input.endFrame();
+  };
+
+  clickWeaponSlot(0);
+  assert(game.synergies.selectedWeaponIds.length === 1,
+    '[18] the first Build weapon click should enter pending selection');
+  assert(game.synergies.isActive('talisman-fire-alchemy') && game.synergies.isActive('talisman-ring-relay'),
+    '[18] one selected weapon should keep automatic synergies active');
+
+  clickWeaponSlot(1);
+  assert(game.synergies.selectedDefinition?.id === 'talisman-fire-alchemy',
+    '[18] talisman plus trail should select lightning alchemy');
+  assert(game.synergies.isActive('talisman-fire-alchemy') && !game.synergies.isActive('talisman-ring-relay'),
+    '[18] a locked Build should activate only its selected synergy');
+
+  clickWeaponSlot(2);
+  assert(game.synergies.selectedWeaponIds[0] === 'talisman'
+    && game.synergies.selectedDefinition?.id === 'talisman-ring-relay',
+    '[18] clicking a third weapon should keep the first anchor and replace the second Build weapon');
+  assert(game.synergies.isActive('talisman-ring-relay') && !game.synergies.isActive('talisman-fire-alchemy'),
+    '[18] switching the Build partner should update the filtered active synergy');
+
+  clickWeaponSlot(0);
+  assert(game.synergies.selectedWeaponIds.length === 1,
+    '[18] clicking a selected Build weapon should cancel that selection');
+  assert(game.synergies.isActive('talisman-fire-alchemy') && game.synergies.isActive('talisman-ring-relay'),
+    '[18] fewer than two selected weapons should restore automatic mode');
+
+  clickWeaponSlot(1);
+  assert(game.synergies.selectedDefinition?.id === 'ring-trail-charge',
+    '[18] ring plus trail should resolve to its registered Build definition');
+  assert(game.synergies.isActive('ring-trail-charge') && game.synergies.activeDefinitions.length === 1,
+    '[18] ring plus trail should activate only the selected charging Build');
+
+  clickWeaponSlot(1);
+  assert(game.synergies.selectedWeaponIds.length === 1,
+    '[18] cancelling one weapon from a selected Build should return to pending selection');
+  assert(game.synergies.isActive('talisman-fire-alchemy') && game.synergies.isActive('talisman-ring-relay'),
+    '[18] cancelling a selected Build should restore automatic mode');
+
+  clickWeaponSlot(2);
+  buildTrail.level = 3;
+  game.synergies.refresh(game.weapons, game.elapsed);
+  assert(!game.synergies.isActive('talisman-fire-alchemy') && game.synergies.isActive('talisman-ring-relay'),
+    '[18] automatic mode should exclude only the pair whose weapon is below level 4');
+  clickWeaponSlot(0);
+  clickWeaponSlot(1);
+  assert(game.synergies.selectedDefinition?.id === 'talisman-fire-alchemy',
+    '[18] a below-level pair should still remain the explicitly selected Build');
+  assert(game.synergies.activeDefinitions.length === 0,
+    '[18] a below-level locked Build must not fall back to another eligible synergy');
+
+  console.log('[18] Weapon synergy infrastructure / fifteen Builds OK');
+}
+
+
+// ========== [19] First and second weapon Build batches ==========
+{
+  const weapon = (id, level = 4) => {
+    const instance = CARD_BY_ID.get(id).create();
+    instance.level = level;
+    return instance;
+  };
+  const sturdyEnemy = (x, y) => {
+    const enemy = new ChaserEnemy(x, y, game.elapsed);
+    enemy.hp = 10000;
+    enemy.maxHp = 10000;
+    enemy.speed = 0;
+    return enemy;
+  };
+  const squareZone = () => ({
+    points: [
+      { x: -120, y: -120 }, { x: 120, y: -120 },
+      { x: 120, y: 120 }, { x: -120, y: 120 },
+    ],
+    center: { x: 0, y: 0 },
+    area: 57600,
+    life: 5,
+    maxLife: 5,
+    tickTimer: 999,
+    coreTickTimer: 999,
+    damage: 10,
+    pullSpeed: 25,
+    fuel: 0,
+    opens: 0,
+    maxOpens: 1,
+    openCooldown: 0,
+    eliteFuelAt: new Map(),
+    dead: false,
+  });
+  const setupPair = (firstId, secondId) => {
+    game.reset();
+    game.state = 'playing';
+    game.player.x = 0;
+    game.player.y = 0;
+    game.enemies = [];
+    game.summons = [];
+    game.effects = [];
+    const first = weapon(firstId);
+    const second = weapon(secondId);
+    game.weapons = [first, second];
+    game.synergies = new SynergySystem();
+    game.synergies.refresh(game.weapons, game.elapsed);
+    return [first, second];
+  };
+
+  const remaining = SYNERGY_DEFINITIONS.filter((entry) => !entry.implemented).map((entry) => entry.id);
+  assert(remaining.length === 0,
+    '[19] no registered weapon Builds should remain unimplemented');
+
+  // Sword thunder: every sword attack action immediately calls down a distinct synergy bolt.
+  {
+    const [sword, talisman] = setupPair('sword', 'talisman');
+    const actions = ['melee', 'projectile', 'ring', 'flyingSword'];
+    const target = sturdyEnemy(100, 0);
+    game.enemies = [target];
+    let previousHp = target.hp;
+    for (const action of actions) {
+      sword._onDamageHit(target, game._world(), sword.stats, false, action);
+      assert(target.hp < previousHp,
+        `[19] sword ${action} hits should immediately call down synergy thunder`);
+      previousHp = target.hp;
+    }
+    assert(!target.synergyMarks?.swordTalismanUntil,
+      '[19] sword thunder should not create the removed delayed lightning mark');
+    assert(talisman.boltFx.filter((fx) => fx.swordSynergy).length === actions.length,
+      '[19] every sword attack type should emit distinct sword-thunder feedback');
+    assert(game.synergies.getRuntime('sword-talisman-mark')?.triggerCount === actions.length,
+      '[19] sword thunder should record one trigger per sword hit');
+  }
+
+  // 灼热玉环：披风范围内的玉环附加灼烧，Build 失活后清理状态
+  {
+    const [ring] = setupPair('ring', 'cloak');
+    const position = ring.ringPositions(game._world())[0];
+    const target = sturdyEnemy(position.x, position.y);
+    game.enemies = [target];
+    ring.update(0, game._world());
+    assert(target.dots?.burn?.timer > 0, '[19] a burning ring should apply burn on contact');
+    assert(game.synergies.getRuntime('ring-cloak-burning')?.triggerCount === 1,
+      '[19] burning ring contact should record one trigger');
+    game.weapons = [ring];
+    game.synergies.refresh(game.weapons, game.elapsed);
+    ring.update(0, game._world());
+    assert(ring.burningRings.every((active) => !active),
+      '[19] burning ring state should clear when its Build becomes inactive');
+  }
+
+  // 鬼火护卫：重叠光环对同一目标共享 tick 冷却
+  {
+    const [, staff] = setupPair('cloak', 'staff');
+    const target = sturdyEnemy(35, 0);
+    game.enemies = [target];
+    const makeSummon = (y) => ({
+      x: 0, y, damage: 100, life: 5, speed: 0,
+      hitTimer: 10, wander: 0, dead: false,
+    });
+    const first = makeSummon(0);
+    const second = makeSummon(8);
+    staff.slots = [
+      { phase: 'active', timer: 5, summon: first },
+      { phase: 'active', timer: 5, summon: second },
+    ];
+    game.summons = [first, second];
+    const hpBefore = target.hp;
+    staff.update(0, game._world());
+    assert(target.hp === hpBefore - 35,
+      '[19] overlapping ghostfire auras should damage a target only once per shared tick');
+    assert(first.ghostfireActive && second.ghostfireActive,
+      '[19] summons inside the cloak should gain ghostfire state');
+  }
+
+  // Flame blade: melee or sword-ring hits launch a short blade along the attack direction.
+  {
+    const [sword] = setupPair('sword', 'cloak');
+    const burned = sturdyEnemy(40, 0);
+    const forward = sturdyEnemy(120, 0);
+    const side = sturdyEnemy(40, 90);
+    game.enemies = [burned, forward, side];
+    applyDot(burned, 'burn', 12, 2);
+    const forwardHp = forward.hp;
+    const sideHp = side.hp;
+    sword._onDamageHit(burned, game._world(), sword.stats, false, 'melee');
+    assert(forward.hp < forwardHp && side.hp === sideHp,
+      '[19] flame blade should damage only enemies along its short forward segment');
+    assert(game.effects.some((fx) => fx.type === 'synergyFlameBlade'),
+      '[19] flame blade should emit its directional effect');
+    const afterFlame = forward.hp;
+    sword._onDamageHit(burned, game._world(), sword.stats, false, 'ring');
+    assert(forward.hp === afterFlame, '[19] flame blade should respect its global cooldown');
+    game.elapsed += 1;
+    sword._onDamageHit(burned, game._world(), sword.stats, false, 'projectile');
+    assert(forward.hp === afterFlame, '[19] sword projectiles must not trigger flame blade');
+  }
+
+  // Furnace-charged jade: entering a furnace stores charge; leaving releases it with feedback.
+  {
+    const [ring, trail] = setupPair('ring', 'trail');
+    const furnace = squareZone();
+    trail.furnaces = [furnace];
+    ring.update(0, game._world());
+    assert(ring.ringCharge.some((state) => state.charged && state.insideFurnace),
+      '[19] a ring entering a furnace should gain one stored charge');
+    assert(game.effects.some((fx) => fx.style === 'jadeCharge'),
+      '[19] furnace charge acquisition should emit distinct jade feedback');
+    trail.furnaces = [];
+    ring.update(0, game._world());
+    const position = ring.ringPositions(game._world())[0];
+    const target = sturdyEnemy(position.x, position.y);
+    game.enemies = [target];
+    const hpBefore = target.hp;
+    ring.update(0, game._world());
+    assert(target.hp < hpBefore, '[19] a charged ring should release damage on its first post-furnace contact');
+    assert(game.synergies.getRuntime('ring-trail-charge')?.triggerCount === 1,
+      '[19] charged ring release should record exactly one trigger');
+    assert(!ring.ringCharge[0].charged, '[19] released furnace charge should be consumed');
+  }
+
+  // Corpse-fire alchemy: expiry, slot reduction, and cap replacement share one retirement path.
+  {
+    const [trail, staff] = setupPair('trail', 'staff');
+    const furnace = squareZone();
+    trail.furnaces = [furnace];
+    const makeSummon = (x = 0) => ({
+      x, y: 0, damage: 10, life: 10, speed: 0,
+      hitTimer: 10, wander: 0, dead: false,
+    });
+
+    const expiring = makeSummon();
+    staff.slots = [{ phase: 'active', timer: 0.01, summon: expiring }];
+    game.summons = [expiring];
+    staff.update(0.02, game._world());
+    assert(furnace.fuel === 1.5 && expiring.corpseFireConverted,
+      '[19] an expiring summon inside a furnace should add fuel once');
+    staff.update(0.02, game._world());
+    assert(furnace.fuel === 1.5,
+      '[19] the same summon must not be converted into furnace fuel twice');
+
+    const kept = [makeSummon(500), makeSummon(500), makeSummon(500)];
+    const removed = makeSummon();
+    staff.slots = [...kept, removed].map((summon) => ({ phase: 'active', timer: 10, summon }));
+    game.summons.push(...kept, removed);
+    staff.update(0, game._world());
+    assert(removed.dead && removed.corpseFireConverted && furnace.fuel === 3,
+      '[19] slot reduction should use the same corpse-fire settlement');
+
+    staff.slots = [];
+    staff.corpses = Array.from({ length: 5 }, (_, index) => ({
+      ...makeSummon(index === 0 ? 0 : 500),
+      corpse: true,
+    }));
+    game.summons.push(...staff.corpses);
+    const oldest = staff.corpses[0];
+    staff.spawnCorpse(500, 0, staff.stats, game._world());
+    assert(oldest.dead && oldest.corpseFireConverted && furnace.fuel === 4.5,
+      '[19] corpse-cap replacement should use the same corpse-fire settlement');
+    assert(game.effects.some((fx) => fx.style === 'corpseFire')
+      && game.effects.some((fx) => fx.type === 'synergyArc' && fx.color === '#d68cff'),
+      '[19] corpse-fire settlement should emit a distinct conversion effect');
+  }
+
+  // Corpse relay: every living necromancy summon may relay lightning without consuming a bounce.
+  {
+    const [talisman] = setupPair('talisman', 'staff');
+    const origin = sturdyEnemy(0, 0);
+    const target = sturdyEnemy(340, 0);
+    const summon = { x: 170, y: 0, life: 5, dead: false };
+    game.enemies = [origin, target];
+    game.summons = [summon];
+    const targetHp = target.hp;
+    talisman._chainLightning(origin, 25, game._world());
+    assert(target.hp === targetHp - 25,
+      '[19] a necromancy summon relay should connect a target outside the direct chain radius');
+    assert(!summon.dead && talisman.chainFx.some((fx) => fx.corpseRelay),
+      '[19] a necromancy summon relay should remain unharmed and emit distinct feedback');
+    assert(game.synergies.getRuntime('talisman-staff-corpse-relay')?.triggerCount === 1,
+      '[19] summon relay should record exactly one trigger');
+  }
+
+  console.log('[19] First / second weapon Build batches OK');
+
+  // ========== [20] Third weapon Build batch ==========
+  // Sword-ring return: crossing a real ring grants one return on the next hit.
+  {
+    const [sword, ring] = setupPair('sword', 'ring');
+    const world = game._world();
+    const ringPosition = ring.ringPositions(world)[0];
+    sword._fireMainSword(world, sword.stats, ringPosition.x - 90, ringPosition.y, 0, sword.stats.damage);
+    const projectile = game.projectiles.at(-1);
+    projectile.synergyPrevX = ringPosition.x - 90;
+    projectile.synergyPrevY = ringPosition.y;
+    projectile.x = ringPosition.x + 90;
+    projectile.y = ringPosition.y;
+    sword._updateProjectileSynergies(world, sword.stats);
+    assert(projectile.ringReturnCharged,
+      '[20] sword qi crossing a real jade ring should gain one return charge');
+
+    const hit = sturdyEnemy(projectile.x, projectile.y);
+    const redirect = sturdyEnemy(projectile.x - 120, projectile.y);
+    game.enemies = [hit, redirect];
+    projectile.onHit(hit);
+    assert(projectile.ringReturnUsed && projectile.vx < 0,
+      '[20] charged sword qi should redirect toward another nearby enemy after its next hit');
+    assert(projectile.hitSet?.has(hit) && game.synergies.getRuntime('sword-ring-return')?.triggerCount === 1,
+      '[20] sword return should retain the departure target and record exactly one trigger');
+    projectile.onHit(redirect);
+    assert(game.synergies.getRuntime('sword-ring-return')?.triggerCount === 1,
+      '[20] one sword qi must not consume more than one return charge');
+
+    projectile.ringReturnCharged = true;
+    game.weapons = [sword];
+    game.synergies.refresh(game.weapons, game.elapsed);
+    sword._updateProjectileSynergies(game._world(), sword.stats);
+    assert(!projectile.ringReturnCharged,
+      '[20] pending sword return charge should clear when the Build becomes inactive');
+  }
+
+  // Furnace cut: each sword qi cuts each furnace once and cleanup is bounded.
+  {
+    const [sword, trail] = setupPair('sword', 'trail');
+    const furnace = squareZone();
+    trail.furnaces = [furnace];
+    const world = game._world();
+    sword._fireMainSword(world, sword.stats, -180, 0, 0, sword.stats.damage);
+    const projectile = game.projectiles.at(-1);
+    projectile.synergyPrevX = -180;
+    projectile.synergyPrevY = 0;
+    projectile.x = 180;
+    projectile.y = 0;
+    sword._updateProjectileSynergies(world, sword.stats);
+    assert(trail.cutZones.length === 1,
+      '[20] sword qi crossing a furnace should create one combustion lane');
+    sword._updateProjectileSynergies(world, sword.stats);
+    assert(trail.cutZones.length === 1,
+      '[20] the same sword qi must not cut the same furnace more than once');
+
+    const target = sturdyEnemy(0, 0);
+    game.enemies = [target];
+    let cutDamageOptions = null;
+    const damageWorld = game._world();
+    const damageEnemy = damageWorld.damageEnemy;
+    damageWorld.damageEnemy = (enemy, amount, options) => {
+      cutDamageOptions = options;
+      damageEnemy(enemy, amount, options);
+    };
+    const hpBefore = target.hp;
+    trail._updateCutZones(0, damageWorld);
+    assert(target.hp < hpBefore,
+      '[20] a combustion lane should damage enemies standing inside it');
+    assert(cutDamageOptions?.noSynergy && cutDamageOptions?.noSummon,
+      '[20] combustion lane damage should carry recursion and summon guards');
+    assert(game.synergies.getRuntime('sword-trail-cut')?.triggerCount === 1,
+      '[20] one furnace cut should record exactly one trigger');
+
+    game.weapons = [trail];
+    game.synergies.refresh(game.weapons, game.elapsed);
+    trail._updateCutZones(0, game._world());
+    assert(trail.cutZones.length === 0,
+      '[20] combustion lanes should clear when the Build becomes inactive');
+  }
+
+  // Guardian jade: protect at most two summons, share slow, and clear on deactivation.
+  {
+    const [, staff] = setupPair('ring', 'staff');
+    const target = sturdyEnemy(0, 0);
+    game.enemies = [target];
+    const makeSummon = (hitTimer) => ({
+      x: 0, y: 0, damage: 10, life: 5, speed: 0,
+      hitTimer, wander: 0, dead: false,
+    });
+    const first = makeSummon(0);
+    const second = makeSummon(10);
+    const third = { ...makeSummon(10), corpse: true };
+    staff.slots = [
+      { phase: 'active', timer: 5, summon: first },
+      { phase: 'active', timer: 5, summon: second },
+    ];
+    staff.corpses = [third];
+    game.summons = [first, second, third];
+    staff.update(0, game._world());
+    const activeWards = game.summons.filter((summon) => summon.guardianWardActive);
+    assert(staff.getGuardianWards().length === 2 && activeWards.length === 2,
+      '[20] guardian jade should protect at most two living summons without cloning full rings');
+    assert(target.slowFactor === 0.35 && target.slowTimer === 1.6,
+      '[20] an attack from a guarded summon should share the jade ring slow');
+    assert(game.synergies.getRuntime('ring-staff-guardian')?.triggerCount === 1,
+      '[20] guardian jade should record one trigger for one successful shared slow');
+
+    game.weapons = [staff];
+    game.synergies.refresh(game.weapons, game.elapsed);
+    staff.update(0, game._world());
+    assert(staff.getGuardianWards().length === 0
+      && game.summons.every((summon) => !summon.guardianWardActive && !summon.guardianWardOwner),
+    '[20] guardian jade state should clear from all summons when the Build becomes inactive');
+  }
+
+  console.log('[20] Third weapon Build batch OK');
+}
+
+console.log('All smoke tests passed (cards, weapons, synergies, waves, bosses, extraction, completion, meta shop).');
