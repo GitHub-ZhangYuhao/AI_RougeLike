@@ -9,7 +9,7 @@
 | 里程碑 | 主题 | 验收（Godot 侧 smoke 章节） | 状态 | 完成日期 |
 | --- | --- | --- | --- | --- |
 | M0 | 工程脚手架 | runner 空跑 OK | ✅ 完成 | 2026-08-13 |
-| M1 | 核心循环 | [0][1][2][3][4][5][7] | ⬜ 未开始 | — |
+| M1 | 核心循环 | [0][1][2][3][4][5][7] | 🟨 进行中 | — |
 | M2 | 六武器 | [6] | ⬜ 未开始 | — |
 | M3 | 敌人 / Boss / 局流程 | [8][9][10][11][12][13][14][17] | ⬜ 未开始 | — |
 | M4 | 联动系统 | [18][19][20] | ⬜ 未开始 | — |
@@ -25,7 +25,7 @@
 ## 2. 当前焦点（最多 3 项，随进度滚动）
 
 1. **M1 核心循环**：logic/ 纯 RefCounted 核心（utils/input_state/player/camera/game_run/cards/gems/spawner/waves）+ scenes/main.tscn 定步长驱动 + smoke [0][1][2][3][4][5][7]。
-2. （空）
+2. **M2 / M3 实施计划已定稿**（`PLANS/M2-plan.md`、`PLANS/M3-plan.md`）：待 M1 双绿后依序派发开发子Agent。
 3. （空）
 
 ## 3. 里程碑任务分解
@@ -41,7 +41,7 @@
 - [x] 目录骨架：logic/（含 enemies/ weapons/ systems/ meta/）、scenes/（game/ ui/）、tests/scenarios/、tools/、assets/（空）
 - [x] `tools/run_smoke.gd` + `tests/smoke_runner.gd` 空跑（0 场景也算 OK）
 
-### M1 核心循环 ｜ ⬜ 未开始
+### M1 核心循环 ｜ 🟨 进行中
 验收：Godot 侧 [0][1][2][3][4][5][7] 全绿。
 - [ ] `logic/utils.gd`、`logic/input_state.gd`、`logic/player.gd`、`logic/camera.gd`
 - [ ] `logic/game_run.gd`：状态机 + update 25 步顺序 + 伤害管线（RULES.md §1/§2/§5）
@@ -130,3 +130,4 @@
 | --- | --- | --- | --- |
 | 2026-08-13 | — | 立项：完成 RULES.md / AGENTS.md / PORT_PLAN.md / PROGRESS.md 四份规划文档；原型 `npm run smoke` 全绿基线 | 待提交 |
 | 2026-08-13 | M0 | 脚手架完成：project.godot（60Hz tick、1280×720 无 stretch、Config/Rng/Events/MetaSave 四 autoload、main.tscn 指向）、config.gd 1:1 镜像附录 A、rng.gd 可注入源、events.gd 信号总线、meta_save.gd（user://save.json，§15.5 结构）、目录骨架、headless smoke 入口空跑 OK（45 项自检，注册表/失败/缺场景路径三种分支均已验证） | 待提交 |
+| 2026-08-14 | M1 | M2/M3 实施计划定稿（PLANS/M2-plan.md、M3-plan.md）；M1 开发启动：tests/scenarios/_harness.gd 与 logic/{utils,input_state,camera,player}.gd 已落盘，smoke 未跑。本会话中断，开发进度详见 build/reports/M1-dev-notes.md（gitignore），下次会话继续 | 本次提交 |
