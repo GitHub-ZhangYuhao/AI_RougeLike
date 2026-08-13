@@ -2,9 +2,9 @@ extends Node2D
 
 const MAP_SIZE := Vector2(4608.0, 3456.0)
 const TILE_SIZE := 512.0
-const ENVIRONMENT_ROOT := '../ArtAsset/Image/Environment/MapDesign/'
-const GROUND_ROOT := ENVIRONMENT_ROOT + 'v09_crisp_cartoon_ground_refinement/final/'
-const PROP_ROOT := ENVIRONMENT_ROOT + 'v03_components_black/'
+const ENVIRONMENT_ROOT := '../ArtAsset/Image/Environment/'
+const GROUND_ROOT := ENVIRONMENT_ROOT + 'GroundTextures/Production/v09_crisp_cartoon_ground_refinement/final/'
+const PROP_ROOT := ENVIRONMENT_ROOT + 'Components/BlackKey/'
 const GROUND_FILE := GROUND_ROOT + 'grass_warm_meadow_crisp.png'
 const TREES := [
   PROP_ROOT + '01_trees/peach_tree_large.png',
