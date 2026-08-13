@@ -1,0 +1,3 @@
+# 导出构建产物（.godot/ 缓存由仓库根 .gitignore 的 /GameProject/.godot/ 条目兜底）
+build/
+.godot/
