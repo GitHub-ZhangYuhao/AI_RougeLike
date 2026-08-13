@@ -6,15 +6,10 @@ extends Node2D
 @export var tile_size := 768.0
 @export var alternate_flip := true
 @export var tint := Color.WHITE
-@export var shader_enabled := true
-
-@export_group('Shader Layers')
-@export var layer_1_path := '../ArtAsset/Image/Environment/GroundTextures/Production/v09_crisp_cartoon_ground_refinement/final/grass_warm_meadow_crisp.png'
-@export var layer_2_path := '../ArtAsset/Image/Environment/GroundTextures/Production/v09_crisp_cartoon_ground_refinement/final/dirt_sandy_loam_crisp.png'
-@export var layer_3_path := '../ArtAsset/Image/Environment/GroundTextures/Production/v09_crisp_cartoon_ground_refinement/final/grass_moss_cushion_crisp.png'
-@export var layer_4_path := '../ArtAsset/Image/Environment/GroundTextures/Production/v09_crisp_cartoon_ground_refinement/final/dirt_red_clay_crisp.png'
-
-const GROUND_SHADER_PATH := 'res://ground-shader.gdshader'
+# 地形引用的着色器（当前为 res://GroundShader.tres，VisualShader）。
+# 你可以在 Inspector、其他场景或代码里随意配置/替换它；
+# 脚本内部把它包成一个 ShaderMaterial 给所有瓦片共享。留空则不使用材质。
+@export var ground_shader: Shader
 
 var _signature := ''
 var _tiles: Array[Node] = []
@@ -28,9 +23,9 @@ func _process(_delta: float) -> void:
 			_refresh()
 
 func _signature_string() -> String:
-	return '%s|%s|%s|%s|%s|%s|%s|%s|%s|%s' % [
-		asset_path, map_size, tile_size, alternate_flip, tint, shader_enabled,
-		layer_1_path, layer_2_path, layer_3_path, layer_4_path,
+	return '%s|%s|%s|%s|%s|%s' % [
+		asset_path, map_size, tile_size, alternate_flip, tint,
+		str(ground_shader),
 	]
 
 func _refresh() -> void:
@@ -43,7 +38,7 @@ func _refresh() -> void:
 	_tiles.clear()
 	_signature = _signature_string()
 	var texture := _load_texture(asset_path)
-	var ground_material := _create_ground_material()
+	var active_material := _create_material()
 	var columns := ceili(map_size.x / tile_size)
 	var rows := ceili(map_size.y / tile_size)
 	for row in range(rows):
@@ -60,8 +55,8 @@ func _refresh() -> void:
 				sprite.flip_h = alternate_flip and (column + row) % 2 == 1
 				sprite.flip_v = alternate_flip and row % 3 == 1
 				sprite.modulate = tint
-				if ground_material:
-					sprite.material = ground_material
+				if active_material:
+					sprite.material = active_material
 				add_child(sprite, false, Node.INTERNAL_MODE_BACK)
 				_tiles.append(sprite)
 			else:
@@ -72,21 +67,11 @@ func _refresh() -> void:
 				add_child(fallback, false, Node.INTERNAL_MODE_BACK)
 				_tiles.append(fallback)
 
-func _create_ground_material() -> ShaderMaterial:
-	if not shader_enabled:
-		return null
-	var shader := load(GROUND_SHADER_PATH) as Shader
-	if shader == null:
+func _create_material() -> ShaderMaterial:
+	if ground_shader == null:
 		return null
 	var material := ShaderMaterial.new()
-	material.shader = shader
-	var layer_paths: Array[String] = [layer_1_path, layer_2_path, layer_3_path, layer_4_path]
-	for i in range(layer_paths.size()):
-		var layer_texture: Texture2D = null
-		if layer_paths[i] != '':
-			layer_texture = _load_texture(layer_paths[i])
-		if layer_texture:
-			material.set_shader_parameter('layer_%d' % (i + 1), layer_texture)
+	material.shader = ground_shader
 	return material
 
 func _load_texture(relative_path: String) -> Texture2D:

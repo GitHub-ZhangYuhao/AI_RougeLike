@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://dlax86xl1ile7" path="res://wanderer.gd" id="2_player"]
 [ext_resource type="Script" uid="uid://ckcjbn5l6wyj2" path="res://editable-ground.gd" id="3_ground"]
 [ext_resource type="Script" uid="uid://spy4tr6kbcjc" path="res://editable-prop.gd" id="4_prop"]
+[ext_resource type="Shader" uid="uid://taew4ixahcy8" path="res://GroundShader.tres" id="5_gshader"]
 
 [sub_resource type="RectangleShape2D" id="BoundaryHorizontal"]
 size = Vector2(4736, 96)
@@ -24,6 +25,7 @@ script = ExtResource("1_level")
 [node name="Ground" type="Node2D" parent="." unique_id=1727319862]
 z_index = -20
 script = ExtResource("3_ground")
+ground_shader = ExtResource("5_gshader")
 
 [node name="GroundDetails" type="Node2D" parent="." unique_id=686548358]
 z_index = -10
