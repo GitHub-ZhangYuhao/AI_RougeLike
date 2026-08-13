@@ -1,0 +1,39 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>v06 细节地表无缝贴图</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, "Microsoft YaHei", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 28px; background: #151815; color: #edf0e8; }
+    header { margin-bottom: 24px; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    p { margin: 0; max-width: 900px; color: #aab4a7; line-height: 1.6; }
+    main { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 22px; }
+    article { overflow: hidden; border: 1px solid #3c453a; border-radius: 14px; background: #202520; box-shadow: 0 14px 34px #0006; }
+    .tile { height: 410px; background-repeat: repeat; background-size: 170px 170px; }
+    .meta { padding: 14px 16px 17px; }
+    h2 { margin: 0 0 6px; font-size: 18px; }
+    code { color: #c8d9b2; }
+    .tag { float: right; padding: 3px 8px; border-radius: 999px; background: #354132; color: #dbe7d2; font-size: 12px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>v06 细节地表无缝贴图</h1>
+  <p>下方使用 170px 单元连续重复最终贴图。重点观察边缘接缝、明显的棋盘重复，以及石块是否像凸起障碍物。游戏中建议把大石块继续作为独立装饰和碰撞资源。</p>
+</header>
+<main>
+  <article><div class="tile" style="background-image:url('./final/grass_lush_fine.png')"></div><div class="meta"><span class="tag">草地</span><h2>茂密细草</h2><code>grass_lush_fine.png</code></div></article>
+  <article><div class="tile" style="background-image:url('./final/grass_dry_tufted.png')"></div><div class="meta"><span class="tag">草地</span><h2>干燥簇草</h2><code>grass_dry_tufted.png</code></div></article>
+  <article><div class="tile" style="background-image:url('./final/dirt_compacted_warm.png')"></div><div class="meta"><span class="tag">泥土</span><h2>暖色夯土</h2><code>dirt_compacted_warm.png</code></div></article>
+  <article><div class="tile" style="background-image:url('./final/grass_dirt_trampled.png')"></div><div class="meta"><span class="tag">混合</span><h2>踩踏草泥地</h2><code>grass_dirt_trampled.png</code></div></article>
+  <article><div class="tile" style="background-image:url('./final/dirt_pebbled.png')"></div><div class="meta"><span class="tag">泥土/石</span><h2>细卵石泥地</h2><code>dirt_pebbled.png</code></div></article>
+  <article><div class="tile" style="background-image:url('./final/stone_moss_cobbles.png')"></div><div class="meta"><span class="tag">石地</span><h2>苔藓鹅卵石</h2><code>stone_moss_cobbles.png</code></div></article>
+  <article><div class="tile" style="background-image:url('./final/stone_flagstone_worn.png')"></div><div class="meta"><span class="tag">石地</span><h2>磨损遗迹石板</h2><code>stone_flagstone_worn.png</code></div></article>
+  <article><div class="tile" style="background-image:url('./final/gravel_blue_slate.png')"></div><div class="meta"><span class="tag">碎石</span><h2>青灰板岩碎石</h2><code>gravel_blue_slate.png</code></div></article>
+</main>
+</body>
+</html>

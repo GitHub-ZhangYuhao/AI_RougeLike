@@ -1,0 +1,30 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>v05 地表无缝贴图预览</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: 28px; background: #171a17; color: #edf1e8; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    p { margin: 0 0 24px; color: #aeb8aa; }
+    main { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 24px; }
+    article { overflow: hidden; border: 1px solid #3b4439; border-radius: 14px; background: #222722; box-shadow: 0 14px 32px #0006; }
+    .tile { height: 440px; background-repeat: repeat; background-size: 220px 220px; image-rendering: auto; }
+    .meta { padding: 14px 16px 17px; }
+    h2 { margin: 0 0 6px; font-size: 18px; }
+    code { color: #c8dcae; }
+  </style>
+</head>
+<body>
+  <h1>v05 地表无缝贴图</h1>
+  <p>每块区域以 220px 尺寸重复最终 1024×1024 PNG，用于快速检查接缝与重复图案。</p>
+  <main>
+    <article><div class="tile" style="background-image:url('./final/meadow_jade_herbs.png')"></div><div class="meta"><h2>青玉药草地</h2><code>meadow_jade_herbs.png</code></div></article>
+    <article><div class="tile" style="background-image:url('./final/meadow_peach_petals.png')"></div><div class="meta"><h2>桃瓣春草地</h2><code>meadow_peach_petals.png</code></div></article>
+    <article><div class="tile" style="background-image:url('./final/ground_rain_moss.png')"></div><div class="meta"><h2>雨湿苔土地</h2><code>ground_rain_moss.png</code></div></article>
+    <article><div class="tile" style="background-image:url('./final/meadow_autumn_straw.png')"></div><div class="meta"><h2>秋黄枯草地</h2><code>meadow_autumn_straw.png</code></div></article>
+  </main>
+</body>
+</html>

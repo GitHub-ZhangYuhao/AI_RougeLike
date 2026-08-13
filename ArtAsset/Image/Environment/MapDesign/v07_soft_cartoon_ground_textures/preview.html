@@ -1,0 +1,21 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>v07 低 Tile 感卡通地表</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,"Microsoft YaHei",system-ui,sans-serif;--tile-size:720px}*{box-sizing:border-box}body{margin:0;padding:28px;background:#151815;color:#eef1e9}header{position:sticky;top:0;z-index:2;margin:-28px -28px 24px;padding:24px 28px 18px;background:#151815eF;backdrop-filter:blur(12px);border-bottom:1px solid #343b33}h1{margin:0 0 8px;font-size:28px}p{margin:0;color:#adb6aa;line-height:1.6}.control{display:flex;align-items:center;gap:12px;margin-top:16px}.control input{width:min(520px,60vw)}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:24px}article{overflow:hidden;border:1px solid #3d453b;border-radius:15px;background:#202520;box-shadow:0 14px 32px #0006}.tile{height:520px;background-repeat:repeat;background-size:var(--tile-size) var(--tile-size)}.meta{padding:14px 16px 17px}h2{margin:0 0 5px;font-size:18px}code{color:#c9dab5}.tag{float:right;padding:3px 9px;border-radius:999px;background:#354132;color:#deead5;font-size:12px}
+</style>
+</head>
+<body>
+<header><h1>v07 低 Tile 感卡通地表</h1><p>使用更大、更安静的非对称色块与稀疏卡通细节。拖动滑杆可模拟不同世界铺设尺寸，默认每张完整纹理覆盖 720px。</p><label class="control">铺设尺寸 <input id="scale" type="range" min="320" max="1200" value="720" step="20"><output id="value">720px</output></label></header>
+<main>
+<article><div class="tile" style="background-image:url('./final/grass_soft_celadon.png')"></div><div class="meta"><span class="tag">草地</span><h2>柔和青瓷草地</h2><code>grass_soft_celadon.png</code></div></article>
+<article><div class="tile" style="background-image:url('./final/grass_dirt_soft_mix.png')"></div><div class="meta"><span class="tag">混合</span><h2>卡通草泥混合</h2><code>grass_dirt_soft_mix.png</code></div></article>
+<article><div class="tile" style="background-image:url('./final/dirt_soft_umber.png')"></div><div class="meta"><span class="tag">泥土</span><h2>柔和暖褐泥地</h2><code>dirt_soft_umber.png</code></div></article>
+<article><div class="tile" style="background-image:url('./final/dirt_sparse_pebbles.png')"></div><div class="meta"><span class="tag">泥土/石</span><h2>稀疏卡通卵石地</h2><code>dirt_sparse_pebbles.png</code></div></article>
+<article><div class="tile" style="background-image:url('./final/stone_moss_soft.png')"></div><div class="meta"><span class="tag">苔石</span><h2>柔和苔石地</h2><code>stone_moss_soft.png</code></div></article>
+<article><div class="tile" style="background-image:url('./final/flagstone_cartoon_soft.png')"></div><div class="meta"><span class="tag">石板</span><h2>卡通遗迹石板</h2><code>flagstone_cartoon_soft.png</code></div></article>
+</main>
+<script>const range=document.querySelector('#scale'),out=document.querySelector('#value');range.addEventListener('input',()=>{document.documentElement.style.setProperty('--tile-size',range.value+'px');out.value=range.value+'px'})</script>
+</body></html>
