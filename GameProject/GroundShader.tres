@@ -1,9 +1,9 @@
 [gd_resource type="VisualShader" format=3 uid="uid://taew4ixahcy8"]
 
-[ext_resource type="Texture2D" uid="uid://drmkjyijffm7f" path="res://grass_dirt_soft_mix.png" id="1_mmp38"]
+[ext_resource type="Texture2D" uid="uid://drmkjyijffm7f" path="res://grass_dirt_soft_mix.png" id="1_5ksvm"]
 
 [sub_resource type="VisualShaderNodeTexture" id="VisualShaderNodeTexture_yiyd8"]
-texture = ExtResource("1_mmp38")
+texture = ExtResource("1_5ksvm")
 
 [resource]
 nodes/vertex/0/position = Vector2(900, 80)
