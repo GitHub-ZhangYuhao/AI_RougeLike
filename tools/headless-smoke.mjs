@@ -1896,8 +1896,12 @@ console.log('[10] 死亡 / 返回主菜单 OK');
   assert(expiredDirector.current?.outcome === 'expired',
     '[21] unaccepted task should expire after 12 seconds');
 
-  // Consecutive task waves cannot repeat the previous type.
+  // A task wave can only create one offer, even after its result message disappears.
   guardDirector.update(CONFIG.tasks.resultDuration + 0.1, guardGame);
+  guardDirector.update(0.1, guardGame);
+  assert(!guardDirector.current, '[21] completed task wave must not create another offer');
+
+  // Consecutive task waves cannot repeat the previous type.
   guardGame.waveDirector.wave = 8;
   guardGame.waveDirector.timeRemaining = 55;
   guardDirector.update(0.1, guardGame);

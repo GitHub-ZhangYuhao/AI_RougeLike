@@ -254,6 +254,7 @@ export class TaskDirector {
     if (
       !this.current
       && this.scheduledWave === director.wave
+      && !this.completedWaves.has(director.wave)
       && Number.isFinite(this.triggerAt)
       && director.phase === 'wave'
     ) {
@@ -299,6 +300,7 @@ export class TaskDirector {
     const beacon = pointAround(game.player, randomRange(this.rng, minDistance, maxDistance), this.rng);
     this.lastTaskType = type;
     this.completedWaves.add(wave);
+    this.triggerAt = null;
     this.current = {
       id: this.nextTaskId++,
       type,
