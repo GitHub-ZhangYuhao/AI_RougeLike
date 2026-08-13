@@ -2,10 +2,8 @@
 
 [ext_resource type="Script" uid="uid://c70oda04ddyu2" path="res://art-level.gd" id="1_level"]
 [ext_resource type="Script" uid="uid://dlax86xl1ile7" path="res://wanderer.gd" id="2_player"]
-[ext_resource type="Script" uid="uid://ckcjbn5l6wyj2" path="res://editable-ground.gd" id="3_ground"]
+[ext_resource type="Script" uid="uid://yrvp631tamj2" path="res://ground.gd" id="3_ground"]
 [ext_resource type="Script" uid="uid://spy4tr6kbcjc" path="res://editable-prop.gd" id="4_prop"]
-
-[sub_resource type="VisualShader" id="VisualShader_6xcdl"]
 
 [sub_resource type="RectangleShape2D" id="BoundaryHorizontal"]
 size = Vector2(4736, 96)
@@ -26,40 +24,9 @@ script = ExtResource("1_level")
 [node name="Ground" type="Node2D" parent="." unique_id=1727319862]
 z_index = -20
 script = ExtResource("3_ground")
-asset_path = ""
-alternate_flip = false
-ground_shader = SubResource("VisualShader_6xcdl")
 
 [node name="GroundDetails" type="Node2D" parent="." unique_id=686548358]
 z_index = -10
-
-[node name="MainPath" type="Line2D" parent="GroundDetails" unique_id=1518478799]
-points = PackedVector2Array(-2200, 580, -1450, 280, -760, 360, -120, 80, 620, 40, 1320, -360, 2200, -520)
-width = 150.0
-default_color = Color(0.48, 0.35, 0.22, 0.52)
-joint_mode = 2
-begin_cap_mode = 2
-end_cap_mode = 2
-
-[node name="Stream" type="Line2D" parent="GroundDetails" unique_id=1663218220]
-points = PackedVector2Array(-1180, -1720, -980, -1060, -1120, -420, -880, 220, -1020, 930, -700, 1720)
-width = 190.0
-default_color = Color(0.28, 0.58, 0.62, 0.62)
-joint_mode = 2
-begin_cap_mode = 2
-end_cap_mode = 2
-
-[node name="BridgeNorth" type="Polygon2D" parent="GroundDetails" unique_id=580109263]
-position = Vector2(-980, -620)
-rotation = -0.12
-color = Color(0.663, 0.51, 0.314, 1)
-polygon = PackedVector2Array(-130, -55, 130, -55, 130, 55, -130, 55)
-
-[node name="BridgeSouth" type="Polygon2D" parent="GroundDetails" unique_id=766841433]
-position = Vector2(-970, 720)
-rotation = -0.12
-color = Color(0.663, 0.51, 0.314, 1)
-polygon = PackedVector2Array(-130, -55, 130, -55, 130, 55, -130, 55)
 
 [node name="MapBorder" type="Line2D" parent="GroundDetails" unique_id=215353526]
 points = PackedVector2Array(-2304, -1728, 2304, -1728, 2304, 1728, -2304, 1728)
