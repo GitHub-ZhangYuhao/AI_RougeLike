@@ -54,6 +54,7 @@ const { BossEnemy } = await import('../js/enemies/boss.js');
 const { EnhancedChaserEnemy } = await import('../js/enemies/enhanced-chaser.js');
 const { chooseEnemyType, createEnemyByType } = await import('../js/enemies/index.js');
 const { WaveDirector } = await import('../js/systems/waves.js');
+const { TaskDirector, generateTaskRewardOffers } = await import('../js/systems/tasks.js');
 const { SynergySystem, SYNERGY_DEFINITIONS } = await import('../js/systems/synergies.js');
 const { createGem, updateGem } = await import('../js/gems.js');
 const { drawEnemy } = await import('../js/enemy.js');
@@ -1826,4 +1827,174 @@ console.log('[10] 死亡 / 返回主菜单 OK');
   console.log('[20] Third weapon Build batch OK');
 }
 
-console.log('All smoke tests passed (cards, weapons, synergies, waves, bosses, extraction, completion, meta shop).');
+
+// ========== [21] Randomized in-run tasks and rewards ==========
+{
+  const taskBonuses = () => ({
+    damageMult: 0,
+    xpMult: 0,
+    moveSpeedMult: 0,
+    armor: 0,
+    magnetRadiusBonus: 0,
+    eliteBossDamageMult: 0,
+  });
+  const makeTaskGame = (wave = 3) => ({
+    player: { x: 0, y: 0, hp: 100, maxHp: 100 },
+    waveDirector: { wave, phase: 'wave', timeRemaining: CONFIG.waves.duration },
+    enemies: [],
+    weapons: [],
+    elapsed: 0,
+    taskBonuses: taskBonuses(),
+    taskBlessings: new Set(),
+    queuedRewards: [],
+    queueTaskReward(offers) { this.queuedRewards.push(offers); },
+    synergies: { refresh() {} },
+    recomputeMods() {},
+    increaseMaxHp(amount, heal = amount) {
+      this.player.maxHp += amount;
+      this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
+    },
+  });
+
+  // Fixed RNG: no task before wave 3 at 35 seconds elapsed, then offer guard.
+  const guardGame = makeTaskGame(2);
+  const guardDirector = new TaskDirector({ rng: () => 0 });
+  guardGame.waveDirector.timeRemaining = 40;
+  guardDirector.update(0.1, guardGame);
+  assert(!guardDirector.current, '[21] non-task waves must not schedule a task');
+  guardGame.waveDirector.wave = 3;
+  guardGame.waveDirector.timeRemaining = 56;
+  guardDirector.update(0.1, guardGame);
+  assert(!guardDirector.current, '[21] wave 3 task must wait for its trigger time');
+  guardGame.waveDirector.timeRemaining = 55;
+  guardDirector.update(0.1, guardGame);
+  assert(guardDirector.current?.state === 'offered' && guardDirector.current.type === 'guard',
+    '[21] wave 3 task should trigger at 35 seconds with fixed RNG');
+
+  const beacon = guardDirector.current.beacon;
+  guardGame.player.x = beacon.x;
+  guardGame.player.y = beacon.y;
+  guardDirector.update(0.5, guardGame);
+  assert(guardDirector.current.state === 'offered', '[21] beacon requires one continuous second');
+  guardGame.player.x += CONFIG.tasks.beaconRadius + 10;
+  guardDirector.update(0.1, guardGame);
+  assert(guardDirector.current.acceptProgress === 0, '[21] leaving beacon resets accept progress');
+  guardGame.player.x = beacon.x;
+  guardDirector.update(1, guardGame);
+  assert(guardDirector.current.state === 'active', '[21] one second in beacon accepts task');
+  guardDirector.current.payload.remaining = 0.05;
+  guardDirector.update(0.1, guardGame);
+  assert(guardDirector.current.outcome === 'succeeded' && guardGame.queuedRewards.length === 1,
+    '[21] completed guard task should queue one reward choice');
+
+  // Ignoring the beacon until the offer timer expires is not a task failure.
+  const expiredGame = makeTaskGame(3);
+  const expiredDirector = new TaskDirector({ rng: () => 0 });
+  expiredGame.waveDirector.timeRemaining = 55;
+  expiredDirector.update(0.1, expiredGame);
+  expiredDirector.update(CONFIG.tasks.offerDuration + 0.1, expiredGame);
+  assert(expiredDirector.current?.outcome === 'expired',
+    '[21] unaccepted task should expire after 12 seconds');
+
+  // Consecutive task waves cannot repeat the previous type.
+  guardDirector.update(CONFIG.tasks.resultDuration + 0.1, guardGame);
+  guardGame.waveDirector.wave = 8;
+  guardGame.waveDirector.timeRemaining = 55;
+  guardDirector.update(0.1, guardGame);
+  assert(guardDirector.current?.type === 'delivery', '[21] consecutive tasks must not repeat');
+
+  // Delivery spawns interceptors without changing wave quota or spawned count.
+  const deliveryGame = makeTaskGame(3);
+  const deliveryRolls = [0, 0.4, 0, 0, 0, 0, 0, 0];
+  const deliveryDirector = new TaskDirector({ rng: () => deliveryRolls.shift() ?? 0 });
+  deliveryGame.waveDirector.timeRemaining = 55;
+  deliveryDirector.update(0.1, deliveryGame);
+  const deliveryBeacon = deliveryDirector.current.beacon;
+  deliveryGame.player.x = deliveryBeacon.x;
+  deliveryGame.player.y = deliveryBeacon.y;
+  deliveryDirector.update(1, deliveryGame);
+  assert(deliveryDirector.current?.type === 'delivery' && deliveryDirector.current.state === 'active',
+    '[21] fixed RNG should create and activate a delivery task');
+  deliveryGame.waveDirector.spawned = 7;
+  deliveryDirector.current.payload.interceptorTimer = 0;
+  deliveryDirector.update(0.1, deliveryGame);
+  assert(deliveryGame.enemies.some((enemy) => enemy.taskRole === 'interceptor')
+    && deliveryGame.waveDirector.spawned === 7,
+  '[21] delivery interceptors must not consume wave spawned quota');
+  const destination = deliveryDirector.current.payload.destination;
+  deliveryGame.player.x = destination.x;
+  deliveryGame.player.y = destination.y;
+  deliveryDirector.update(0.1, deliveryGame);
+  assert(deliveryDirector.current.outcome === 'succeeded',
+    '[21] reaching destination should complete delivery');
+
+  // Bounty completion only accepts the matching task target.
+  const bountyGame = makeTaskGame(3);
+  const bountyRolls = [0, 0.9, 0, 0, 0, 0, 0, 0];
+  const bountyDirector = new TaskDirector({ rng: () => bountyRolls.shift() ?? 0 });
+  bountyGame.waveDirector.timeRemaining = 55;
+  bountyDirector.update(0.1, bountyGame);
+  const bountyBeacon = bountyDirector.current.beacon;
+  bountyGame.player.x = bountyBeacon.x;
+  bountyGame.player.y = bountyBeacon.y;
+  bountyDirector.update(1, bountyGame);
+  const bountyTarget = bountyDirector.current.payload.target;
+  bountyDirector.onEnemyKilled({ taskId: -1, taskRole: 'bountyTarget' }, bountyGame);
+  assert(bountyDirector.current.state === 'active',
+    '[21] unrelated target must not complete bounty');
+  bountyDirector.onEnemyKilled(bountyTarget, bountyGame);
+  assert(bountyDirector.current.outcome === 'succeeded',
+    '[21] matching target should complete bounty');
+
+  // Verify the task director is wired into the real Game update loop.
+  game.reset();
+  game.state = 'playing';
+  game.weapons = [WEAPON_CARDS[0].create()];
+  game.taskDirector.setRng(() => 0);
+  game.waveDirector.startWave(game, 3);
+  game.waveDirector.waveTimer = CONFIG.waves.duration - CONFIG.tasks.triggerWindow[0];
+  game.update(0, 1280, 720);
+  assert(game.taskDirector.current?.state === 'offered',
+    '[21] real Game update loop should trigger the scheduled task');
+
+  // Reward categories are random, offers are unique, and selected rewards apply.
+  game.reset();
+  game.state = 'playing';
+  game.weapons = [WEAPON_CARDS[0].create()];
+  const weaponOffers = generateTaskRewardOffers(game, () => 0);
+  const statOffers = generateTaskRewardOffers(game, () => 0.5);
+  const blessingOffers = generateTaskRewardOffers(game, () => 0.9);
+  for (const offers of [weaponOffers, statOffers, blessingOffers]) {
+    assert(offers.length === CONFIG.tasks.rewards.choicesCount,
+      '[21] each task reward needs three offers');
+    assert(new Set(offers.map((offer) => offer.card.id)).size === offers.length,
+      '[21] task reward offers must be unique');
+  }
+  assert(weaponOffers.every((offer) => offer.type === 'taskWeapon'),
+    '[21] weapon reward category selection failed');
+  assert(statOffers.every((offer) => offer.type === 'taskStat'),
+    '[21] stat reward category selection failed');
+  assert(blessingOffers.every((offer) => offer.type === 'taskBlessing'),
+    '[21] blessing reward category selection failed');
+  const damageBefore = game.mods.damageMult;
+  statOffers[0].apply(game);
+  assert(game.mods.damageMult !== damageBefore || game.taskBonuses.armor > 0
+    || game.taskBonuses.xpMult > 0 || game.taskBonuses.magnetRadiusBonus > 0
+    || game.player.maxHp > CONFIG.player.maxHp || game.taskBonuses.moveSpeedMult > 0,
+  '[21] selected stat reward should modify player strength');
+
+  // Task rewards take priority without consuming queued level-up choices.
+  game.pendingChoices = 1;
+  game.queueTaskReward(statOffers);
+  game.update(0, 1280, 720);
+  assert(game.state === 'choice' && game.choiceOrigin === 'task' && game.pendingChoices === 1,
+    '[21] task reward should open before queued level-up choice');
+  game._applyOffer(game.currentOffers[0]);
+  game._finishChoice();
+  assert(game.choiceOrigin === 'levelup' && game.pendingChoices === 1,
+    '[21] level-up choice should resume after task reward');
+
+  console.log('[21] In-run randomized tasks and rewards OK');
+}
+
+console.log('All smoke tests passed (cards, weapons, synergies, waves, bosses, tasks, extraction, completion, meta shop).');

@@ -111,6 +111,38 @@ export const CONFIG = {
     attrMaxStack: 5,
   },
 
+  tasks: {
+    waves: [3, 8, 13, 18, 23],
+    triggerWindow: [35, 45],
+    offerDuration: 12,
+    acceptDuration: 1,
+    beaconRadius: 60,
+    beaconDistance: [300, 440],
+    resultDuration: 3.5,
+    guard: {
+      durations: [18, 20, 22, 24, 26],
+      radii: [130, 125, 120, 115, 110],
+      leaveGrace: [1, 1, 0.9, 0.9, 0.8],
+    },
+    delivery: {
+      distances: [[1500, 1750], [1600, 1850], [1700, 1950], [1800, 2050], [1900, 2200]],
+      timeLimits: [22, 22, 21, 21, 20],
+      interceptorCounts: [[1, 2], [2, 2], [2, 2], [2, 3], [3, 3]],
+      interceptorIntervals: [6, 5.5, 5, 4.5, 4],
+      destinationRadius: 72,
+    },
+    bounty: {
+      spawnDistance: [450, 650],
+      hpMultipliers: [2.5, 3, 3.5, 4, 4.5],
+      damageMultipliers: [1.1, 1.15, 1.2, 1.25, 1.3],
+      timeLimits: [40, 40, 38, 38, 36],
+    },
+    rewards: {
+      choicesCount: 3,
+      weights: { weapon: 0.4, stat: 0.35, blessing: 0.25 },
+    },
+  },
+
   gems: {
     magnetRadius: 180,
     magnetStartSpeed: 300,

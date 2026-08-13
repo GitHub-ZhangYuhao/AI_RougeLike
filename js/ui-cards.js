@@ -67,8 +67,22 @@ function wrapText(ctx, text, maxWidth) {
   return lines;
 }
 
-const TAG_LABEL = { new: '新武器', upgrade: '升级!', attr: '属性' };
-const TAG_COLOR = { new: '#66bb6a', upgrade: '#ffb74d', attr: '#5ac8fa' };
+const TAG_LABEL = {
+  new: '\u65b0\u6b66\u5668',
+  upgrade: '\u5347\u7ea7!',
+  attr: '\u5c5e\u6027',
+  taskWeapon: '\u4efb\u52a1\u00b7\u6b66\u5668',
+  taskStat: '\u4efb\u52a1\u00b7\u5f3a\u5316',
+  taskBlessing: '\u4efb\u52a1\u00b7\u795d\u798f',
+};
+const TAG_COLOR = {
+  new: '#66bb6a',
+  upgrade: '#ffb74d',
+  attr: '#5ac8fa',
+  taskWeapon: '#ffb74d',
+  taskStat: '#4dd0e1',
+  taskBlessing: '#ce93d8',
+};
 
 export function drawChoiceUI(ctx, viewW, viewH, game) {
   const offers = game.currentOffers || [];
@@ -85,8 +99,10 @@ export function drawChoiceUI(ctx, viewW, viewH, game) {
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 30px "Segoe UI", "Microsoft YaHei", sans-serif';
   const title = game.state === 'opening'
-    ? '选择初始武器'
-    : '升级! Lv ' + game.level + ' 选择一张卡牌';
+    ? '\u9009\u62e9\u521d\u59cb\u6b66\u5668'
+    : game.choiceOrigin === 'task'
+      ? '\u4efb\u52a1\u5b8c\u6210 \u00b7 \u9009\u62e9\u4e00\u9879\u5f3a\u529b\u5956\u52b1'
+      : '\u5347\u7ea7! Lv ' + game.level + ' \u9009\u62e9\u4e00\u5f20\u5361\u724c';
   ctx.fillText(title, viewW / 2, topY - 42);
 
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
@@ -141,7 +157,9 @@ export function drawChoiceUI(ctx, viewW, viewH, game) {
     ctx.font = '14px "Segoe UI", "Microsoft YaHei", sans-serif';
     ctx.fillStyle = '#ffd54f';
     let levelInfo;
-    if (card.kind === 'weapon') {
+    if (card.kind === 'taskReward') {
+      levelInfo = offer.levelInfo ?? '\u672c\u5c40\u6301\u7eed\u751f\u6548';
+    } else if (card.kind === 'weapon') {
       if (offer.type === 'upgrade') {
         const owned = game.weapons.find((w) => w.card.id === card.id);
         const lv = owned ? owned.level : 1;

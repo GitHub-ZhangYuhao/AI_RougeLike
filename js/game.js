@@ -4,6 +4,7 @@ import { createPlayer, updatePlayer, hurtPlayer as applyPlayerDamage, drawPlayer
 import { updateEnemy, separateEnemies, drawEnemy } from './enemy.js';
 import { Spawner } from './spawner.js';
 import { WaveDirector } from './systems/waves.js';
+import { TaskDirector } from './systems/tasks.js';
 import { SynergySystem } from './systems/synergies.js';
 import { DebugRuntime } from './debug-runtime.js';
 import { updateProjectile, drawProjectile } from './projectile.js';
@@ -50,7 +51,8 @@ export class Game {
     // 等级与经验
     this.level = 1;
     this.xp = 0;
-    this.pendingChoices = 0; // 待处理的选卡次数（可能一次升多级）
+    this.pendingChoices = 0;
+    this.pendingTaskRewards = []; // Completed task reward choices waiting to be shown.
     // 卡牌：属性卡叠加层数 -> 全局乘数
     this.attrStacks = {};
     // 局外成长：本局临时背包（撤离入库、死亡全损）与商城永久属性（每级等效 1 层属性卡）
@@ -63,6 +65,15 @@ export class Game {
       moveSpeedMult: 1,
       magnetRadiusBonus: 0,
     };
+    this.taskBonuses = {
+      damageMult: 0,
+      xpMult: 0,
+      moveSpeedMult: 0,
+      armor: 0,
+      magnetRadiusBonus: 0,
+      eliteBossDamageMult: 0,
+    };
+    this.taskBlessings = new Set();
     this.mods = computeMods(this.attrStacks, this.metaStacks);
     this.playerMoveSpeedBonuses = new Map();
 
@@ -78,6 +89,8 @@ export class Game {
     this.weapons = [];
     this.spawner = new Spawner();
     this.waveDirector = new WaveDirector();
+    if (this.taskDirector) this.taskDirector.reset();
+    else this.taskDirector = new TaskDirector();
     this.synergies = new SynergySystem();
     this.hitShake = 0;
     this.bossesDefeated = 0;
@@ -108,10 +121,17 @@ export class Game {
   recomputeMods() {
     const mods = computeMods(this.attrStacks, this.metaStacks);
     const debugPlayer = this.debug?.settings.player;
-    mods.damageMult *= this.rareBonuses.damageMult * (debugPlayer?.damageMult ?? 1);
-    mods.xpMult *= this.rareBonuses.xpMult * (debugPlayer?.xpMult ?? 1);
-    mods.moveSpeedMult *= this.rareBonuses.moveSpeedMult * (debugPlayer?.moveSpeedMult ?? 1);
-    mods.armor += debugPlayer?.armorBonus ?? 0;
+    mods.damageMult *= this.rareBonuses.damageMult
+      * (1 + this.taskBonuses.damageMult)
+      * (debugPlayer?.damageMult ?? 1);
+    mods.xpMult *= this.rareBonuses.xpMult
+      * (1 + this.taskBonuses.xpMult)
+      * (debugPlayer?.xpMult ?? 1);
+    mods.moveSpeedMult *= this.rareBonuses.moveSpeedMult
+      * (1 + this.taskBonuses.moveSpeedMult)
+      * (debugPlayer?.moveSpeedMult ?? 1);
+    mods.armor += this.taskBonuses.armor + (debugPlayer?.armorBonus ?? 0);
+    mods.magnetRadiusBonus += this.taskBonuses.magnetRadiusBonus;
     mods.damageReduction = Math.min(0.5, mods.armor / (mods.armor + 100));
 
     this.mods = mods;
@@ -167,9 +187,13 @@ export class Game {
       noSynergy: !!options.noSynergy,
       noSummon: !!options.noSummon,
     };
+    const taskDamageMultiplier = e.rank === 'elite' || e.rank === 'boss'
+      ? 1 + this.taskBonuses.eliteBossDamageMult
+      : 1;
+    const scaledDamage = damage * taskDamageMultiplier;
     const finalDamage = typeof e.modifyIncomingDamage === 'function'
-      ? e.modifyIncomingDamage(damage)
-      : damage;
+      ? e.modifyIncomingDamage(scaledDamage)
+      : scaledDamage;
     if (finalDamage <= 0) return;
     e.hp -= finalDamage;
     e.hitFlash = 0.08;
@@ -210,9 +234,9 @@ export class Game {
     e.dead = true;
     this.kills++;
     this._dropGem(e.x, e.y);
-    if (e.rank === 'elite') {
+    if (!e.suppressRareDrop && e.rank === 'elite') {
       this.dropRarePickup(e.x, e.y);
-    } else if (e.rank === 'boss') {
+    } else if (!e.suppressRareDrop && e.rank === 'boss') {
       this.bossesDefeated++;
       this.save.stats.totalBossKills += 1;
       persistSave(this.save);
@@ -234,6 +258,7 @@ export class Game {
     if (this.killLog.length > CONFIG.killLog.cap) {
       this.killLog.splice(0, this.killLog.length - CONFIG.killLog.cap);
     }
+    this.taskDirector.onEnemyKilled(e, this);
     // 视觉血迹
     this.corpses.push({ x: e.x, y: e.y, ttl: CONFIG.corpses.stainTtl });
     if (this.corpses.length > CONFIG.corpses.cap) this.corpses.shift();
@@ -278,7 +303,15 @@ export class Game {
   }
 
   // ---------- 卡牌流程 ----------
+  queueTaskReward(offers) {
+    if (Array.isArray(offers) && offers.length > 0) this.pendingTaskRewards.push(offers);
+  }
+
   _applyOffer(offer) {
+    if (typeof offer.apply === 'function') {
+      offer.apply(this);
+      return;
+    }
     const { card, type } = offer;
     if (card.kind === 'weapon') {
       if (type === 'new') {
@@ -299,15 +332,20 @@ export class Game {
 
   _finishChoice() {
     if (this.choiceOrigin === 'levelup') this.pendingChoices--;
-    // 一次升了多级：连锁进入下一轮选卡
+    if (this.pendingTaskRewards.length > 0) {
+      this.choiceOrigin = 'task';
+      this.currentOffers = this.pendingTaskRewards.shift();
+      return;
+    }
+    // Resume queued level-up choices after all task reward choices.
     if (this.pendingChoices > 0) {
       const offers = generateOffers(this);
       if (offers.length > 0) {
         this.choiceOrigin = 'levelup';
         this.currentOffers = offers;
-        return; // 保持 choice 状态
+        return; // Remain on the choice screen for the next queued level-up.
       }
-      this.pendingChoices = 0; // 池子空了，剩余选择作废
+      this.pendingChoices = 0; // No valid level-up offers remain.
     }
     this.currentOffers = [];
     this.state = 'playing';
@@ -501,6 +539,13 @@ export class Game {
     }
 
     // 有待处理的升级选卡
+    if (this.pendingTaskRewards.length > 0) {
+      this.choiceOrigin = 'task';
+      this.currentOffers = this.pendingTaskRewards.shift();
+      this.state = 'choice';
+      return;
+    }
+
     if (this.pendingChoices > 0) {
       const offers = generateOffers(this);
       if (offers.length === 0) {
@@ -526,6 +571,7 @@ export class Game {
     updatePlayer(this.player, this.input, dt);
     this.camera.follow(this.player, dt, CONFIG.camera.lerp);
     this.waveDirector.update(dt, this, this.camera, viewW, viewH);
+    this.taskDirector.update(dt, this);
 
     const world = this._world();
 
@@ -720,6 +766,7 @@ export class Game {
     ctx.translate(ox, oy);
 
     this._drawGrid(ctx, viewW, viewH);
+    this.taskDirector.drawWorld(ctx, this);
 
     const world = this._world();
     // 层次：血迹 -> 丹火路径 -> 武器 under（光环）-> 宝石/血包 -> 敌人(+状态) -> 召唤物 -> 玩家 -> 弹道 -> 武器 over（玉环）-> 特效
@@ -739,6 +786,7 @@ export class Game {
     ctx.restore();
 
     drawHUD(ctx, viewW, viewH, this);
+    this.taskDirector.drawHUD(ctx, viewW, viewH, this);
     if (this.state === 'opening' || this.state === 'choice') {
       drawChoiceUI(ctx, viewW, viewH, this);
     } else if (this.state === 'dead') {
