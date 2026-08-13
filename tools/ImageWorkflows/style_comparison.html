@@ -1,0 +1,214 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AI Game - 美术风格选择</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0f;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    padding: 2rem;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #c9a0ff, #ff6b9d, #ffa07a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    text-align: center;
+    color: #888;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .card {
+    background: #14141f;
+    border: 2px solid #2a2a3a;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  .card:hover {
+    border-color: #8866cc;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(136, 102, 204, 0.3);
+  }
+  .card.selected {
+    border-color: #ff6b9d;
+    box-shadow: 0 0 20px rgba(255, 107, 157, 0.4);
+  }
+  .card.selected::after {
+    content: '✓ 已选择';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: #ff6b9d;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+  }
+  .card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+  }
+  .card-info {
+    padding: 1rem;
+  }
+  .card-info h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.4rem;
+    color: #fff;
+  }
+  .card-info .en-name {
+    font-size: 0.85rem;
+    color: #8866cc;
+    margin-bottom: 0.5rem;
+  }
+  .card-info p {
+    font-size: 0.82rem;
+    color: #999;
+    line-height: 1.5;
+  }
+  .tag {
+    display: inline-block;
+    background: #1e1e2e;
+    color: #aaa;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    margin-right: 4px;
+  }
+  .tag.lora { color: #ffa07a; border: 1px solid #ffa07a33; }
+  .tag.nolora { color: #66ccaa; border: 1px solid #66ccaa33; }
+  .result-bar {
+    text-align: center;
+    margin-top: 2rem;
+    padding: 1rem;
+    background: #14141f;
+    border-radius: 8px;
+    border: 1px solid #2a2a3a;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+    display: none;
+  }
+  .result-bar.show { display: block; }
+  .result-bar h2 { color: #ff6b9d; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+
+<h1>🎮 AI Game — 美术风格选择</h1>
+<p class="subtitle">点击选择你喜欢的风格，我们将基于该风格进行后续游戏素材的制作</p>
+
+<div class="grid" id="grid"></div>
+<div class="result-bar" id="resultBar">
+  <h2 id="resultText"></h2>
+</div>
+
+<script>
+const styles = [
+  {
+    file: 'style_01_watercolor.png',
+    id: '01',
+    zhName: '暗色水彩晕染风',
+    enName: 'Dark Watercolor',
+    desc: '深蓝紫水彩晕染，金色符文点缀衣袍，边缘柔和朦胧，面部与武器清晰锐利，梦幻仙侠氛围。',
+    tags: ['水彩', '晕染', '纯黑背景'],
+    hasLora: false
+  },
+  {
+    file: 'style_02_chibi.png',
+    id: '02',
+    zhName: 'Q版萌系风',
+    enName: 'Chibi/Cute Style',
+    desc: '大头小身可爱比例，紫色大眼睛， oversized发光巨剑，紫金色调，简洁讨喜的角色设计。',
+    tags: ['Q版', '可爱', '紫色系'],
+    hasLora: false
+  },
+  {
+    file: 'style_03_3d_render.png',
+    id: '03',
+    zhName: '3D次世代渲染风',
+    enName: '3D Next-Gen Render',
+    desc: 'UE5级3D渲染，精致PBR金属铠甲，次表面散射皮肤质感，电影级边缘光，高品质游戏角色。',
+    tags: ['3D', '写实', 'UE5级'],
+    hasLora: false
+  },
+  {
+    file: 'style_04_paper_cut.png',
+    id: '04',
+    zhName: '剪纸皮影风',
+    enName: 'Chinese Paper-cut / Shadow Puppet',
+    desc: '中国传统剪纸艺术风格，深红+金色多层剪影，精密花纹镂空，皮影戏美学融合暗黑仙侠。',
+    tags: ['剪纸', '皮影', '非遗美学'],
+    hasLora: false
+  },
+  {
+    file: 'style_05_impasto.png',
+    id: '05',
+    zhName: '厚涂油画风',
+    enName: 'Impasto Oil Painting',
+    desc: '厚重可见笔触，调色刀纹理，深绿松石+深红+金色浓郁调色板，古典油画质感融合暗黑概念艺术。',
+    tags: ['厚涂', '油画', '古典质感'],
+    hasLora: false
+  },
+  {
+    file: 'style_06_flat_modern.png',
+    id: '06',
+    zhName: '现代扁平插画风',
+    enName: 'Modern Flat Illustration',
+    desc: '扁平矢量风格，简洁几何色块，无描边，深蓝紫+金色现代极简美学，当代图形设计感。',
+    tags: ['扁平', '矢量', '极简'],
+    hasLora: false
+  }
+];
+
+const grid = document.getElementById('grid');
+const resultBar = document.getElementById('resultBar');
+const resultText = document.getElementById('resultText');
+
+styles.forEach((s, i) => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <img src="results/${s.file}" alt="${s.zhName}" loading="lazy">
+    <div class="card-info">
+      <h3>${s.zhName}</h3>
+      <div class="en-name">${s.enName}</div>
+      <p>${s.desc}</p>
+      <div>
+        ${s.tags.map(t => `<span class="tag ${t.startsWith('LoRA') ? 'lora' : ''}">${t}</span>`).join('')}
+      </div>
+    </div>
+  `;
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    resultBar.classList.add('show');
+    resultText.textContent = `已选择: ${s.zhName} (${s.enName})`;
+  });
+  grid.appendChild(card);
+});
+</script>
+
+</body>
+</html>
