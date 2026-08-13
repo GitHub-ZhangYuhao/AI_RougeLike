@@ -1,7 +1,7 @@
 ﻿# Open Meadow Ink Gouache - Component Breakdown
 
 Reference map:
-`../v02_multi_agent/04_open_meadow_ink_gouache/map_open_meadow_ink_gouache.png`
+`../../MapConcepts/v02_multi_agent/04_open_meadow_ink_gouache/map_open_meadow_ink_gouache.png`
 
 ## Recommended layer order
 

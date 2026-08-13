@@ -1,9 +1,9 @@
 ﻿# v08 Soft Cartoon Ground Expansion
 
 This set directly follows the art direction selected from:
-- `v07/final/flagstone_cartoon_soft.png`
-- `v07/final/stone_moss_soft.png`
-- `v07/final/dirt_sparse_pebbles.png`
+- `../../StyleAnchors/v07_soft_cartoon_ground_textures/final/flagstone_cartoon_soft.png`
+- `../../StyleAnchors/v07_soft_cartoon_ground_textures/final/stone_moss_soft.png`
+- `../../StyleAnchors/v07_soft_cartoon_ground_textures/final/dirt_sparse_pebbles.png`
 
 ## Grass
 

@@ -2,6 +2,11 @@
 
 This set redraws the eight v08 textures instead of relying on a simple sharpening filter.
 
+## Source sets
+
+- Previous material pass: `../../Iterations/v08_soft_cartoon_ground_expansion/`
+- Approved cartoon style anchor: `../../StyleAnchors/v07_soft_cartoon_ground_textures/`
+
 ## Goals
 
 - Recognizable grass, soil, pebble, moss, and mineral shapes at first glance.
