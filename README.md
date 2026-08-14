@@ -66,6 +66,71 @@ Godot headless smoke，而不是用 MCP 替代自动化测试。
 
 如需移除项目配置，删除 `.codex/config.toml` 中的 `[mcp_servers.godot]` 表即可。
 
+## Godot 美术资源配置
+
+Godot 工程只引用 `GameProject/` 内的 `res://` 资源。`ArtAsset/` 保存源素材，定稿后复制到
+`GameProject/assets/`，并将 Godot 生成的 `.import` 文件与素材一起提交。
+
+### 玩家序列帧
+
+| 用途 | 配置位置 |
+| --- | --- |
+| 源素材 | `ArtAsset/CharacterAnimation/Player/` |
+| Godot 运行时素材 | `GameProject/assets/sprites/player/` |
+| 图集切帧、动画名和 FPS | `GameProject/scenes/game/player_sprite_frames.gd` |
+| 状态、方向、缩放和脚底偏移 | `GameProject/scenes/game/player_view.gd` |
+| 玩家表现节点 | `GameProject/scenes/game/player_view.tscn` |
+| 八方向动画预览 | `GameProject/scenes/game/player_animation_preview.tscn` |
+
+当前约定：
+
+- `idle.png` 是 6×6 图集，共 36 帧；`IDLE_FPS` 控制播放速度。
+- 移动动画由同名 PNG + JSON 组成，JSON 的 `uv_min_* / uv_max_*` 乘实际 PNG 尺寸得到帧区域。
+- `MOVE_ANIMATIONS` 维护逻辑动画名到素材名的映射；`MOVE_FPS` 控制移动播放速度。
+- `WALK_SCALE`、`IDLE_SCALE` 和 `SPRITE_FOOT_OFFSET` 控制显示尺寸与脚底对齐。
+- 当前玩家画面异常已确认来自源序列帧质量或帧间连贯性，不是方向映射或状态机缺陷。替换
+  `assets/sprites/player/` 中对应 PNG/JSON 后即可继续验证。
+
+在 Godot 中打开 `player_animation_preview.tscn`，按 `F6` 可同时查看 Idle 和全部移动方向。
+
+### 地形贴图与节点式材质
+
+| 用途 | 配置位置 |
+| --- | --- |
+| 源贴图 | `ArtAsset/Image/Environment/GroundTextures/StyleAnchors/v07_soft_cartoon_ground_textures/final/` |
+| Godot 运行时贴图 | `GameProject/assets/ground_*.png` |
+| VisualShader 节点图 | `GameProject/assets/ground_visual_shader.tres` |
+| ShaderMaterial 参数实例 | `GameProject/assets/ground_visual_material.tres` |
+| 正式草甸关卡 | `GameProject/scenes/game/meadow_level.tscn` |
+| 正式关卡入口 | `GameProject/scenes/main.tscn` |
+| 地图边界与碰撞 | `GameProject/logic/level_geometry.gd` |
+| 独立材质预览关卡 | `GameProject/scenes/game/art_ground_preview.tscn` |
+| 预览相机控制 | `GameProject/scenes/game/art_ground_preview.gd` |
+| 源贴图复制工具 | `GameProject/tools/import_ground_assets.gd` |
+| VisualShader 生成工具 | `GameProject/tools/create_ground_visual_shader.gd` |
+
+材质参数：
+
+- `terrain_scale`：贴图采样缩放。
+- `macro_scale`：宏观区域分布密度。
+- `dirt_amount`：泥地区域比例。
+- `stone_amount`：石地区域比例。
+- `terrain_tint`：整体色调。
+- `tint_strength`：色调混合强度。
+
+`meadow_level.tscn` 已挂入 `main.tscn`，是当前主游戏正式使用的 4096×4096 草甸关卡。玩家、敌人、
+弹道、相机、刷怪点和任务点统一受 `level_geometry.gd` 的确定性地图边界约束；玩家额外保留视觉安全边距。
+地面贴图中的石块属于可行走的地表细节，不生成物理碰撞，后续独立树木、岩石等场景组件需在逻辑层登记障碍几何。
+
+如需单独调整材质，仍可打开 `art_ground_preview.tscn` 并按 `F6`；方向键移动相机，滚轮缩放，`R` 重置。
+
+注意：Godot 4.7.1 的 `Polygon2D` 未绑定自身 `texture` 时，CanvasItem Shader 收到的 UV 会全部为
+`(0, 0)`，画面会退化成单色。`Ground.texture` 必须保留，UV 也必须按 2048×2048 基础贴图的
+像素坐标配置。不要将其改回 0–1。
+
+`create_ground_visual_shader.gd` 会重新生成并覆盖 VisualShader 和材质实例。手工修改节点图后不要再次
+运行该工具，除非明确希望恢复生成版本。
+
 ## 操作
 
 - WASD / 方向键：移动

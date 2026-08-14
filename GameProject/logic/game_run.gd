@@ -21,6 +21,7 @@ const SynergiesScript: GDScript = preload("res://logic/systems/synergies.gd")
 const TasksScript: GDScript = preload("res://logic/systems/tasks.gd")
 const ShopScript: GDScript = preload("res://logic/meta/shop.gd")
 const MetaItemsScript: GDScript = preload("res://logic/meta/items.gd")
+const LevelGeometryScript: GDScript = preload("res://logic/level_geometry.gd")
 
 var state: String
 var weapons: Array = []
@@ -176,7 +177,11 @@ func step(dt: float, view_w: float = 1280.0, view_h: float = 720.0) -> void:
             temporary_speed_mult = maxf(temporary_speed_mult, moveSpeedBonuses[source]["multiplier"])
     player.speed = Config.CONFIG["player"]["speed"] * mods["moveSpeedMult"] * temporary_speed_mult
     player.update(input, dt)
+    _clamp_entity_to_level(player, LevelGeometryScript.PLAYER_INSET)
     camera.follow(player, dt, Config.CONFIG["camera"]["lerp"])
+    var camera_position: Dictionary = LevelGeometryScript.clamp_camera(camera.x, camera.y, view_w, view_h)
+    camera.x = camera_position["x"]
+    camera.y = camera_position["y"]
     waveDirector.update(dt, self, camera, view_w, view_h)
     taskDirector.update(dt, self)
     for enemy in enemies:
@@ -188,6 +193,9 @@ func step(dt: float, view_w: float = 1280.0, view_h: float = 720.0) -> void:
         if not enemy.dead:
             enemy.update(player, dt, _world())
     EnemyScript.separate_enemies(enemies, dt)
+    for enemy in enemies:
+        if not enemy.dead:
+            _clamp_entity_to_level(enemy)
     var world: Dictionary = _world()
     for weapon in weapons:
         weapon.update(dt, world)
@@ -196,9 +204,13 @@ func step(dt: float, view_w: float = 1280.0, view_h: float = 720.0) -> void:
     for projectile in projectiles:
         if not projectile.dead:
             projectile.update(dt)
+            if LevelGeometryScript.is_outside_circle(projectile.x, projectile.y, projectile.radius):
+                projectile.dead = true
     for projectile in hostileProjectiles:
         if not projectile.dead:
             projectile.update(dt)
+            if LevelGeometryScript.is_outside_circle(projectile.x, projectile.y, projectile.radius):
+                projectile.dead = true
     _handle_collisions()
     _update_gems(dt)
     _update_pickups(dt)
@@ -372,6 +384,12 @@ func heal_player(amount: float) -> void:
 func increase_max_hp(amount: float, heal_amount: float = -1.0) -> void:
     player.maxHp = maxf(1.0, player.maxHp + amount)
     player.hp = minf(player.maxHp, player.hp + (amount if heal_amount < 0.0 else heal_amount))
+
+
+func _clamp_entity_to_level(entity, inset: float = 0.0) -> void:
+    var position: Dictionary = LevelGeometryScript.clamp_circle(entity.x, entity.y, entity.radius + inset)
+    entity.x = position["x"]
+    entity.y = position["y"]
 
 
 func _handle_collisions() -> void:

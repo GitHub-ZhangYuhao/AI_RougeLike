@@ -4,6 +4,7 @@ extends RefCounted
 const CardsScript: GDScript = preload("res://logic/cards.gd")
 const WeaponFactoryScript: GDScript = preload("res://logic/weapons/weapon_factory.gd")
 const EnemyFactoryScript: GDScript = preload("res://logic/enemies/enemy_factory.gd")
+const LevelGeometryScript: GDScript = preload("res://logic/level_geometry.gd")
 
 const TASK_TYPES: Array[String] = ["guard", "delivery", "bounty"]
 
@@ -49,7 +50,10 @@ static func _random_int(source: Callable, minimum: int, maximum: int) -> int:
 
 static func _point_around(origin, distance: float, source: Callable) -> Dictionary:
     var angle: float = _random_range(source, 0.0, TAU)
-    return {"x": origin.x + cos(angle) * distance, "y": origin.y + sin(angle) * distance}
+    return LevelGeometryScript.clamp_point({
+        "x": origin.x + cos(angle) * distance,
+        "y": origin.y + sin(angle) * distance,
+    }, LevelGeometryScript.TASK_INSET)
 
 
 static func _tier_value(values: Array, tier: int):

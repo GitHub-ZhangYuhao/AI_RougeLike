@@ -165,7 +165,17 @@ player.speed = 230 × mods.moveSpeedMult × playerMoveSpeedBonusMult()
 
 ### 3.5 相机
 
-`camera.follow(player, dt, lerp=8)`：向玩家位置插值跟随，系数 8（`CONFIG.camera.lerp`）。
+`camera.follow(player, dt, lerp=8)`：向玩家位置插值跟随，系数 8（`CONFIG.camera.lerp`）。正式关卡中跟随结果继续按当前视口半宽/半高约束，禁止相机显示到 4096×4096 地形之外。
+
+### 3.6 正式关卡边界（Godot 表现正式化扩展）
+
+- 当前正式关卡为以世界原点为中心的 4096×4096 草甸，边界 `left/top=-2048`、`right/bottom=2048`。
+- 边界判定全部由 `logic/level_geometry.gd` 完成，不使用 Godot 物理节点；headless 与实际画面共享同一几何真值。
+- 玩家按 `radius 14 + 视觉安全边距 36` 钳制，避免角色序列帧在屏幕边缘被裁切。
+- 敌人按自身 radius 钳制；屏外刷怪点额外内收 32px。
+- 玩家与敌方弹道的圆形范围一旦接触/越过边界即销毁。
+- 随机任务信标、护送目的地、悬赏目标和拦截者生成点至少内收 80px。
+- 地形贴图内的石块属于可行走细节；后续独立树木、岩石障碍必须在逻辑层登记几何，场景碰撞节点不能成为玩法真值。
 
 ---
 

@@ -1,0 +1,6 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://del68k0v17v83"]
+
+[ext_resource type="Shader" uid="uid://bqfch5doa24c4" path="res://assets/ground_visual_shader.tres" id="1_rugbr"]
+
+[resource]
+shader = ExtResource("1_rugbr")

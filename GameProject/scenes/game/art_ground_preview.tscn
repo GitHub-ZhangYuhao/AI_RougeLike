@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://dbsq210kvism5"]
+
+[ext_resource type="Script" uid="uid://bggr8s3cga5sy" path="res://scenes/game/art_ground_preview.gd" id="1_script"]
+[ext_resource type="Material" path="res://assets/ground_visual_material.tres" id="2_material"]
+[ext_resource type="Texture2D" uid="uid://d0omokymo6687" path="res://assets/ground_grass_soft_celadon.png" id="3_uv_texture"]
+
+[node name="ArtGroundPreview" type="Node2D" unique_id=820346010]
+script = ExtResource("1_script")
+
+[node name="Backdrop" type="ColorRect" parent="." unique_id=1157918724]
+show_behind_parent = true
+offset_left = -4096.0
+offset_top = -4096.0
+offset_right = 4096.0
+offset_bottom = 4096.0
+mouse_filter = 2
+color = Color(0.055, 0.065, 0.045, 1)
+
+[node name="Ground" type="Polygon2D" parent="." unique_id=1310430891]
+texture_repeat = 2
+material = ExtResource("2_material")
+texture = ExtResource("3_uv_texture")
+polygon = PackedVector2Array(-2048, -2048, 2048, -2048, 2048, 2048, -2048, 2048)
+uv = PackedVector2Array(0, 0, 2048, 0, 2048, 2048, 0, 2048)
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1166960339]
+zoom = Vector2(0.5, 0.5)
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
+
+[node name="PreviewUI" type="CanvasLayer" parent="." unique_id=1137819998]
+
+[node name="Panel" type="PanelContainer" parent="PreviewUI" unique_id=1383082703]
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 428.0
+offset_bottom = 102.0
+
+[node name="Margin" type="MarginContainer" parent="PreviewUI/Panel" unique_id=81938129]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="Text" type="Label" parent="PreviewUI/Panel/Margin" unique_id=1926924122]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "地形材质预览
+方向键移动 · 滚轮缩放 · R 重置视角"

@@ -90,3 +90,9 @@
 2. **smoke runner 对"场景不可加载"必须显式失败**：宁可大声报错退出，也不能静默跳过，否则缺章节会被误判为全绿。
 3. **config.js 是纯数据**：`autoload/config.gd` 只镜像数据键值（附录 A 逐键 camelCase）；原型中不存在函数型配置，移植时不要为"配置函数"预留结构。
 4. **MetaSave 做成纯函数库**：`load_save / persist_save / reset_save / merge_into / default_save`，不持有状态，便于 headless 场景直接调用与测试替换。
+
+### 2026-08-14 ｜ M6
+
+1. **Polygon2D 的 CanvasItem UV 依赖自身纹理**：Godot 4.7.1 中，仅设置 VisualShader 的贴图节点和 `Polygon2D.uv` 不够；`Polygon2D.texture` 为空时 Shader 收到的 UV 会全部为 `(0, 0)`。地形节点必须保留基础纹理，并按基础纹理像素尺寸配置 UV。
+2. **序列帧区域优先使用归一化 UV**：动画 PNG 可能经过整体缩放，JSON 中的历史像素坐标会失效。构建 `AtlasTexture` 时优先使用 `uv_min_* / uv_max_* × atlas.get_width/height`，避免帧区域越界或动画中途空白。
+3. **正式关卡碰撞仍属于纯逻辑层**：地形场景只负责绘制，地图边界、相机约束、刷怪点和任务点合法化统一放在 `logic/level_geometry.gd`；不要为表现升级引入 Godot 物理碰撞，避免破坏 headless 确定性。

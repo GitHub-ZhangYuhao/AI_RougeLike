@@ -2,6 +2,7 @@ extends RefCounted
 ## ← js/spawner.js：刷怪节奏、上限与屏外矩形边缘出生。
 
 const EnemyFactoryScript: GDScript = preload("res://logic/enemies/enemy_factory.gd")
+const LevelGeometryScript: GDScript = preload("res://logic/level_geometry.gd")
 
 var timer: float = 0.0
 
@@ -39,6 +40,9 @@ func update(dt: float, elapsed: float, enemies: Array, camera, view_w: float, vi
 func spawn_type(type: String, elapsed: float, enemies: Array, camera, view_w: float, view_h: float, options: Dictionary = {}):
     var position: Dictionary = _ring_position(camera, view_w, view_h)
     var enemy = EnemyFactoryScript.create_enemy_by_type(type, position["x"], position["y"], elapsed, options.get("wave", 1))
+    position = LevelGeometryScript.clamp_circle(enemy.x, enemy.y, enemy.radius + LevelGeometryScript.SPAWN_INSET)
+    enemy.x = position["x"]
+    enemy.y = position["y"]
     enemies.append(enemy)
     var counts: Dictionary = options.get("spawnedByType", {})
     counts[enemy.type] = counts.get(enemy.type, 0) + 1

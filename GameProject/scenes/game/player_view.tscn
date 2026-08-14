@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/game/player_view.gd" id="1_player"]
+
+[node name="PlayerView" type="Node2D"]
+script = ExtResource("1_player")
+
+[node name="Shadow" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-22, 0, -17, -5, 0, -7, 17, -5, 22, 0, 17, 5, 0, 7, -17, 5)
+color = Color(0.03, 0.025, 0.04, 0.42)
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+texture_filter = 4
