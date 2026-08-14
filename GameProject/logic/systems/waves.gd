@@ -47,9 +47,9 @@ func _update_normal_wave(dt: float, game, camera, view_w: float, view_h: float) 
             spawned += 1
             game.spawner.timer = spawnInterval
     if remaining > 0:
-        spawned += game.spawner.update(dt, game.elapsed, game.enemies, camera, view_w, view_h,
-            {"spawnLimit": remaining, "spawnInterval": spawnInterval, "wave": wave, "quota": quota,
-            "spawnedByType": spawnedByType, "bossWave": false})
+        var options: Dictionary = _debug_spawn_options(game, {"spawnLimit": remaining, "spawnInterval": spawnInterval,
+            "wave": wave, "quota": quota, "spawnedByType": spawnedByType, "bossWave": false})
+        spawned += game.spawner.update(dt, game.elapsed, game.enemies, camera, view_w, view_h, options)
     if waveTimer <= 0.0:
         _start_next_wave(game)
 
@@ -62,9 +62,9 @@ func _update_boss_wave(dt: float, game, camera, view_w: float, view_h: float) ->
             spawned = 1
             game.spawner.timer = spawnInterval
     if remaining > 0:
-        spawned += game.spawner.update(dt, game.elapsed, game.enemies, camera, view_w, view_h,
-            {"spawnLimit": remaining, "spawnInterval": spawnInterval, "wave": wave, "quota": quota,
-            "spawnedByType": spawnedByType, "bossWave": true, "forceType": "enhancedChaser"})
+        var options: Dictionary = _debug_spawn_options(game, {"spawnLimit": remaining, "spawnInterval": spawnInterval,
+            "wave": wave, "quota": quota, "spawnedByType": spawnedByType, "bossWave": true, "forceType": "enhancedChaser"})
+        spawned += game.spawner.update(dt, game.elapsed, game.enemies, camera, view_w, view_h, options)
     if waveTimer > 0.0 or not bossSpawned:
         return
     if _boss_alive(game):
@@ -72,6 +72,16 @@ func _update_boss_wave(dt: float, game, camera, view_w: float, view_h: float) ->
         bannerTimer = Config.CONFIG["waves"]["bannerDuration"]
     else:
         game.on_boss_wave_cleared()
+
+func _debug_spawn_options(game, options: Dictionary) -> Dictionary:
+    if game.debug == null:
+        return options
+    options["spawnSettings"] = game.debug.settings["spawn"]
+    var alive_cap = game.debug.settings["spawn"]["aliveCap"]
+    if alive_cap != null:
+        options["aliveCap"] = alive_cap
+    return options
+
 
 func start_wave(requested_wave: int, game = null) -> int:
     wave = clampi(requested_wave, 1, Config.CONFIG["waves"]["maxWave"])

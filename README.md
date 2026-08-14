@@ -143,6 +143,20 @@ Godot 工程只引用 `GameProject/` 内的 `res://` 资源。`ArtAsset/` 保存
 正式资源到位后按类型逐项替换 PlaceholderWorld 中对应绘制函数；在正式视图完成前保留占位实现，
 确保玩法机制始终可测试、可识别。
 
+### 正式 UI
+
+| 界面 | 配置位置 |
+| --- | --- |
+| 主菜单标题徽记 | `GameProject/assets/ui/title_emblem.png`（GPT Image 2） |
+| HUD、卡牌、撤离、死亡、结算 | `GameProject/scenes/game/game_overlay.gd` |
+| 主菜单、商城、仓库 | `GameProject/scenes/ui/meta_screens.gd/.tscn` |
+| Debug Runtime | `GameProject/logic/debug_runtime.gd` |
+| F2 Debug Overlay | `GameProject/scenes/game/debug_overlay.gd/.tscn` |
+
+UI 使用深青墨色面板、玉色和鎏金边线、朱砂警示色，与草甸水粉美术统一。Meta UI 已挂入
+`main.tscn`，支持开始游戏、商城购买、仓库单项/全部出售；F2 面板支持暂停、无敌、玩家/敌人倍率、
+波次、刷怪、武器等级和配置保存/载入。
+
 ## 操作
 
 - WASD / 方向键：移动
@@ -150,7 +164,8 @@ Godot 工程只引用 `GameProject/` 内的 `res://` 资源。`ArtAsset/` 保存
 - 选卡（开局 / 升级时弹出）：**鼠标点击卡牌** 或 **按数字键 1-9**
 - 死亡后按 R 重新开始
 - **F2 调试工具**：打开面板时默认暂停；可调经验/人物属性、武器等级、怪物倍率、刷怪与波次
-- 保存的调试配置不会自动加载；控制台可通过 `__game.debug` 调用同一套接口
+- Godot 调试配置通过面板“保存/载入”写入 `user://debug_settings.json`，不会自动加载
+- HTML 原型仍可通过浏览器控制台 `__game.debug` 调用调试接口
 
 ## 当前内容
 

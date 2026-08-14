@@ -19,10 +19,11 @@
 ## 2. 当前总体进度
 
 - 工程里程碑：M0–M5 完成，M6 进行中，完成度 `6 / 7`。
-- Godot smoke：`22 / 23` 章节已移植；剩余 `[Debug]`。最新回归为 315 项检查全绿。
+- Godot smoke：`23 / 23` 章节已全部移植，最新回归为 340 项检查全绿。
 - 正式关卡：4096×4096 草甸地形已挂入主场景，并启用确定性地图边界。
 - 正式角色表现：玩家八方向状态机和 SpriteFrames 管线已接入。
-- 当前主要美术缺口：玩家源序列帧修订、七类敌人、六武器及技能表现、掉落与召唤物、任务与联动特效、完整 UI、音频和字体。
+- 正式 UI：HUD、卡牌、菜单、商城、仓库、撤离、死亡、结算与 F2 Debug Overlay 已接入。
+- 当前主要美术缺口：玩家源序列帧修订、七类敌人、六武器及技能表现、掉落与召唤物、任务与联动特效、音频和字体。
 
 ## 3. 资源流向约定
 
@@ -49,7 +50,10 @@ ArtAsset/ 或 Experimental/
 | 玩家表现管线 | 已配置 | `assets/sprites/player/*.png`、移动动画 JSON | `scenes/game/player_sprite_frames.gd`、`player_view.gd`、`player_view.tscn` | 管线正确，源帧质量仍为“待修订” |
 | 主场景表现分层 | 已配置 | 场景资源 | `scenes/main.tscn`、`scenes/game/game_view.gd` | 顺序为地形、世界占位、玩家、HUD |
 | 集中式占位框架 | 已配置 | 无外部美术资源 | `scenes/game/placeholder_world_view.gd` | 所有未完成世界表现统一收口 |
-| 基础 HUD/状态界面 | 占位 | Godot 默认字体与绘制 API | `scenes/game/game_overlay.gd` | 已可用，但不是最终 UI 视觉 |
+| 主菜单标题徽记 | 已配置 | `assets/ui/title_emblem.png` | `scenes/ui/meta_screens.tscn` | 使用 GPT Image 2 生成，准确中文标题 |
+| HUD/卡牌/状态界面 | 已配置 | Godot 绘制 API | `scenes/game/game_overlay.gd` | 经验、生命、武器、Boss、任务、卡牌与局流程界面 |
+| 主菜单/商城/仓库 | 已配置 | 标题徽记 + Godot Control | `scenes/ui/meta_screens.gd/.tscn` | 已挂入 `main.tscn`，支持完整鼠标交互 |
+| Debug Runtime/Overlay | 已配置 | Godot Control | `logic/debug_runtime.gd`、`scenes/game/debug_overlay.gd/.tscn` | F2 开启，支持倍率、波次、刷怪、武器和配置存取 |
 
 ## 5. 已配置但仍需修订或整合
 
@@ -85,8 +89,8 @@ ArtAsset/ 或 Experimental/
 
 | 项目 | 状态 | 配置位置 | 缺口 |
 | --- | --- | --- | --- |
-| 商城/仓库/任务数据接口 | 已配置 | `scenes/ui/meta_screens.gd` | 已绑定逻辑接口 |
-| Meta UI 独立场景 | 已配置（开发工具） | `scenes/ui/meta_screens.tscn` | 尚未挂入 `main.tscn`，仍使用默认控件风格 |
+| 商城/仓库/任务数据接口 | 已配置 | `scenes/ui/meta_screens.gd` | 已绑定逻辑接口与动态行项目 |
+| Meta UI 正式场景 | 已配置 | `scenes/ui/meta_screens.tscn` | 已挂入 `main.tscn`，使用东方幻想主题控件 |
 
 ## 6. 当前占位符清单
 
@@ -128,10 +132,6 @@ ArtAsset/ 或 Experimental/
 | 掉落 | 宝石、血包、五种稀有物正式资源 | 建议新增 PickupView |
 | 召唤物 | 普通召唤、尸体召唤、护法玉和鬼火 | 建议新增 SummonView |
 | VFX | 受击、爆炸、冻结、减速、DoT、15 组联动 | 建议新增 `assets/effects/` 与统一 EffectView |
-| 完整 HUD | 经验条、血条、武器槽、Boss 条、任务导航 | 替换 `game_overlay.gd` 的直接绘制 |
-| 卡牌 UI | 开局、升级、任务奖励卡牌正式样式 | 新建 `scenes/ui/card_choice.tscn` |
-| Meta UI | 商城、仓库、撤离、结算、死亡正式样式与主场景挂载 | 完善并挂载 `scenes/ui/meta_screens.tscn` |
-| Debug UI | F2 Debug Runtime 面板 | `logic/debug_runtime.gd`、`scenes/game/debug_overlay.gd` |
 | 字体 | 中文 UI 字体、数字字体、标题字体 | `assets/fonts/`；当前使用 Godot fallback font |
 | 音频 | BGM、武器 SFX、受击、掉落、UI、Boss 音效 | `assets/audio/`；当前无正式音频文件 |
 | 性能表现 | 实体视图对象池、粒子预算、140 敌人压力下的降级策略 | M6 性能任务 |
@@ -140,13 +140,13 @@ ArtAsset/ 或 Experimental/
 
 | 界面 | 当前状态 | 表现方式 |
 | --- | --- | --- |
-| 基础 HUD | 占位 | `game_overlay.gd` 直接绘制文本 |
-| 主菜单 | 占位 | 默认字体文本提示 |
-| 开局/升级/任务奖励选卡 | 占位 | 矩形底色 + 文本 |
-| 撤离、死亡、结算 | 占位 | 居中文字提示 |
-| 商城/仓库 | 已配置（开发工具） | `meta_screens.tscn` 默认 Godot 控件，未挂入主场景 |
-| Boss/任务世界提示 | 占位 | `placeholder_world_view.gd` 几何绘制 |
-| Debug Overlay | 未配置 | M6 待实现 |
+| 基础 HUD | 已配置 | 东方幻想面板；经验、生命、武器槽、波次、Boss、任务、掉落与统计完整显示 |
+| 主菜单 | 已配置 | GPT Image 2 标题徽记 + 主题化 Control 按钮与局外统计 |
+| 开局/升级/任务奖励选卡 | 已配置 | 类型配色、符印、等级信息、描述、悬停和数字键提示 |
+| 撤离、死亡、结算 | 已配置 | 主题化模态面板、损失/收益汇总与按键操作提示 |
+| 商城/仓库 | 已配置 | 正式挂载 `meta_screens.tscn`；支持购买、单项出售、全部出售和返回 |
+| Boss/任务提示 | 已配置 | HUD 专用 Boss 条与任务卡；世界位置继续由 PlaceholderWorld 标记 |
+| Debug Overlay | 已配置 | F2 面板；暂停、无敌、玩家/敌人/刷怪倍率、波次、武器、生成和配置存取 |
 
 ## 9. 预览入口
 
@@ -155,7 +155,8 @@ ArtAsset/ 或 Experimental/
 | 当前完整游戏 | `scenes/main.tscn` | `F5` |
 | 地形材质 | `scenes/game/art_ground_preview.tscn` | 打开场景后按 `F6` |
 | 玩家八方向动画 | `scenes/game/player_animation_preview.tscn` | 打开场景后按 `F6` |
-| Meta UI 壳 | `scenes/ui/meta_screens.tscn` | 单独打开并运行；主游戏尚未挂载 |
+| 正式 Meta UI | `scenes/ui/meta_screens.tscn` | 已挂入主游戏；可单独打开检查布局 |
+| Debug Overlay | `scenes/game/debug_overlay.tscn` | 主游戏中按 `F2` |
 
 ## 10. 正式资源替换流程
 

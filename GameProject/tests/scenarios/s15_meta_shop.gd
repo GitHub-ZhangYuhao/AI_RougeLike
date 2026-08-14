@@ -6,6 +6,9 @@ func title() -> String: return "[15] Meta shop"
 
 func run(runner) -> void:
     var game = runner.harness.game
+    var main_scene = load("res://scenes/main.tscn").instantiate()
+    runner.check(main_scene.has_node("MetaLayer/MetaScreens"), "[15] formal meta UI mounted in main scene")
+    main_scene.free()
     # The compact [14] port stops at dead; mirror the prototype's final R before [15].
     game.reset()
     runner.check(game.state == "menu", "[15] should start from menu")

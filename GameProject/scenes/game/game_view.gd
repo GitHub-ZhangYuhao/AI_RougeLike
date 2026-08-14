@@ -11,17 +11,24 @@ var accumulator: float = 0.0
 @onready var placeholder_world = $PlaceholderWorld
 @onready var player_view = $PlayerView
 @onready var overlay = $GameOverlay
+@onready var meta_screens = $MetaLayer/MetaScreens
+@onready var debug_overlay = $DebugLayer/DebugOverlay
 
 
 func _ready() -> void:
 	set_process_input(true)
 	placeholder_world.bind_run(run)
 	overlay.bind_run(run)
+	meta_screens.bind_run(run)
+	debug_overlay.bind_run(run)
 	_sync_views(get_viewport_rect().size)
 
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey:
+		if event.pressed and event.physical_keycode == KEY_F2:
+			debug_overlay.toggle()
+			return
 		var code: String = _key_code(event as InputEventKey)
 		if not code.is_empty():
 			if event.pressed:
@@ -45,6 +52,7 @@ func _physics_process(delta: float) -> void:
 	_sync_views(size)
 	placeholder_world.refresh()
 	overlay.refresh()
+	meta_screens.refresh()
 
 
 func _sync_views(size: Vector2) -> void:

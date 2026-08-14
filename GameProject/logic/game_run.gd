@@ -22,8 +22,10 @@ const TasksScript: GDScript = preload("res://logic/systems/tasks.gd")
 const ShopScript: GDScript = preload("res://logic/meta/shop.gd")
 const MetaItemsScript: GDScript = preload("res://logic/meta/items.gd")
 const LevelGeometryScript: GDScript = preload("res://logic/level_geometry.gd")
+const DebugRuntimeScript: GDScript = preload("res://logic/debug_runtime.gd")
 
 var state: String
+var debug
 var weapons: Array = []
 var attrStacks: Dictionary = {}
 var metaStacks: Dictionary = {}
@@ -72,6 +74,7 @@ var _death_settled: bool = false
 func _init() -> void:
     input = InputScript.new()
     save = MetaSave.load_save()
+    debug = DebugRuntimeScript.new(self)
     reset()
 
 
@@ -122,9 +125,13 @@ func reset() -> void:
     bossesDefeated = 0
     choiceOrigin = "opening"
     currentOffers = CardsScript.opening_offers(self)
+    if debug != null:
+        debug.on_game_reset()
 
 
 func step(dt: float, view_w: float = 1280.0, view_h: float = 720.0) -> void:
+    if debug != null and debug.settings["paused"]:
+        return
     if state == "menu":
         if input.was_pressed("Enter") or input.was_pressed("Space"):
             _start_run()
@@ -187,6 +194,7 @@ func step(dt: float, view_w: float = 1280.0, view_h: float = 720.0) -> void:
     for enemy in enemies:
         if enemy.dead:
             continue
+        debug.apply_enemy_multipliers(enemy)
         var dot_damage: float = StatusScript.tick_status(enemy, dt)
         if dot_damage > 0.0:
             damage_enemy(enemy, dot_damage)
@@ -308,7 +316,14 @@ func recompute_mods() -> void:
     mods["moveSpeedMult"] *= rareBonuses.get("moveSpeedMult", 1.0) * (1.0 + taskBonuses.get("moveSpeedMult", 0.0))
     mods["armor"] += taskBonuses.get("armor", 0.0)
     mods["magnetRadiusBonus"] += taskBonuses.get("magnetRadiusBonus", 0.0)
+    if debug != null:
+        mods["damageMult"] *= debug.settings["player"]["damageMult"]
+        mods["xpMult"] *= debug.settings["player"]["xpMult"]
+        mods["moveSpeedMult"] *= debug.settings["player"]["moveSpeedMult"]
+        mods["armor"] += debug.settings["player"]["armorBonus"]
     mods["damageReduction"] = minf(0.5, mods["armor"] / (mods["armor"] + 100.0))
+    if debug != null:
+        debug.sync_player_max_hp()
 
 
 func xp_to_next() -> float:
@@ -324,7 +339,8 @@ func gain_xp(amount: float, apply_multiplier: bool = true) -> void:
 
 
 func gem_magnet_radius() -> float:
-    return Config.CONFIG["gems"]["magnetRadius"] + mods["magnetRadiusBonus"] + rareBonuses.get("magnetRadiusBonus", 0.0)
+    var radius: float = Config.CONFIG["gems"]["magnetRadius"] + mods["magnetRadiusBonus"] + rareBonuses.get("magnetRadiusBonus", 0.0)
+    return radius * (debug.settings["player"]["pickupRangeMult"] if debug != null else 1.0)
 
 
 func damage_enemy(enemy, damage: float, options: Dictionary = {}) -> void:
@@ -369,6 +385,8 @@ func _kill_enemy(enemy, options: Dictionary = {}) -> void:
 
 
 func hurt_player(damage: float) -> bool:
+    if debug != null and debug.settings["invincible"]:
+        return false
     var final_damage: float = damage * (1.0 - mods["damageReduction"])
     if not player.hurt(final_damage):
         return false

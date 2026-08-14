@@ -28,6 +28,7 @@ const SCENARIO_PATHS: Array[String] = [
     "res://tests/scenarios/s07_generate_offers.gd",
     "res://tests/scenarios/s08_enemy_base.gd",
     "res://tests/scenarios/s09_waves_boss_drops.gd",
+    "res://tests/scenarios/debug_runtime.gd",
     "res://tests/scenarios/s10_death_return.gd",
     "res://tests/scenarios/s11_boss_drop_bounds.gd",
     "res://tests/scenarios/s12_extraction.gd",

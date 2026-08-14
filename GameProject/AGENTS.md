@@ -98,3 +98,5 @@
 2. **序列帧区域优先使用归一化 UV**：动画 PNG 可能经过整体缩放，JSON 中的历史像素坐标会失效。构建 `AtlasTexture` 时优先使用 `uv_min_* / uv_max_* × atlas.get_width/height`，避免帧区域越界或动画中途空白。
 3. **正式关卡碰撞仍属于纯逻辑层**：地形场景只负责绘制，地图边界、相机约束、刷怪点和任务点合法化统一放在 `logic/level_geometry.gd`；不要为表现升级引入 Godot 物理碰撞，避免破坏 headless 确定性。
 4. **缺失美术统一走集中式占位渲染**：所有临时世界表现收敛到 `scenes/game/placeholder_world_view.gd`，不得把颜色、形状或动画状态写回 logic；正式资源到位后按对象类型逐项替换。
+5. **双向 RefCounted 引用会泄漏**：`GameRun` 持有 `DebugRuntime` 时，Runtime 必须用 `weakref(game)` 回指宿主；禁止形成 GameRun ↔ Runtime 强引用环，headless 退出前应无 ObjectDB 泄漏。
+6. **动态 Meta UI 只在签名变化时重建**：商城/仓库行项目根据 state、暗晶、等级、库存签名刷新，禁止每个物理帧销毁重建 Control 树。
