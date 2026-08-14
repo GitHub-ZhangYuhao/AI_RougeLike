@@ -6,6 +6,7 @@ const STEP: float = 1.0 / 60.0
 
 var run = GameRunScript.new()
 var accumulator: float = 0.0
+var visual_time: float = 0.0
 
 @onready var meadow_level = $MeadowLevel
 @onready var world_art = $WorldArtView
@@ -53,6 +54,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+  visual_time += delta
   accumulator += minf(0.25, delta)
   var size: Vector2 = get_viewport_rect().size
   while accumulator >= STEP:
@@ -67,6 +69,9 @@ func _physics_process(delta: float) -> void:
 
 func _sync_views(size: Vector2) -> void:
   var offset := size * 0.5 - Vector2(run.camera.x, run.camera.y)
+  if run.hitShake > 0.0:
+    var strength: float = clampf(run.hitShake / 0.25, 0.0, 1.0) * 7.0
+    offset += Vector2(sin(visual_time * 83.0), cos(visual_time * 67.0)) * strength
   meadow_level.position = offset
   world_art.position = offset
   player_view.sync_from(run.player, run.state, Vector2(run.player.x, run.player.y) + offset)

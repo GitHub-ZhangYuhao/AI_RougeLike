@@ -133,7 +133,7 @@ func _build_panel() -> void:
   _dimmer = ColorRect.new()
   _dimmer.name = 'DebugDimmer'
   _dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
-  _dimmer.color = Color(0.006, 0.012, 0.01, 0.46)
+  _dimmer.color = Color(0.15, 0.08, 0.045, 0.54)
   _dimmer.mouse_filter = Control.MOUSE_FILTER_STOP
   _dimmer.visible = false
   _dimmer.gui_input.connect(_on_dimmer_input)
@@ -177,7 +177,7 @@ func _build_panel() -> void:
   var title := Label.new()
   title.text = '灵枢调试台'
   title.add_theme_font_size_override('font_size', 24)
-  title.add_theme_color_override('font_color', Color('f2d28b'))
+  title.add_theme_color_override('font_color', Color('8c3d28'))
   title_column.add_child(title)
   var subtitle := Label.new()
   subtitle.text = '实时修改战斗参数 · F2 / Esc 关闭'
@@ -439,42 +439,42 @@ func _format_time(value: float) -> String:
 
 func _panel_style() -> StyleBoxFlat:
   var style := StyleBoxFlat.new()
-  style.bg_color = Color(0.025, 0.05, 0.041, 0.985)
-  style.border_color = Color('b99b52')
+  style.bg_color = Color('f1cc8b')
+  style.border_color = Color('d08a2d')
   style.set_border_width_all(2)
-  style.set_corner_radius_all(16)
-  style.shadow_color = Color(0.0, 0.0, 0.0, 0.68)
+  style.set_corner_radius_all(22)
+  style.shadow_color = Color(0.20, 0.08, 0.04, 0.46)
   style.shadow_size = 18
   return style
 
 
 func _status_style() -> StyleBoxFlat:
   var style := StyleBoxFlat.new()
-  style.bg_color = Color(0.055, 0.095, 0.075, 0.96)
-  style.border_color = Color(0.45, 0.62, 0.45, 0.62)
+  style.bg_color = Color('e4b979')
+  style.border_color = Color(0.66, 0.34, 0.18, 0.66)
   style.set_border_width_all(1)
-  style.set_corner_radius_all(9)
+  style.set_corner_radius_all(14)
   return style
 
 
 func _style_button(button: Button, prominent: bool = false) -> void:
   var normal := StyleBoxFlat.new()
-  normal.bg_color = Color(0.075, 0.14, 0.105, 0.98)
-  normal.border_color = Color('b99b52') if prominent else Color('6f8f73')
+  normal.bg_color = Color('dba560')
+  normal.border_color = Color('d08a2d') if prominent else Color('a85b32')
   normal.set_border_width_all(2 if prominent else 1)
-  normal.set_corner_radius_all(9)
+  normal.set_corner_radius_all(14)
   if prominent:
-    normal.shadow_color = Color(0.0, 0.0, 0.0, 0.38)
+    normal.shadow_color = Color(0.20, 0.08, 0.04, 0.34)
     normal.shadow_size = 6
   var hover: StyleBoxFlat = normal.duplicate()
-  hover.bg_color = Color(0.13, 0.23, 0.17, 1.0)
-  hover.border_color = Color('e0bf6c')
+  hover.bg_color = Color('f8d99d')
+  hover.border_color = Color('d3912d')
   var pressed: StyleBoxFlat = hover.duplicate()
-  pressed.bg_color = Color(0.18, 0.29, 0.20, 1.0)
+  pressed.bg_color = Color('d98a4a')
   button.add_theme_stylebox_override('normal', normal)
   button.add_theme_stylebox_override('hover', hover)
   button.add_theme_stylebox_override('pressed', pressed)
   button.add_theme_stylebox_override('focus', hover)
-  button.add_theme_color_override('font_color', Color('e8eadb'))
-  button.add_theme_color_override('font_hover_color', Color('f2d28b'))
-  button.add_theme_color_override('font_pressed_color', Color.WHITE)
+  button.add_theme_color_override('font_color', Color('43251d'))
+  button.add_theme_color_override('font_hover_color', Color('8c3d28'))
+  button.add_theme_color_override('font_pressed_color', Color('fff3cf'))

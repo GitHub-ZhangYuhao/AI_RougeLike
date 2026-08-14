@@ -129,7 +129,7 @@ func _build_menu() -> void:
 	var stats_label := Label.new()
 	stats_label.text = "累计 %d 局   撤离 %d 次   通关 %d 次   最佳波数 %d" % [stats.get("runs", 0), stats.get("extractions", 0), stats.get("completions", 0), stats.get("bestWave", 0)]
 	stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stats_label.add_theme_color_override("font_color", Color("b8c8b3"))
+	stats_label.add_theme_color_override("font_color", Color('76543f'))
 	stats_label.add_theme_font_size_override("font_size", 14)
 	dynamic_rows.add_child(stats_label)
 	var features := HBoxContainer.new()
@@ -201,13 +201,13 @@ func _make_menu_feature(title: String, detail: String, icon: Texture2D) -> Panel
 	content.add_child(copy)
 	var title_label := Label.new()
 	title_label.text = title
-	title_label.add_theme_color_override("font_color", Color("f2d28b"))
+	title_label.add_theme_color_override("font_color", Color('8c3d28'))
 	title_label.add_theme_font_size_override("font_size", 16)
 	copy.add_child(title_label)
 	var detail_label := Label.new()
 	detail_label.text = detail
 	detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	detail_label.add_theme_color_override("font_color", Color("c8d1c4"))
+	detail_label.add_theme_color_override("font_color", Color('6f4d39'))
 	detail_label.add_theme_font_size_override("font_size", 12)
 	copy.add_child(detail_label)
 	return card
@@ -215,8 +215,8 @@ func _make_menu_feature(title: String, detail: String, icon: Texture2D) -> Panel
 
 func _menu_feature_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.11, 0.085, 0.92)
-	style.border_color = Color(0.55, 0.47, 0.25, 0.72)
+	style.bg_color = Color('e8bd7c')
+	style.border_color = Color(0.72, 0.39, 0.16, 0.75)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(10)
 	style.shadow_color = Color(0.0, 0.0, 0.0, 0.24)
@@ -248,13 +248,13 @@ func _make_row(name: String, detail: String, action_text: String, enabled: bool,
 	var name_label := Label.new()
 	name_label.custom_minimum_size.x = 90.0
 	name_label.text = name
-	name_label.add_theme_color_override("font_color", Color("f2d28b"))
+	name_label.add_theme_color_override("font_color", Color('8c3d28'))
 	name_label.add_theme_font_size_override("font_size", 18)
 	line.add_child(name_label)
 	var detail_label := Label.new()
 	detail_label.text = detail
 	detail_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail_label.add_theme_color_override("font_color", Color("c8d1c4"))
+	detail_label.add_theme_color_override("font_color", Color('6f4d39'))
 	detail_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(detail_label)
 	var button := Button.new()
@@ -278,11 +278,11 @@ func _apply_theme() -> void:
 	theme = ui_theme
 	divider.texture = ArtCatalog.UI_TEXTURES["divider"]
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.045, 0.075, 0.064, 0.96)
-	panel_style.border_color = Color("b99b52")
+	panel_style.bg_color = Color('f1cc8b')
+	panel_style.border_color = Color('d08a2d')
 	panel_style.set_border_width_all(2)
-	panel_style.set_corner_radius_all(20)
-	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.55)
+	panel_style.set_corner_radius_all(26)
+	panel_style.shadow_color = Color(0.20, 0.08, 0.04, 0.42)
 	panel_style.shadow_size = 18
 	panel.add_theme_stylebox_override("panel", panel_style)
 	_button_styles = _create_button_styles()
@@ -296,55 +296,55 @@ func _apply_theme() -> void:
 		button.add_theme_constant_override("icon_max_width", 28)
 		_apply_button_style(button)
 	for label: Label in [title_label, subtitle_label, currency_label, footer_label]:
-		label.add_theme_color_override("font_color", Color("e8eadb"))
-	currency_label.add_theme_color_override("font_color", Color("d7b5f5"))
-	subtitle_label.add_theme_color_override("font_color", Color("b8c8b3"))
-	footer_label.add_theme_color_override("font_color", Color("8fa091"))
+		label.add_theme_color_override("font_color", Color('43251d'))
+	currency_label.add_theme_color_override("font_color", Color('a74736'))
+	subtitle_label.add_theme_color_override("font_color", Color('76543f'))
+	footer_label.add_theme_color_override("font_color", Color('8c684d'))
 
 
 func _create_button_styles() -> Dictionary:
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.08, 0.15, 0.12, 0.96)
-	normal.border_color = Color("7f9364")
+	normal.bg_color = Color('dca762')
+	normal.border_color = Color('a95d32')
 	normal.set_border_width_all(1)
-	normal.set_corner_radius_all(9)
+	normal.set_corner_radius_all(16)
 	var hover: StyleBoxFlat = normal.duplicate()
-	hover.bg_color = Color(0.13, 0.24, 0.18, 0.98)
-	hover.border_color = Color("e0bf6c")
+	hover.bg_color = Color('f8d99d')
+	hover.border_color = Color('d3912d')
 	hover.set_border_width_all(2)
 	var pressed: StyleBoxFlat = hover.duplicate()
-	pressed.bg_color = Color(0.18, 0.29, 0.20, 1.0)
+	pressed.bg_color = Color('d98a4a')
 	var focus: StyleBoxFlat = hover.duplicate()
-	focus.bg_color = Color(0.11, 0.2, 0.15, 0.98)
-	focus.shadow_color = Color(0.88, 0.75, 0.42, 0.35)
+	focus.bg_color = Color('f3ca84')
+	focus.shadow_color = Color(0.85, 0.34, 0.18, 0.34)
 	focus.shadow_size = 6
 	var disabled: StyleBoxFlat = normal.duplicate()
-	disabled.bg_color = Color(0.06, 0.08, 0.07, 0.8)
-	disabled.border_color = Color(0.3, 0.34, 0.3, 0.5)
+	disabled.bg_color = Color('b89a75')
+	disabled.border_color = Color(0.38, 0.25, 0.18, 0.55)
 	return {"normal": normal, "hover": hover, "pressed": pressed, "focus": focus, "disabled": disabled}
 
 
 func _apply_button_style(button: Button) -> void:
 	for state: String in _button_styles:
 		button.add_theme_stylebox_override(state, _button_styles[state])
-	button.add_theme_color_override("font_color", Color("e8eadb"))
-	button.add_theme_color_override("font_hover_color", Color("f2d28b"))
-	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_focus_color", Color("f2d28b"))
+	button.add_theme_color_override("font_color", Color('43251d'))
+	button.add_theme_color_override("font_hover_color", Color('8c3d28'))
+	button.add_theme_color_override("font_pressed_color", Color('fff3cf'))
+	button.add_theme_color_override("font_focus_color", Color('8c3d28'))
 	button.add_theme_color_override("icon_normal_color", Color(1.0, 1.0, 1.0, 0.9))
-	button.add_theme_color_override("icon_hover_color", Color.WHITE)
-	button.add_theme_color_override("icon_pressed_color", Color("f2d28b"))
-	button.add_theme_color_override("icon_disabled_color", Color(0.5, 0.55, 0.5, 0.5))
-	button.add_theme_color_override("font_disabled_color", Color(0.5, 0.55, 0.5, 0.7))
+	button.add_theme_color_override("icon_hover_color", Color('fff3cf'))
+	button.add_theme_color_override("icon_pressed_color", Color('8c3d28'))
+	button.add_theme_color_override("icon_disabled_color", Color(0.38, 0.29, 0.23, 0.48))
+	button.add_theme_color_override("font_disabled_color", Color(0.38, 0.29, 0.23, 0.66))
 	button.add_theme_font_size_override("font_size", 16)
 
 
 func _row_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.12, 0.10, 0.85)
-	style.border_color = Color(0.35, 0.45, 0.34, 0.45)
+	style.bg_color = Color('e4b979')
+	style.border_color = Color(0.58, 0.32, 0.18, 0.56)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(14)
 	return style
 
 

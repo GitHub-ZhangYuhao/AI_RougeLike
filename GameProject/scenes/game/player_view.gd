@@ -15,6 +15,9 @@ var state: State = State.IDLE
 var direction: Direction = Direction.DOWN
 var animation_time: float = 0.0
 var simulation_active: bool = false
+var facing_angle: float = 0.0
+var hurt_flash_timer: float = 0.0
+var last_hp: float = -1.0
 var _animated_assets_ready: bool = false
 
 @export var show_collision: bool = false
@@ -38,11 +41,13 @@ func _process(delta: float) -> void:
     return
   if simulation_active:
     animation_time += delta
+    hurt_flash_timer = maxf(0.0, hurt_flash_timer - delta)
   var movement_phase: float = animation_time * (12.0 if state == State.MOVE else 3.0)
   shadow.scale = Vector2(1.0 + sin(movement_phase) * 0.035, 1.0 - sin(movement_phase) * 0.025)
   if fallback_sprite.visible:
     fallback_sprite.position.y = FALLBACK_FOOT_OFFSET + sin(movement_phase) * (3.0 if state == State.MOVE else 1.5)
     fallback_sprite.rotation = sin(movement_phase * 0.5) * (0.025 if state == State.MOVE else 0.012)
+  queue_redraw()
 
 
 func sync_from(player, game_state: String, screen_position: Vector2) -> void:
@@ -53,6 +58,10 @@ func sync_from(player, game_state: String, screen_position: Vector2) -> void:
     sprite.pause()
     return
   var next_state := State.DEAD if game_state == 'dead' else (State.MOVE if player.moving else State.IDLE)
+  if last_hp >= 0.0 and player.hp < last_hp:
+    hurt_flash_timer = 0.22
+  last_hp = player.hp
+  facing_angle = player.facing
   if player.moving:
     direction = direction_from_angle(player.facing)
   _transition(next_state)
@@ -63,7 +72,13 @@ func sync_from(player, game_state: String, screen_position: Vector2) -> void:
       sprite.play()
   else:
     sprite.pause()
-  modulate = Color(0.72, 0.77, 0.82, 1.0) if state == State.DEAD else Color.WHITE
+  if state == State.DEAD:
+    modulate = Color(0.72, 0.77, 0.82, 1.0)
+  elif hurt_flash_timer > 0.0:
+    var flash: float = clampf(hurt_flash_timer / 0.22, 0.0, 1.0)
+    modulate = Color(1.0, 0.48 + (1.0 - flash) * 0.52, 0.42 + (1.0 - flash) * 0.58, 1.0)
+  else:
+    modulate = Color.WHITE
 
 
 static func direction_from_angle(angle: float) -> Direction:
@@ -131,6 +146,24 @@ func _has_required_animations(frames: SpriteFrames) -> bool:
 
 
 func _draw() -> void:
+  var pulse: float = 0.5 + sin(animation_time * 2.8) * 0.5
+  var aura_color := Color(0.37, 0.88, 0.76, 0.045 + pulse * 0.025)
+  if state == State.DEAD:
+    aura_color = Color(0.4, 0.45, 0.5, 0.035)
+  draw_circle(Vector2.ZERO, 23.0 + pulse * 2.0, aura_color)
+  draw_arc(Vector2.ZERO, 19.0 + pulse * 1.5, 0.0, TAU, 32, Color(0.72, 0.96, 0.76, 0.16 + pulse * 0.1), 1.3)
+  if state == State.MOVE:
+    var backward := -Vector2.RIGHT.rotated(facing_angle)
+    for i in 4:
+      var side := Vector2(-backward.y, backward.x) * (float(i) - 1.5) * 4.0
+      var distance: float = 12.0 + float(i) * 6.0 + fmod(animation_time * 24.0, 7.0)
+      var dust_position := backward * distance + side + Vector2(0.0, 4.0)
+      draw_circle(dust_position, 3.4 - float(i) * 0.45, Color(0.92, 0.83, 0.58, 0.13 - float(i) * 0.02))
+      draw_line(dust_position, dust_position + backward * 7.0, Color(0.8, 0.94, 0.77, 0.11), 1.2, true)
+  if hurt_flash_timer > 0.0:
+    var hurt_alpha: float = clampf(hurt_flash_timer / 0.22, 0.0, 1.0)
+    draw_circle(Vector2.ZERO, 28.0 * (1.25 - hurt_alpha * 0.25), Color(1.0, 0.18, 0.12, hurt_alpha * 0.12))
+    draw_arc(Vector2.ZERO, 24.0 + (1.0 - hurt_alpha) * 9.0, 0.0, TAU, 28, Color(1.0, 0.46, 0.28, hurt_alpha * 0.88), 3.0)
   if show_collision:
     draw_circle(Vector2.ZERO, 14.0, Color(0.31, 0.76, 0.97, 0.18))
     draw_arc(Vector2.ZERO, 14.0, 0.0, TAU, 24, Color(0.31, 0.76, 0.97, 0.9), 1.0)

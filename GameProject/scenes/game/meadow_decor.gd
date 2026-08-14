@@ -35,6 +35,20 @@ const PROPS: Array[Dictionary] = [
   {'key': 'fallenPetals', 'position': Vector2(-520, -1280), 'size': 175.0, 'flip': false},
   {'key': 'fallenPetals', 'position': Vector2(1040, 1470), 'size': 170.0, 'flip': true},
   {'key': 'fallenPetals', 'position': Vector2(120, 430), 'size': 150.0, 'flip': false},
+  {'key': 'grassTuft', 'position': Vector2(-380, -260), 'size': 82.0, 'flip': true},
+  {'key': 'grassTuft', 'position': Vector2(420, -210), 'size': 76.0, 'flip': false},
+  {'key': 'grassTuft', 'position': Vector2(-520, 310), 'size': 88.0, 'flip': false},
+  {'key': 'grassTuft', 'position': Vector2(590, 360), 'size': 80.0, 'flip': true},
+  {'key': 'wildflowers', 'position': Vector2(-285, 165), 'size': 92.0, 'flip': false},
+  {'key': 'wildflowers', 'position': Vector2(360, 240), 'size': 86.0, 'flip': true},
+  {'key': 'wildflowers', 'position': Vector2(120, -520), 'size': 78.0, 'flip': false},
+  {'key': 'fallenPetals', 'position': Vector2(-190, -100), 'size': 118.0, 'flip': true},
+  {'key': 'fallenPetals', 'position': Vector2(250, 80), 'size': 110.0, 'flip': false},
+  {'key': 'fallenPetals', 'position': Vector2(-640, -430), 'size': 125.0, 'flip': false},
+  {'key': 'shrub', 'position': Vector2(-880, 120), 'size': 118.0, 'flip': true},
+  {'key': 'shrub', 'position': Vector2(900, -180), 'size': 122.0, 'flip': false},
+  {'key': 'boulderCluster', 'position': Vector2(-760, 610), 'size': 138.0, 'flip': false},
+  {'key': 'boulderCluster', 'position': Vector2(810, -620), 'size': 132.0, 'flip': true},
 ]
 
 
@@ -43,8 +57,23 @@ func _ready() -> void:
 
 
 func _draw() -> void:
+  _draw_ground_accents()
   for prop: Dictionary in PROPS:
     _draw_prop(prop)
+
+
+func _draw_ground_accents() -> void:
+  var patches: Array[Dictionary] = [
+    {'position': Vector2(-170, -80), 'radii': Vector2(125, 34), 'rotation': -0.28},
+    {'position': Vector2(90, 110), 'radii': Vector2(150, 42), 'rotation': 0.18},
+    {'position': Vector2(370, 180), 'radii': Vector2(105, 30), 'rotation': -0.4},
+    {'position': Vector2(-440, 310), 'radii': Vector2(92, 26), 'rotation': 0.52},
+    {'position': Vector2(650, -390), 'radii': Vector2(115, 31), 'rotation': 0.22},
+  ]
+  for patch: Dictionary in patches:
+    draw_set_transform(patch['position'], patch['rotation'], patch['radii'])
+    draw_circle(Vector2.ZERO, 1.0, Color(0.16, 0.22, 0.12, 0.045))
+    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_prop(prop: Dictionary) -> void:

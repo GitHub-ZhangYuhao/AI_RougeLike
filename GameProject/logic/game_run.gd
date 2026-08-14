@@ -351,11 +351,30 @@ func damage_enemy(enemy, damage: float, options: Dictionary = {}) -> void:
     if final_damage <= 0.0:
         return
     enemy.hp -= final_damage
-    enemy.hitFlash = 0.08
-    if enemy.hp <= 0.0:
+    enemy.hitFlash = 0.14
+    var defeated: bool = enemy.hp <= 0.0
+    _emit_damage_feedback(enemy, final_damage, options, defeated)
+    if defeated:
         _kill_enemy(enemy, options)
     if not options.get("noSynergy", false):
         synergies.on_damage({"target": enemy, "damage": final_damage, "options": options}, _world())
+
+
+func _emit_damage_feedback(enemy, damage: float, options: Dictionary, defeated: bool) -> void:
+    var source_weapon_id = options.get("sourceWeaponId")
+    if source_weapon_id != null and effects.size() < 220:
+        effects.append({"type": "weaponImpact", "x": enemy.x, "y": enemy.y,
+            "radius": enemy.radius, "damage": damage, "sourceWeaponId": source_weapon_id,
+            "sourceAction": options.get("sourceAction", "hit"),
+            "angle": atan2(enemy.y - player.y, enemy.x - player.x),
+            "seed": _next_kill_id + effects.size(), "ttl": 0.2, "maxTtl": 0.2})
+    if defeated and effects.size() < 220:
+        effects.append({"type": "enemyDefeat", "x": enemy.x, "y": enemy.y,
+            "radius": enemy.radius, "enemyType": enemy.type, "rank": enemy.rank,
+            "sourceWeaponId": source_weapon_id if source_weapon_id != null else "status",
+            "flipH": player.x < enemy.x, "seed": _next_kill_id,
+            "ttl": 0.38 if enemy.rank == "boss" else 0.3,
+            "maxTtl": 0.38 if enemy.rank == "boss" else 0.3})
 
 
 func _kill_enemy(enemy, options: Dictionary = {}) -> void:

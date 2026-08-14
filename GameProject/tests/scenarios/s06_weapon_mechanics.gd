@@ -121,6 +121,14 @@ func run(runner) -> void:
     game.damage_enemy(blaze_enemy, 2.0)
     runner.check(game.killLog.back()["blazed"], "[6] trail blaze was not recorded")
 
+    var feedback_enemy = _enemy(40.0, 20.0, 30.0)
+    game.damage_enemy(feedback_enemy, 5.0, {"sourceWeaponId": "sword", "sourceAction": "melee", "noSynergy": true})
+    runner.check(feedback_enemy.hitFlash > 0.0 and game.effects.any(func(effect: Dictionary) -> bool: return effect["type"] == "weaponImpact" and effect["sourceWeaponId"] == "sword"),
+        "[6] weapon hit visual feedback event missing")
+    game.damage_enemy(feedback_enemy, 100.0, {"sourceWeaponId": "staff", "sourceAction": "summon", "noSynergy": true})
+    runner.check(game.effects.any(func(effect: Dictionary) -> bool: return effect["type"] == "enemyDefeat" and effect["enemyType"] == feedback_enemy.type),
+        "[6] enemy defeat visual feedback event missing")
+
     var trail = WeaponFactoryScript.create_weapon("trail")
     var curve: Array = trail.card["levels"].map(func(level_stats: Dictionary): return level_stats["damage"])
     runner.check(curve == [7, 10, 14, 16, 21, 26], "[6] trail damage nerf curve changed unexpectedly")
