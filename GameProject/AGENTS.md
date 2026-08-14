@@ -10,6 +10,7 @@
 - `scenes/` — 表现层（Node/场景）：`main.tscn`、`game/`（game_view 驱动定步长、实体视图对象池、debug_overlay）、`ui/`（hud、card_choice、pause_overlay、meta_screens）。**只允许单向依赖 scenes → logic**，禁止 logic 引用任何 Node。
 - `tests/` — `smoke_runner.gd` + `scenarios/`（原型 headless-smoke.mjs 的 23 个章节逐章复刻，一个 .gd 一个章节）。
 - `tools/run_smoke.gd` — SceneTree 脚本入口，供 `--headless` 运行。
+- `ART_ASSET_CONFIG.md` — 美术资源配置台账；记录已配置、待修订、未配置和集中式占位符，资源状态变化时同步更新。
 - 原型侧文件（`js/`、`index.html`、`tools/headless-smoke.mjs` 等）**只读参照，禁止在移植工作中修改**。
 
 ## 工作目录管理

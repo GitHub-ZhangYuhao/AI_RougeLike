@@ -68,6 +68,8 @@ Godot headless smoke，而不是用 MCP 替代自动化测试。
 
 ## Godot 美术资源配置
 
+完整状态台账见 [`GameProject/ART_ASSET_CONFIG.md`](./GameProject/ART_ASSET_CONFIG.md)，其中按已配置、待修订、未配置和占位符分类记录所有资源。
+
 Godot 工程只引用 `GameProject/` 内的 `res://` 资源。`ArtAsset/` 保存源素材，定稿后复制到
 `GameProject/assets/`，并将 Godot 生成的 `.import` 文件与素材一起提交。
 
