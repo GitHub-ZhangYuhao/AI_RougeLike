@@ -14,9 +14,35 @@ class_name SmokeRunner
 ##
 ## M0：注册表为空，仅跑脚手架自检（autoload 四件套），空注册表也算 OK。
 
-## 已注册的 smoke 场景（一章一个 .gd）。M0 为空，M1 起逐章追加。
-const SCENARIO_PATHS: Array[String] = []
+const HarnessScript: GDScript = preload("res://tests/scenarios/_harness.gd")
 
+## 已注册的 smoke 场景（一章一个 .gd）。按原型线性执行顺序共享同一个 game。
+const SCENARIO_PATHS: Array[String] = [
+    "res://tests/scenarios/s00_weapon_cards.gd",
+    "res://tests/scenarios/s01_menu_opening.gd",
+    "res://tests/scenarios/s02_movement.gd",
+    "res://tests/scenarios/s03_idle_wave.gd",
+    "res://tests/scenarios/s04_mouse_choice.gd",
+    "res://tests/scenarios/s05_attr_cards.gd",
+    "res://tests/scenarios/s06_weapon_mechanics.gd",
+    "res://tests/scenarios/s07_generate_offers.gd",
+    "res://tests/scenarios/s08_enemy_base.gd",
+    "res://tests/scenarios/s09_waves_boss_drops.gd",
+    "res://tests/scenarios/s10_death_return.gd",
+    "res://tests/scenarios/s11_boss_drop_bounds.gd",
+    "res://tests/scenarios/s12_extraction.gd",
+    "res://tests/scenarios/s13_continue_deeper.gd",
+    "res://tests/scenarios/s14_death_loss.gd",
+    "res://tests/scenarios/s15_meta_shop.gd",
+    "res://tests/scenarios/s16_storage_meta.gd",
+    "res://tests/scenarios/s17_final_wave.gd",
+    "res://tests/scenarios/s18_synergy_infrastructure.gd",
+    "res://tests/scenarios/s19_synergy_batches.gd",
+    "res://tests/scenarios/s20_synergy_third_batch.gd",
+    "res://tests/scenarios/s21_tasks_rewards.gd",
+]
+
+var harness = HarnessScript.new()
 var _failures: Array[String] = []
 var _check_count: int = 0
 
@@ -39,6 +65,10 @@ func run_all() -> bool:
     print("[smoke] registered scenarios: %d" % SCENARIO_PATHS.size())
     _run_scaffold_checks()
     _run_scenarios()
+    Rng.clear_source()
+    if harness.game != null:
+        harness.game.release_runtime_refs()
+    harness.game = null
     if _failures.is_empty():
         print("All smoke tests passed (%d checks, %d scenarios)." % [_check_count, SCENARIO_PATHS.size()])
         return true

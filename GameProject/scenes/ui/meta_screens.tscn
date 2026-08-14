@@ -1,0 +1,84 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/meta_screens.gd" id="1_meta"]
+
+[node name="MetaScreens" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_meta")
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 424.0
+offset_bottom = 512.0
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Meta Screens"
+
+[node name="Detail" type="Label" parent="Panel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 180)
+layout_mode = 2
+text = "等待宿主绑定 GameRun"
+
+[node name="MenuButtons" type="HBoxContainer" parent="Panel/Margin/Content"]
+layout_mode = 2
+
+[node name="StartButton" type="Button" parent="Panel/Margin/Content/MenuButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Start"
+
+[node name="ShopButton" type="Button" parent="Panel/Margin/Content/MenuButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Shop"
+
+[node name="StorageButton" type="Button" parent="Panel/Margin/Content/MenuButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Storage"
+
+[node name="ActionButtons" type="HBoxContainer" parent="Panel/Margin/Content"]
+layout_mode = 2
+
+[node name="SellAllButton" type="Button" parent="Panel/Margin/Content/ActionButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Sell All"
+
+[node name="BackButton" type="Button" parent="Panel/Margin/Content/ActionButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back"
+
+[node name="TaskHud" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 900.0
+offset_top = 78.0
+offset_right = 1260.0
+offset_bottom = 132.0
+horizontal_alignment = 2
+text = ""

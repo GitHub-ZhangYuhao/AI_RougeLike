@@ -14,6 +14,8 @@ func _initialize() -> void:
         return
     var runner: RefCounted = script.new()
     var all_passed: bool = runner.run_all()
+    runner = null
+    script = null
     if all_passed:
         print("OK")
         quit(0)

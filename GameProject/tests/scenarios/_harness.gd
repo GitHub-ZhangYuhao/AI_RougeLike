@@ -24,6 +24,18 @@ func ensure_game():
     return game
 
 
+func fresh_playing_game():
+    if game != null:
+        game.release_runtime_refs()
+    game = GameRunScript.new()
+    game.state = "opening"
+    game.input.key_down("Digit1")
+    game.step(STEP, VIEW_W, VIEW_H)
+    game.input.key_up("Digit1")
+    game.input.end_frame()
+    return game
+
+
 ## 推进 n 个逻辑帧：每帧 step + input.end_frame（与原型 main.js 循环一致）。
 func pump(n: int) -> void:
     for i in n:
