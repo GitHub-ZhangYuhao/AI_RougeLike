@@ -96,3 +96,4 @@
 1. **Polygon2D 的 CanvasItem UV 依赖自身纹理**：Godot 4.7.1 中，仅设置 VisualShader 的贴图节点和 `Polygon2D.uv` 不够；`Polygon2D.texture` 为空时 Shader 收到的 UV 会全部为 `(0, 0)`。地形节点必须保留基础纹理，并按基础纹理像素尺寸配置 UV。
 2. **序列帧区域优先使用归一化 UV**：动画 PNG 可能经过整体缩放，JSON 中的历史像素坐标会失效。构建 `AtlasTexture` 时优先使用 `uv_min_* / uv_max_* × atlas.get_width/height`，避免帧区域越界或动画中途空白。
 3. **正式关卡碰撞仍属于纯逻辑层**：地形场景只负责绘制，地图边界、相机约束、刷怪点和任务点合法化统一放在 `logic/level_geometry.gd`；不要为表现升级引入 Godot 物理碰撞，避免破坏 headless 确定性。
+4. **缺失美术统一走集中式占位渲染**：所有临时世界表现收敛到 `scenes/game/placeholder_world_view.gd`，不得把颜色、形状或动画状态写回 logic；正式资源到位后按对象类型逐项替换。

@@ -8,15 +8,16 @@ var run = GameRunScript.new()
 var accumulator: float = 0.0
 
 @onready var meadow_level = $MeadowLevel
+@onready var placeholder_world = $PlaceholderWorld
 @onready var player_view = $PlayerView
 @onready var overlay = $GameOverlay
 
 
 func _ready() -> void:
 	set_process_input(true)
+	placeholder_world.bind_run(run)
 	overlay.bind_run(run)
 	_sync_views(get_viewport_rect().size)
-	queue_redraw()
 
 
 func _input(event: InputEvent) -> void:
@@ -42,39 +43,15 @@ func _physics_process(delta: float) -> void:
 		run.input.end_frame()
 		accumulator -= STEP
 	_sync_views(size)
+	placeholder_world.refresh()
 	overlay.refresh()
-	queue_redraw()
 
 
 func _sync_views(size: Vector2) -> void:
 	var offset := size * 0.5 - Vector2(run.camera.x, run.camera.y)
 	meadow_level.position = offset
+	placeholder_world.position = offset
 	player_view.sync_from(run.player, run.state, Vector2(run.player.x, run.player.y) + offset)
-
-
-func _draw() -> void:
-	var size: Vector2 = get_viewport_rect().size
-	var center := size * 0.5
-	var offset := center - Vector2(run.camera.x, run.camera.y)
-	for gem: Dictionary in run.gems:
-		draw_circle(Vector2(gem["x"], gem["y"]) + offset, 5.0, Color(gem["color"]))
-	for pickup in run.pickups:
-		var pickup_color := Color("ffd54f") if pickup.get("kind") == "rare" else Color("66bb6a")
-		draw_circle(Vector2(pickup["x"], pickup["y"]) + offset, 9.0, pickup_color)
-	for projectile in run.hostileProjectiles:
-		draw_circle(Vector2(projectile.x, projectile.y) + offset, projectile.radius, Color("ffb74d"))
-	for effect in run.effects:
-		draw_arc(Vector2(effect["x"], effect["y"]) + offset, effect["radius"], 0.0, TAU, 32, Color(effect["color"]), 3.0)
-	var enemy_colors: Dictionary = {"chaser": Color("ef5350"), "enhancedChaser": Color("d84315"),
-		"charger": Color("ff7043"), "ranged": Color("ab47bc"), "bomber": Color("ffca28"),
-		"shield": Color("78909c"), "boss": Color("7e57c2")}
-	for enemy in run.enemies:
-		var body_color: Color = Color("81d4fa") if enemy.frozenTimer > 0.0 else enemy_colors.get(enemy.type, Color("ef5350"))
-		draw_circle(Vector2(enemy.x, enemy.y) + offset, enemy.radius, body_color)
-		if enemy.slowTimer > 0.0:
-			draw_arc(Vector2(enemy.x, enemy.y) + offset, enemy.radius + 4.0, 0.0, TAU, 20, Color("80cbc4"), 2.0)
-		if enemy.rank == "boss":
-			draw_arc(Vector2(enemy.x, enemy.y) + offset, enemy.radius + 8.0, 0.0, TAU, 24, Color("ffd54f"), 4.0)
 
 
 func _key_code(event: InputEventKey) -> String:
