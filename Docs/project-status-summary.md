@@ -1,13 +1,13 @@
 ﻿# 暗夜幸存者 · 项目进度总览
 
-> 更新：2026-08-14。类吸血鬼幸存者 Roguelike：HTML5 原型 → Godot 4.7.1 正式版。
+> 更新：2026-08-15。类吸血鬼幸存者 Roguelike：HTML5 原型 → Godot 4.7.1 正式版。
 > 细节进度以 `GameProject/PROGRESS.md` 为唯一真值，本文为简要总览。
 
 ## 1. 项目概览
 
 - **原型**：根目录 `js/`，纯 Canvas + ES Modules，零依赖，`npm start` 即玩。
 - **正式版**：`GameProject/`，Godot 4.7.1，GDScript only，逻辑/表现分离。
-- **测试**：原型 `npm run smoke` + Godot headless smoke 双绿；23/23 章节、356 项检查全绿。
+- **测试**：原型 `npm run smoke` + Godot headless smoke 双绿；23/23 章节、358 项检查全绿。
 
 ## 2. HTML5 原型（已完成）
 
