@@ -9,6 +9,63 @@ node tools/serve.js
 # 浏览器打开 http://localhost:5173
 ```
 
+## Godot MCP（Codex）
+
+Godot 移植工程位于 `GameProject/`，使用 Godot 4.7.1。Codex 通过本地 stdio 启动
+[`godot-mcp-server`](https://github.com/tomyud1/godot-mcp)，服务端再通过
+`ws://127.0.0.1:6505` 连接 Godot 编辑器插件。
+
+### 前置条件
+
+- 已安装 Node.js 和 npm。
+- 已用 Godot 4.x 打开 `GameProject/project.godot`。
+- MCP 仅监听本机，不需要 API Key。
+
+### 安装并启用 Godot 插件
+
+1. 在 Godot 编辑器打开 **AssetLib**，搜索 `Godot AI Assistant tools MCP` 并安装。
+2. 打开 **Project → Project Settings → Plugins**，启用 **Godot MCP**。
+3. 重启 Godot 项目。插件会安装到 `GameProject/addons/godot_mcp/`。
+
+`GameProject/AGENTS.md` 默认禁止引入第三方 addon；提交插件前必须先明确将 Godot MCP
+列为开发工具例外。若只供本机使用，应避免把插件目录混入玩法代码提交。
+
+### 配置 Codex MCP
+
+本仓库通过项目级 `.codex/config.toml` 配置 Godot MCP：
+
+```toml
+[mcp_servers.godot]
+command = "cmd"
+args = ["/c", "npx", "-y", "godot-mcp-server@0.5.0"]
+```
+
+Codex CLI 和 IDE 扩展只会在仓库被标记为 trusted 时加载项目级 `.codex/config.toml`。
+不要执行 `codex mcp add godot ...`，该命令会写入用户级 `~/.codex/config.toml`，导致所有
+工作区都加载 Godot MCP。
+
+固定使用 `0.5.0`，避免 `latest` 在未验证时自动升级。配置后从本仓库目录启动或重启
+Codex 会话，并保持 Godot 编辑器及插件处于运行状态。
+
+### 验证连接
+
+```powershell
+codex mcp get godot
+codex mcp list
+```
+
+Godot 编辑器右上角应显示绿色的 `MCP Connected`。如果 Codex 已配置但编辑器未连接，请依次检查：
+
+1. Godot MCP 插件是否已启用；
+2. Godot 项目是否已在插件启用后重启；
+3. 本机端口 `6505` 是否被其他进程占用；
+4. Codex 是否已在新增配置后重启。
+
+此 MCP 的编辑操作可能直接保存文件且不提供 Undo。调用前后应检查 `git diff`；纯逻辑回归仍使用
+Godot headless smoke，而不是用 MCP 替代自动化测试。
+
+如需移除项目配置，删除 `.codex/config.toml` 中的 `[mcp_servers.godot]` 表即可。
+
 ## 操作
 
 - WASD / 方向键：移动
