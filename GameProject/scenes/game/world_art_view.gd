@@ -1,7 +1,7 @@
 extends Node2D
 
 const ArtCatalog: GDScript = preload('res://scenes/art_catalog.gd')
-const UI_FONT: Font = preload('res://assets/fonts/noto_sans_sc.ttf')
+const UI_FONT: Font = preload('res://assets/fonts/ui_font_round.tres')
 const WEAPON_COLORS: Dictionary = {
   'sword': Color('c5f3ff'),
   'talisman': Color('ffe066'),

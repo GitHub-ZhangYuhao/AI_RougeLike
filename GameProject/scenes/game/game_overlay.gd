@@ -2,7 +2,7 @@ extends Node2D
 
 const UiLayoutScript: GDScript = preload("res://logic/ui_layout.gd")
 const ArtCatalog: GDScript = preload('res://scenes/art_catalog.gd')
-const UI_FONT: Font = preload('res://assets/fonts/noto_sans_sc.ttf')
+const UI_FONT: Font = preload('res://assets/fonts/ui_font_round.tres')
 const PLAYER_PORTRAIT: Texture2D = preload('res://assets/sprites/player/player_static.png')
 
 const INK: Color = Color('4b2f2a')

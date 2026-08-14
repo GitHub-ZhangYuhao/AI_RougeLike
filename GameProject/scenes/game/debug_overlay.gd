@@ -2,7 +2,7 @@ extends Control
 
 const WeaponFactoryScript: GDScript = preload('res://logic/weapons/weapon_factory.gd')
 const ArtCatalog: GDScript = preload('res://scenes/art_catalog.gd')
-const UI_FONT: Font = preload('res://assets/fonts/noto_sans_sc.ttf')
+const UI_FONT: Font = preload('res://assets/fonts/ui_font_round.tres')
 const SAVE_PATH: String = 'user://debug_settings.json'
 const INK: Color = Color('4b2f2a')
 const CREAM: Color = Color('fff6de')

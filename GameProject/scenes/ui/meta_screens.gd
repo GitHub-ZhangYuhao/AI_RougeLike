@@ -4,7 +4,7 @@ extends Control
 const ShopScript: GDScript = preload("res://logic/meta/shop.gd")
 const ItemsScript: GDScript = preload("res://logic/meta/items.gd")
 const ArtCatalog: GDScript = preload("res://scenes/art_catalog.gd")
-const UI_FONT: Font = preload("res://assets/fonts/noto_sans_sc.ttf")
+const UI_FONT: Font = preload("res://assets/fonts/ui_font_round.tres")
 
 const ATTR_NAMES: Dictionary = {
 	"damage": "强攻",
