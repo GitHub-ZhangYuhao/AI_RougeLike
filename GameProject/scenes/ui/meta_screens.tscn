@@ -1,7 +1,6 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/meta_screens.gd" id="1_meta"]
-[ext_resource type="Texture2D" path="res://assets/ui/title_emblem.png" id="2_title"]
 
 [node name="MetaScreens" type="Control"]
 layout_mode = 3
@@ -14,6 +13,7 @@ mouse_filter = 0
 script = ExtResource("1_meta")
 
 [node name="Dim" type="ColorRect" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -21,7 +21,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.16, 0.09, 0.05, 0.62)
+color = Color(0.055, 0.12, 0.12, 0.62)
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -34,95 +34,135 @@ mouse_filter = 1
 
 [node name="Panel" type="PanelContainer" parent="Center"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(860, 660)
+custom_minimum_size = Vector2(960, 664)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
 layout_mode = 2
-theme_override_constants/margin_left = 42
-theme_override_constants/margin_top = 26
-theme_override_constants/margin_right = 42
-theme_override_constants/margin_bottom = 26
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 20
 
 [node name="Content" type="VBoxContainer" parent="Center/Panel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 7
+theme_override_constants/separation = 12
 
-[node name="TitleEmblem" type="TextureRect" parent="Center/Panel/Margin/Content"]
+[node name="HeaderCard" type="PanelContainer" parent="Center/Panel/Margin/Content"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(660, 210)
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
-texture = ExtResource("2_title")
-expand_mode = 1
-stretch_mode = 5
 
+[node name="Margin" type="MarginContainer" parent="Center/Panel/Margin/Content/HeaderCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 12
 
-[node name="ScreenMedallion" type="TextureRect" parent="Center/Panel/Margin/Content"]
+[node name="Header" type="HBoxContainer" parent="Center/Panel/Margin/Content/HeaderCard/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="ScreenMedallion" type="TextureRect" parent="Center/Panel/Margin/Content/HeaderCard/Margin/Header"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(660, 58)
+custom_minimum_size = Vector2(118, 118)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Title" type="Label" parent="Center/Panel/Margin/Content"]
+[node name="BrandCopy" type="VBoxContainer" parent="Center/Panel/Margin/Content/HeaderCard/Margin/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+theme_override_constants/separation = 3
+
+[node name="Kicker" type="Label" parent="Center/Panel/Margin/Content/HeaderCard/Margin/Header/BrandCopy"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 14
+text = "桃源守夜 · 轻松构筑"
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/Content/HeaderCard/Margin/Header/BrandCopy"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 42
 text = "暗夜幸存者"
-horizontal_alignment = 1
 
-
-[node name="Divider" type="TextureRect" parent="Center/Panel/Margin/Content"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(660, 14)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Subtitle" type="Label" parent="Center/Panel/Margin/Content"]
+[node name="Subtitle" type="Label" parent="Center/Panel/Margin/Content/HeaderCard/Margin/Header/BrandCopy"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
-text = "在草甸深处，于暗夜来临之前存活"
-horizontal_alignment = 1
+text = "桃林异变，百鬼夜行 · 守住灵台，择机撤离"
 
-[node name="Currency" type="Label" parent="Center/Panel/Margin/Content"]
+[node name="CurrencyCard" type="PanelContainer" parent="Center/Panel/Margin/Content/HeaderCard/Margin/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 78)
+layout_mode = 2
+
+[node name="CurrencyMargin" type="MarginContainer" parent="Center/Panel/Margin/Content/HeaderCard/Margin/Header/CurrencyCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="CurrencyStack" type="VBoxContainer" parent="Center/Panel/Margin/Content/HeaderCard/Margin/Header/CurrencyCard/CurrencyMargin"]
+layout_mode = 2
+alignment = 1
+
+[node name="CurrencyHint" type="Label" parent="Center/Panel/Margin/Content/HeaderCard/Margin/Header/CurrencyCard/CurrencyMargin/CurrencyStack"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "暗晶 0"
+theme_override_font_sizes/font_size = 12
+text = "持有暗晶"
 horizontal_alignment = 1
+
+[node name="Currency" type="Label" parent="Center/Panel/Margin/Content/HeaderCard/Margin/Header/CurrencyCard/CurrencyMargin/CurrencyStack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "◆ 0"
+horizontal_alignment = 1
+
+[node name="Divider" type="TextureRect" parent="Center/Panel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
 
 [node name="DynamicRows" type="VBoxContainer" parent="Center/Panel/Margin/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-alignment = 1
-theme_override_constants/separation = 7
+alignment = 0
+theme_override_constants/separation = 12
 
 [node name="MenuButtons" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 14
+theme_override_constants/separation = 12
 
 [node name="StartButton" type="Button" parent="Center/Panel/Margin/Content/MenuButtons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(190, 50)
+custom_minimum_size = Vector2(240, 58)
 layout_mode = 2
-text = "开始游戏"
+text = "开始守夜"
 
 [node name="ShopButton" type="Button" parent="Center/Panel/Margin/Content/MenuButtons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(168, 54)
 layout_mode = 2
 text = "山门商肆"
 
 [node name="StorageButton" type="Button" parent="Center/Panel/Margin/Content/MenuButtons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(168, 54)
 layout_mode = 2
 text = "行囊仓库"
 
@@ -134,19 +174,20 @@ theme_override_constants/separation = 14
 
 [node name="SellAllButton" type="Button" parent="Center/Panel/Margin/Content/ActionButtons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(180, 46)
+custom_minimum_size = Vector2(190, 50)
 layout_mode = 2
 text = "全部出售"
 
 [node name="BackButton" type="Button" parent="Center/Panel/Margin/Content/ActionButtons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(180, 46)
+custom_minimum_size = Vector2(190, 50)
 layout_mode = 2
-text = "返回主菜单"
+text = "返回桃源"
 
 [node name="Footer" type="Label" parent="Center/Panel/Margin/Content"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 22)
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-text = "Enter / Space 快速开始"
+text = "Enter / Space 快速开始 · WASD / 方向键移动"
 horizontal_alignment = 1

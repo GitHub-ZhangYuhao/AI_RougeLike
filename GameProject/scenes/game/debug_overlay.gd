@@ -4,6 +4,13 @@ const WeaponFactoryScript: GDScript = preload('res://logic/weapons/weapon_factor
 const ArtCatalog: GDScript = preload('res://scenes/art_catalog.gd')
 const UI_FONT: Font = preload('res://assets/fonts/noto_sans_sc.ttf')
 const SAVE_PATH: String = 'user://debug_settings.json'
+const INK: Color = Color('4b2f2a')
+const CREAM: Color = Color('fff6de')
+const CORAL: Color = Color('ff6b5f')
+const MINT: Color = Color('78d6b2')
+const HONEY: Color = Color('ffc65c')
+const JADE: Color = Color('26977c')
+const DEEP_TEAL: Color = Color('143f3c')
 
 var run = null
 var controls: Dictionary = {}
@@ -102,6 +109,8 @@ func refresh() -> void:
 
 func _process(delta: float) -> void:
   if not is_open():
+    var meta_open: bool = run != null and str(run.state) in ['menu', 'shop', 'storage']
+    _launcher.visible = run != null and not meta_open
     return
   _refresh_timer -= delta
   if _refresh_timer <= 0.0:
@@ -115,13 +124,13 @@ func _build_launcher() -> void:
   _launcher.text = '调试台   F2'
   _launcher.tooltip_text = '打开游戏内调试台（F2）'
   _launcher.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-  _launcher.offset_left = -158.0
-  _launcher.offset_right = -16.0
-  _launcher.offset_top = 120.0
-  _launcher.offset_bottom = 164.0
+  _launcher.offset_left = -150.0
+  _launcher.offset_right = -18.0
+  _launcher.offset_top = 140.0
+  _launcher.offset_bottom = 176.0
   _launcher.icon = ArtCatalog.UI_TEXTURES['buttonCrest']
   _launcher.expand_icon = true
-  _launcher.add_theme_constant_override('icon_max_width', 27)
+  _launcher.add_theme_constant_override('icon_max_width', 23)
   _launcher.add_theme_font_size_override('font_size', 14)
   _launcher.disabled = true
   _style_button(_launcher, true)
@@ -133,7 +142,7 @@ func _build_panel() -> void:
   _dimmer = ColorRect.new()
   _dimmer.name = 'DebugDimmer'
   _dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
-  _dimmer.color = Color(0.15, 0.08, 0.045, 0.54)
+  _dimmer.color = Color(0.035, 0.13, 0.13, 0.68)
   _dimmer.mouse_filter = Control.MOUSE_FILTER_STOP
   _dimmer.visible = false
   _dimmer.gui_input.connect(_on_dimmer_input)
@@ -142,10 +151,10 @@ func _build_panel() -> void:
   _panel = PanelContainer.new()
   _panel.name = 'DebugPanel'
   _panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
-  _panel.offset_left = -468.0
-  _panel.offset_right = -16.0
-  _panel.offset_top = 16.0
-  _panel.offset_bottom = -16.0
+  _panel.offset_left = -484.0
+  _panel.offset_right = -18.0
+  _panel.offset_top = 18.0
+  _panel.offset_bottom = -18.0
   _panel.add_theme_stylebox_override('panel', _panel_style())
   _panel.visible = false
   add_child(_panel)
@@ -177,12 +186,12 @@ func _build_panel() -> void:
   var title := Label.new()
   title.text = '灵枢调试台'
   title.add_theme_font_size_override('font_size', 24)
-  title.add_theme_color_override('font_color', Color('8c3d28'))
+  title.add_theme_color_override('font_color', CORAL)
   title_column.add_child(title)
   var subtitle := Label.new()
   subtitle.text = '实时修改战斗参数 · F2 / Esc 关闭'
   subtitle.add_theme_font_size_override('font_size', 12)
-  subtitle.add_theme_color_override('font_color', Color('9fb3a4'))
+  subtitle.add_theme_color_override('font_color', INK.lightened(0.18))
   title_column.add_child(subtitle)
   var close := Button.new()
   close.text = '关闭'
@@ -202,7 +211,7 @@ func _build_panel() -> void:
   status_panel.add_child(status_margin)
   var stats := Label.new()
   stats.custom_minimum_size.y = 42.0
-  stats.add_theme_color_override('font_color', Color('d6ddd2'))
+  stats.add_theme_color_override('font_color', INK)
   stats.add_theme_font_size_override('font_size', 13)
   status_margin.add_child(stats)
   controls['stats'] = stats
@@ -248,12 +257,15 @@ func _build_panel() -> void:
   _enemy_type.size_flags_horizontal = Control.SIZE_EXPAND_FILL
   for type: String in Config.CONFIG['enemyTypes']:
     _enemy_type.add_item(type)
+  _enemy_type.custom_minimum_size.y = 40.0
+  _style_button(_enemy_type)
   spawn_row.add_child(_enemy_type)
   _enemy_count = SpinBox.new()
   _enemy_count.min_value = 1
   _enemy_count.max_value = 200
   _enemy_count.value = 1
-  _enemy_count.custom_minimum_size.x = 78.0
+  _enemy_count.custom_minimum_size = Vector2(84.0, 40.0)
+  _style_spin_box(_enemy_count)
   spawn_row.add_child(_enemy_count)
   var spawn_button := Button.new()
   spawn_button.text = '生成'
@@ -289,7 +301,7 @@ func _add_section(parent: VBoxContainer, text: String) -> void:
   var label := Label.new()
   label.text = text
   label.add_theme_font_size_override('font_size', 16)
-  label.add_theme_color_override('font_color', Color('79c99b'))
+  label.add_theme_color_override('font_color', CORAL)
   row.add_child(label)
   var divider := TextureRect.new()
   divider.texture = ArtCatalog.UI_TEXTURES['divider']
@@ -306,7 +318,9 @@ func _add_check(parent: VBoxContainer, label: String, callback: Callable) -> Che
   var control := CheckButton.new()
   control.text = label
   control.add_theme_font_size_override('font_size', 14)
-  control.add_theme_color_override('font_color', Color('d6ddd2'))
+  control.add_theme_color_override('font_color', INK)
+  control.add_theme_color_override('font_hover_color', JADE)
+  control.add_theme_color_override('font_pressed_color', DEEP_TEAL)
   control.toggled.connect(callback)
   parent.add_child(control)
   return control
@@ -319,14 +333,15 @@ func _add_number(parent: VBoxContainer, label: String, minimum: float, maximum: 
   var text := Label.new()
   text.text = label
   text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-  text.add_theme_color_override('font_color', Color('c8d1c4'))
+  text.add_theme_color_override('font_color', INK)
   text.add_theme_font_size_override('font_size', 13)
   row.add_child(text)
   var control := SpinBox.new()
   control.min_value = minimum
   control.max_value = maximum
   control.step = step
-  control.custom_minimum_size.x = 140.0
+  control.custom_minimum_size = Vector2(140.0, 38.0)
+  _style_spin_box(control)
   control.value_changed.connect(callback)
   row.add_child(control)
   return control
@@ -439,42 +454,78 @@ func _format_time(value: float) -> String:
 
 func _panel_style() -> StyleBoxFlat:
   var style := StyleBoxFlat.new()
-  style.bg_color = Color('f1cc8b')
-  style.border_color = Color('d08a2d')
-  style.set_border_width_all(2)
-  style.set_corner_radius_all(22)
-  style.shadow_color = Color(0.20, 0.08, 0.04, 0.46)
+  style.bg_color = CREAM
+  style.border_color = INK
+  style.set_border_width_all(3)
+  style.set_corner_radius_all(28)
+  style.shadow_color = Color(0.035, 0.18, 0.16, 0.42)
   style.shadow_size = 18
+  style.shadow_offset = Vector2(0.0, 8.0)
   return style
 
 
 func _status_style() -> StyleBoxFlat:
   var style := StyleBoxFlat.new()
-  style.bg_color = Color('e4b979')
-  style.border_color = Color(0.66, 0.34, 0.18, 0.66)
-  style.set_border_width_all(1)
-  style.set_corner_radius_all(14)
+  style.bg_color = Color('d8fff0')
+  style.border_color = JADE
+  style.set_border_width_all(2)
+  style.set_corner_radius_all(18)
   return style
+
+
+func _field_style(focused: bool = false) -> StyleBoxFlat:
+  var style := StyleBoxFlat.new()
+  style.bg_color = Color('fffdf4')
+  style.border_color = CORAL if focused else INK
+  style.set_border_width_all(2)
+  style.set_corner_radius_all(12)
+  style.content_margin_left = 10.0
+  style.content_margin_right = 10.0
+  style.content_margin_top = 7.0
+  style.content_margin_bottom = 7.0
+  return style
+
+
+func _style_spin_box(control: SpinBox) -> void:
+  var line_edit := control.get_line_edit()
+  line_edit.add_theme_stylebox_override('normal', _field_style())
+  line_edit.add_theme_stylebox_override('focus', _field_style(true))
+  line_edit.add_theme_stylebox_override('read_only', _field_style())
+  line_edit.add_theme_color_override('font_color', INK)
+  line_edit.add_theme_color_override('caret_color', CORAL)
+  line_edit.add_theme_color_override('selection_color', Color(0.47, 0.84, 0.70, 0.42))
+  line_edit.add_theme_font_size_override('font_size', 13)
 
 
 func _style_button(button: Button, prominent: bool = false) -> void:
   var normal := StyleBoxFlat.new()
-  normal.bg_color = Color('dba560')
-  normal.border_color = Color('d08a2d') if prominent else Color('a85b32')
-  normal.set_border_width_all(2 if prominent else 1)
-  normal.set_corner_radius_all(14)
+  normal.bg_color = MINT if prominent else Color('fffdf4')
+  normal.border_color = INK
+  normal.set_border_width_all(3 if prominent else 2)
+  normal.set_corner_radius_all(18 if prominent else 14)
+  normal.content_margin_left = 12.0
+  normal.content_margin_right = 12.0
+  normal.content_margin_top = 7.0
+  normal.content_margin_bottom = 7.0
   if prominent:
-    normal.shadow_color = Color(0.20, 0.08, 0.04, 0.34)
+    normal.shadow_color = Color(0.035, 0.18, 0.16, 0.30)
     normal.shadow_size = 6
+    normal.shadow_offset = Vector2(0.0, 3.0)
   var hover: StyleBoxFlat = normal.duplicate()
-  hover.bg_color = Color('f8d99d')
-  hover.border_color = Color('d3912d')
-  var pressed: StyleBoxFlat = hover.duplicate()
-  pressed.bg_color = Color('d98a4a')
+  hover.bg_color = HONEY
+  hover.border_color = INK
+  var pressed: StyleBoxFlat = normal.duplicate()
+  pressed.bg_color = CORAL
+  pressed.border_color = INK
+  var disabled: StyleBoxFlat = normal.duplicate()
+  disabled.bg_color = Color('e8e1d1')
+  disabled.border_color = INK.lightened(0.38)
   button.add_theme_stylebox_override('normal', normal)
   button.add_theme_stylebox_override('hover', hover)
   button.add_theme_stylebox_override('pressed', pressed)
   button.add_theme_stylebox_override('focus', hover)
-  button.add_theme_color_override('font_color', Color('43251d'))
-  button.add_theme_color_override('font_hover_color', Color('8c3d28'))
-  button.add_theme_color_override('font_pressed_color', Color('fff3cf'))
+  button.add_theme_stylebox_override('disabled', disabled)
+  button.add_theme_color_override('font_color', INK)
+  button.add_theme_color_override('font_hover_color', INK)
+  button.add_theme_color_override('font_pressed_color', CREAM)
+  button.add_theme_color_override('font_disabled_color', INK.lightened(0.38))

@@ -152,3 +152,4 @@
 | 2026-08-14 | M6 | 完成 UI 正式化与 Debug 移植：GPT Image 2 标题徽记、HUD/卡牌/菜单/商城/仓库/局流程界面、F2 Debug Runtime/Overlay；Godot 340 项、23/23 章节与原型 smoke 双绿 | 待提交 |
 | 2026-08-14 | M6 | 完成正式美术替换与 UI 收尾：`WorldArtView` 取代 `PlaceholderWorld`，接入七类敌人、六武器、弹道、掉落、召唤、任务、16 类 VFX、12 类环境装饰、12 类 UI ornament、正式玩家贴图、动画回退与 Noto Sans SC；Godot 346 项/23 场景与原型 smoke 双绿 | 待提交 |
 | 2026-08-14 | M6 | 恢复玩家 Idle/Move/Dead 八方向动画状态机；将 Debug 以常驻入口、自动暂停和主题化面板正式合入游戏；强化 HUD、武器槽、任务、卡牌与菜单标题资源；Godot smoke 356 项/23 场景全绿 | 待提交 |
+| 2026-08-14 | M6 | 完成现代 Q 版 UI 重构：新增 13 类 SVG/PNG 图形资源，重排 Meta Header、功能卡、选卡、HUD/法器 Dock、商城、仓库与 Debug；统一奶油白、珊瑚红、薄荷绿、蜂蜜黄和深褐描边；Godot smoke 358 项/23 场景与原型 smoke 双绿 | 待提交 |

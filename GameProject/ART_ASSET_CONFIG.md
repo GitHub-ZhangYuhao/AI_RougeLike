@@ -18,11 +18,11 @@
 ## 2. 当前总体进度
 
 - 工程里程碑：M0–M5 完成，M6 进行中，完成度 `6 / 7`。
-- Godot smoke：`23 / 23` 章节已全部移植，最新本地回归为 `346` 项检查全绿。
+- Godot smoke：`23 / 23` 章节已全部移植，最新本地回归为 `358` 项检查全绿。
 - 正式关卡：4096×4096 草甸地形、确定性地图边界和环境装饰均已挂入主场景。
 - 正式世界表现：`WorldArtView` 已取代 `PlaceholderWorld`，接管敌人、Boss、弹道、掉落、召唤物、任务信标、武器范围与战斗 VFX。
-- 正式玩家表现：`player_static.png` 已作为主游戏角色资源；呼吸、移动、朝向、受击/死亡状态由表现脚本补足，旧 SpriteFrames 管线保留作动画升级回退。
-- 正式 UI：HUD、卡牌、Boss、任务、稀有物、模态框、主菜单、商城、仓库、焦点/悬停/按下/禁用状态均已完成资源替换。
+- 正式玩家表现：主游戏已恢复 `AnimatedSprite2D` 的 Idle / Move / Dead 八方向动画状态机，`player_static.png` 仅作为资源缺失时的回退。
+- 正式 UI：HUD、卡牌、Boss、任务、稀有物、模态框、主菜单、商城、仓库与 Debug 已统一为现代 Q 版圆角卡片体系，并完成焦点/悬停/按下/禁用状态。
 - 正式字体：`Noto Sans SC` 与 OFL 许可已进入工程并应用于游戏内 UI 和 Meta UI。
 - 剩余缺口：正式音频、可选的玩家逐帧动画升级、实体视图对象池与 140 敌人压力检查。
 
@@ -53,8 +53,8 @@ ArtAsset/ 或 Experimental/
 | 掉落与稀有物 | 已配置 | `assets/icons/pickup_*.png`、`rare_*.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 召唤物与任务 | 已配置 | `assets/icons/summon_*.png`、`task_*.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 战斗 VFX | 已配置 | `assets/vfx/*.png` | `art_catalog.gd`、`world_art_view.gd` |
-| UI ornament | 已配置 | `assets/ui/ornaments/*.png` | `game_overlay.gd`、`meta_screens.gd` |
-| 标题徽记 | 已配置 | `assets/ui/title_emblem.png` | `scenes/ui/meta_screens.tscn` |
+| 现代 Q 版 UI 图形 | 已配置 | `assets/ui/modern/*.svg`、`*.png`（13 类） | `art_catalog.gd`、`game_overlay.gd`、`meta_screens.gd`、`debug_overlay.gd` |
+| 品牌吉祥物 | 已配置 | `assets/ui/modern/brand_mascot.png` | `scenes/ui/meta_screens.gd` |
 | 中文字体 | 已配置 | `assets/fonts/noto_sans_sc.ttf`、`OFL.txt` | `game_overlay.gd`、`meta_screens.tscn` |
 | Debug Runtime/Overlay | 已配置 | Godot Control | `logic/debug_runtime.gd`、`scenes/game/debug_overlay.gd/.tscn` |
 
@@ -90,13 +90,13 @@ ArtAsset/ 或 Experimental/
 
 | 界面 | 状态 | 正式化内容 |
 | --- | --- | --- |
-| 基础 HUD | 已配置 | 经验、生命、六武器槽、波次、Boss、任务、稀有物与统计；武器/任务/掉落均使用正式图标 |
-| 开局/升级/任务奖励卡牌 | 已配置 | 武器/属性/任务印章、角花、焦点光标、悬停反馈、中文字体和快捷键提示 |
+| 基础 HUD | 已配置 | 现代圆角玩家卡、波次卡、讨妖簿、六格法器 Dock、Boss、任务、稀有物与统计；武器/任务/掉落均使用正式图标 |
+| 开局/升级/任务奖励卡牌 | 已配置 | 大尺寸圆角卡、类型色边框、图标圆章、胶囊 CTA、焦点光标、悬停反馈、中文字体和快捷键提示 |
 | 撤离、死亡、结算 | 已配置 | medallion、按钮 crest、收益/损失汇总和键鼠操作提示 |
-| 主菜单 | 已配置 | 标题徽记、正式按钮图标、完整 normal/hover/pressed/focus/disabled 状态 |
-| 商城/仓库 | 已配置 | medallion、divider、动态行图标、购买/出售状态和中文字体 |
+| 主菜单 | 已配置 | 吉祥物 Header、暗晶卡、桃源战绩胶囊、三张功能卡与珊瑚主按钮，包含完整 normal/hover/pressed/focus/disabled 状态 |
+| 商城/仓库 | 已配置 | 现代 medallion、圆角列表卡、动态行图标、购买/出售状态和中文字体 |
 | Boss/任务提示 | 已配置 | Boss medallion、Boss 条、任务正式图标、世界信标与 HUD 卡片 |
-| Debug Overlay | 已配置 | 右上常驻“调试台 F2”入口、主题化控制台、自动暂停/恢复、按钮/F2/Esc/遮罩关闭；倍率、生命、刷怪、波次、武器与配置存取均可直接操作 |
+| Debug Overlay | 已配置 | 薄荷胶囊入口、奶油白圆角控制台、珊瑚标题与统一输入控件；保留自动暂停/恢复、F2/Esc/遮罩关闭及全部调试能力 |
 
 ## 8. 已配置但可继续升级
 

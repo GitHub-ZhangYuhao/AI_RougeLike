@@ -35,12 +35,27 @@ var run = null
 var _last_signature: String = ""
 var _button_styles: Dictionary = {}
 
+const INK: Color = Color('4b2f2a')
+const INK_SOFT: Color = Color('72524a')
+const CREAM: Color = Color('fff6de')
+const CREAM_DEEP: Color = Color('f3deae')
+const CORAL: Color = Color('ff6b5f')
+const CORAL_DARK: Color = Color('b73f3b')
+const MINT: Color = Color('78d6b2')
+const JADE: Color = Color('2a8f76')
+const HONEY: Color = Color('ffc65c')
+const PLUM: Color = Color('6e3f68')
+
+@onready var dim: ColorRect = %Dim
 @onready var panel: PanelContainer = %Panel
-@onready var title_emblem: TextureRect = %TitleEmblem
+@onready var header_card: PanelContainer = %HeaderCard
+@onready var currency_card: PanelContainer = %CurrencyCard
 @onready var screen_medallion: TextureRect = %ScreenMedallion
 @onready var divider: TextureRect = %Divider
+@onready var kicker_label: Label = %Kicker
 @onready var title_label: Label = %Title
 @onready var subtitle_label: Label = %Subtitle
+@onready var currency_hint: Label = %CurrencyHint
 @onready var currency_label: Label = %Currency
 @onready var dynamic_rows: VBoxContainer = %DynamicRows
 @onready var menu_buttons: HBoxContainer = %MenuButtons
@@ -85,9 +100,9 @@ func refresh(force: bool = false) -> void:
 		return
 	_last_signature = signature
 	_clear_rows()
-	currency_label.text = "暗晶  %d" % run.save.get("darkCrystals", 0)
-	title_emblem.visible = state == "menu"
-	screen_medallion.visible = state != "menu"
+	currency_label.text = "◆  %d" % run.save.get("darkCrystals", 0)
+	screen_medallion.visible = true
+
 	menu_buttons.visible = state == "menu"
 	action_buttons.visible = state != "menu"
 	%SellAllButton.visible = state == "storage"
@@ -122,22 +137,35 @@ func request_sell_all() -> int:
 
 
 func _build_menu() -> void:
-	title_label.visible = false
-	screen_medallion.texture = ArtCatalog.UI_TEXTURES["buttonCrest"]
+	title_label.visible = true
+	screen_medallion.texture = ArtCatalog.UI_TEXTURES["brandMascot"]
+	kicker_label.text = "桃源守夜 · 轻松构筑"
+	title_label.text = "暗夜幸存者"
 	subtitle_label.text = "桃林异变，百鬼夜行 · 守住灵台，择机撤离"
 	var stats: Dictionary = run.save.get("stats", {})
+	var stats_panel := PanelContainer.new()
+	stats_panel.custom_minimum_size = Vector2(610.0, 42.0)
+	stats_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	stats_panel.add_theme_stylebox_override("panel", _stats_pill_style())
+	var stats_margin := MarginContainer.new()
+	stats_margin.add_theme_constant_override("margin_left", 18)
+	stats_margin.add_theme_constant_override("margin_right", 18)
+	stats_margin.add_theme_constant_override("margin_top", 7)
+	stats_margin.add_theme_constant_override("margin_bottom", 7)
+	stats_panel.add_child(stats_margin)
 	var stats_label := Label.new()
-	stats_label.text = "累计 %d 局   撤离 %d 次   通关 %d 次   最佳波数 %d" % [stats.get("runs", 0), stats.get("extractions", 0), stats.get("completions", 0), stats.get("bestWave", 0)]
+	stats_label.text = "桃源战绩   ·   累计 %d 局   ·   撤离 %d 次   ·   通关 %d 次   ·   最佳波数 %d" % [stats.get("runs", 0), stats.get("extractions", 0), stats.get("completions", 0), stats.get("bestWave", 0)]
 	stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stats_label.add_theme_color_override("font_color", Color('76543f'))
+	stats_label.add_theme_color_override("font_color", INK)
 	stats_label.add_theme_font_size_override("font_size", 14)
-	dynamic_rows.add_child(stats_label)
+	stats_margin.add_child(stats_label)
+	dynamic_rows.add_child(stats_panel)
 	var features := HBoxContainer.new()
 	features.alignment = BoxContainer.ALIGNMENT_CENTER
-	features.add_theme_constant_override("separation", 12)
-	features.add_child(_make_menu_feature("择械入夜", "六种法器任选其一，逐级构筑流派", ArtCatalog.UI_TEXTURES["sealWeapon"]))
-	features.add_child(_make_menu_feature("镇守灵台", "完成随机任务，迎战精英与首领", ArtCatalog.UI_TEXTURES["sealTask"]))
-	features.add_child(_make_menu_feature("择机撤离", "带回稀有材料，强化下一次轮回", ArtCatalog.UI_TEXTURES["warehouse"]))
+	features.add_theme_constant_override("separation", 14)
+	features.add_child(_make_menu_feature("择械入夜", "六种法器自由搭配，逐级构筑专属流派", ArtCatalog.UI_TEXTURES["sealWeapon"], Color("ffe1db"), CORAL_DARK))
+	features.add_child(_make_menu_feature("镇守灵台", "完成奇遇任务，迎战精英与暗夜首领", ArtCatalog.UI_TEXTURES["sealTask"], Color("dcf8ec"), JADE))
+	features.add_child(_make_menu_feature("满载而归", "带回稀有材料，强化下一次桃源轮回", ArtCatalog.UI_TEXTURES["warehouse"], Color("fff0c6"), Color("9a6719")))
 	dynamic_rows.add_child(features)
 	footer_label.text = "Enter / Space 快速开始   ·   WASD / 方向键移动"
 
@@ -145,7 +173,8 @@ func _build_menu() -> void:
 func _build_shop() -> void:
 	title_label.visible = true
 	screen_medallion.texture = ArtCatalog.UI_TEXTURES["shop"]
-	title_label.text = "山门商肆 · 永久修行"
+	kicker_label.text = "桃源补给 · 永久成长"
+	title_label.text = "山门商肆"
 	subtitle_label.text = "消耗暗晶强化每次轮回的基础能力"
 	var max_level: int = ShopScript.shop_max_level()
 	for attr_id: String in ShopScript.SHOP_ATTRS:
@@ -162,7 +191,8 @@ func _build_shop() -> void:
 func _build_storage() -> void:
 	title_label.visible = true
 	screen_medallion.texture = ArtCatalog.UI_TEXTURES["warehouse"]
-	title_label.text = "行囊仓库 · 撤离所得"
+	kicker_label.text = "行囊整理 · 撤离所得"
+	title_label.text = "行囊仓库"
 	subtitle_label.text = "出售入库材料以换取暗晶"
 	var has_items: bool = false
 	for item: Dictionary in ItemsScript.META_ITEM_LIST:
@@ -175,21 +205,22 @@ func _build_storage() -> void:
 	footer_label.text = "死亡会失去临时背包，成功撤离才会存入仓库   ·   Esc 返回"
 
 
-func _make_menu_feature(title: String, detail: String, icon: Texture2D) -> PanelContainer:
+func _make_menu_feature(title: String, detail: String, icon: Texture2D, fill: Color, accent: Color) -> PanelContainer:
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(205.0, 92.0)
-	card.add_theme_stylebox_override("panel", _menu_feature_style())
+	card.custom_minimum_size = Vector2(270.0, 116.0)
+	card.add_theme_stylebox_override("panel", _menu_feature_style(fill, accent))
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_bottom", 12)
 	card.add_child(margin)
 	var content := HBoxContainer.new()
-	content.add_theme_constant_override("separation", 10)
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", 12)
 	margin.add_child(content)
 	var icon_rect := TextureRect.new()
-	icon_rect.custom_minimum_size = Vector2(42.0, 42.0)
+	icon_rect.custom_minimum_size = Vector2(66.0, 66.0)
 	icon_rect.texture = icon
 	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -197,36 +228,54 @@ func _make_menu_feature(title: String, detail: String, icon: Texture2D) -> Panel
 	content.add_child(icon_rect)
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_theme_constant_override("separation", 3)
+	copy.alignment = BoxContainer.ALIGNMENT_CENTER
+	copy.add_theme_constant_override("separation", 4)
 	content.add_child(copy)
-	var title_label := Label.new()
-	title_label.text = title
-	title_label.add_theme_color_override("font_color", Color('8c3d28'))
-	title_label.add_theme_font_size_override("font_size", 16)
-	copy.add_child(title_label)
+	var feature_title := Label.new()
+	feature_title.text = title
+	feature_title.add_theme_color_override("font_color", accent)
+	feature_title.add_theme_color_override("font_outline_color", CREAM)
+	feature_title.add_theme_constant_override("outline_size", 1)
+	feature_title.add_theme_font_size_override("font_size", 19)
+	copy.add_child(feature_title)
 	var detail_label := Label.new()
 	detail_label.text = detail
 	detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	detail_label.add_theme_color_override("font_color", Color('6f4d39'))
+	detail_label.add_theme_color_override("font_color", INK)
 	detail_label.add_theme_font_size_override("font_size", 12)
 	copy.add_child(detail_label)
 	return card
 
 
-func _menu_feature_style() -> StyleBoxFlat:
+func _menu_feature_style(fill: Color, accent: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color('e8bd7c')
-	style.border_color = Color(0.72, 0.39, 0.16, 0.75)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(10)
-	style.shadow_color = Color(0.0, 0.0, 0.0, 0.24)
-	style.shadow_size = 5
+	style.bg_color = fill
+	style.border_color = INK
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(22)
+	style.shadow_color = Color(0.17, 0.10, 0.08, 0.2)
+	style.shadow_size = 7
+	style.shadow_offset = Vector2(0.0, 5.0)
+	style.content_margin_top = 4.0
+	style.content_margin_bottom = 4.0
+	return style
+
+
+func _stats_pill_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color('d8fff0')
+	style.border_color = JADE
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(18)
+	style.shadow_color = Color(0.03, 0.18, 0.15, 0.16)
+	style.shadow_size = 4
+	style.shadow_offset = Vector2(0.0, 3.0)
 	return style
 
 
 func _make_row(name: String, detail: String, action_text: String, enabled: bool, action: Callable, icon: Texture2D = null) -> PanelContainer:
 	var row := PanelContainer.new()
-	row.custom_minimum_size = Vector2(0.0, 52.0)
+	row.custom_minimum_size = Vector2(0.0, 58.0)
 	row.add_theme_stylebox_override("panel", _row_style())
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 16)
@@ -248,13 +297,13 @@ func _make_row(name: String, detail: String, action_text: String, enabled: bool,
 	var name_label := Label.new()
 	name_label.custom_minimum_size.x = 90.0
 	name_label.text = name
-	name_label.add_theme_color_override("font_color", Color('8c3d28'))
+	name_label.add_theme_color_override("font_color", CORAL_DARK)
 	name_label.add_theme_font_size_override("font_size", 18)
 	line.add_child(name_label)
 	var detail_label := Label.new()
 	detail_label.text = detail
 	detail_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail_label.add_theme_color_override("font_color", Color('6f4d39'))
+	detail_label.add_theme_color_override("font_color", INK_SOFT)
 	detail_label.add_theme_font_size_override("font_size", 14)
 	line.add_child(detail_label)
 	var button := Button.new()
@@ -276,15 +325,32 @@ func _apply_theme() -> void:
 	var ui_theme := Theme.new()
 	ui_theme.default_font = UI_FONT
 	theme = ui_theme
+	dim.color = Color(0.035, 0.13, 0.13, 0.72)
 	divider.texture = ArtCatalog.UI_TEXTURES["divider"]
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color('f1cc8b')
-	panel_style.border_color = Color('d08a2d')
-	panel_style.set_border_width_all(2)
-	panel_style.set_corner_radius_all(26)
-	panel_style.shadow_color = Color(0.20, 0.08, 0.04, 0.42)
-	panel_style.shadow_size = 18
+	panel_style.bg_color = CREAM
+	panel_style.border_color = INK
+	panel_style.set_border_width_all(3)
+	panel_style.set_corner_radius_all(32)
+	panel_style.shadow_color = Color(0.03, 0.13, 0.13, 0.48)
+	panel_style.shadow_size = 20
+	panel_style.shadow_offset = Vector2(0.0, 10.0)
 	panel.add_theme_stylebox_override("panel", panel_style)
+	var header_style := StyleBoxFlat.new()
+	header_style.bg_color = Color('ffe8c1')
+	header_style.border_color = INK
+	header_style.set_border_width_all(3)
+	header_style.set_corner_radius_all(24)
+	header_style.shadow_color = Color(0.17, 0.10, 0.08, 0.16)
+	header_style.shadow_size = 6
+	header_style.shadow_offset = Vector2(0.0, 4.0)
+	header_card.add_theme_stylebox_override("panel", header_style)
+	var currency_style := StyleBoxFlat.new()
+	currency_style.bg_color = Color('d8fff0')
+	currency_style.border_color = JADE
+	currency_style.set_border_width_all(3)
+	currency_style.set_corner_radius_all(22)
+	currency_card.add_theme_stylebox_override("panel", currency_style)
 	_button_styles = _create_button_styles()
 	%StartButton.icon = ArtCatalog.UI_TEXTURES["buttonCrest"]
 	%ShopButton.icon = ArtCatalog.UI_TEXTURES["shop"]
@@ -293,58 +359,70 @@ func _apply_theme() -> void:
 	%BackButton.icon = ArtCatalog.UI_TEXTURES["buttonCrest"]
 	for button: Button in [%StartButton, %ShopButton, %StorageButton, %SellAllButton, %BackButton]:
 		button.expand_icon = true
-		button.add_theme_constant_override("icon_max_width", 28)
-		_apply_button_style(button)
-	for label: Label in [title_label, subtitle_label, currency_label, footer_label]:
-		label.add_theme_color_override("font_color", Color('43251d'))
-	currency_label.add_theme_color_override("font_color", Color('a74736'))
-	subtitle_label.add_theme_color_override("font_color", Color('76543f'))
-	footer_label.add_theme_color_override("font_color", Color('8c684d'))
+		button.add_theme_constant_override("icon_max_width", 30)
+		_apply_button_style(button, button == %StartButton)
+	kicker_label.add_theme_color_override("font_color", CORAL_DARK)
+	title_label.add_theme_color_override("font_color", INK)
+	title_label.add_theme_color_override("font_outline_color", Color(CREAM, 0.96))
+	title_label.add_theme_constant_override("outline_size", 2)
+	subtitle_label.add_theme_color_override("font_color", INK)
+	currency_hint.add_theme_color_override("font_color", JADE)
+	currency_label.add_theme_color_override("font_color", JADE)
+	footer_label.add_theme_color_override("font_color", INK_SOFT)
 
 
 func _create_button_styles() -> Dictionary:
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color('dca762')
-	normal.border_color = Color('a95d32')
-	normal.set_border_width_all(1)
-	normal.set_corner_radius_all(16)
+	normal.bg_color = Color('fff0c8')
+	normal.border_color = INK
+	normal.set_border_width_all(3)
+	normal.set_corner_radius_all(20)
+	normal.shadow_color = Color(0.17, 0.10, 0.08, 0.2)
+	normal.shadow_size = 5
+	normal.shadow_offset = Vector2(0.0, 4.0)
 	var hover: StyleBoxFlat = normal.duplicate()
-	hover.bg_color = Color('f8d99d')
-	hover.border_color = Color('d3912d')
-	hover.set_border_width_all(2)
+	hover.bg_color = HONEY
+	hover.border_color = CORAL_DARK
 	var pressed: StyleBoxFlat = hover.duplicate()
-	pressed.bg_color = Color('d98a4a')
+	pressed.bg_color = Color('f5aa45')
+	pressed.shadow_size = 1
 	var focus: StyleBoxFlat = hover.duplicate()
-	focus.bg_color = Color('f3ca84')
-	focus.shadow_color = Color(0.85, 0.34, 0.18, 0.34)
-	focus.shadow_size = 6
+	focus.shadow_color = Color(CORAL, 0.4)
+	focus.shadow_size = 8
 	var disabled: StyleBoxFlat = normal.duplicate()
-	disabled.bg_color = Color('b89a75')
-	disabled.border_color = Color(0.38, 0.25, 0.18, 0.55)
+	disabled.bg_color = Color('ded8c7')
+	disabled.border_color = Color(INK, 0.45)
 	return {"normal": normal, "hover": hover, "pressed": pressed, "focus": focus, "disabled": disabled}
 
 
-func _apply_button_style(button: Button) -> void:
+func _apply_button_style(button: Button, prominent: bool = false) -> void:
 	for state: String in _button_styles:
-		button.add_theme_stylebox_override(state, _button_styles[state])
-	button.add_theme_color_override("font_color", Color('43251d'))
-	button.add_theme_color_override("font_hover_color", Color('8c3d28'))
-	button.add_theme_color_override("font_pressed_color", Color('fff3cf'))
-	button.add_theme_color_override("font_focus_color", Color('8c3d28'))
-	button.add_theme_color_override("icon_normal_color", Color(1.0, 1.0, 1.0, 0.9))
-	button.add_theme_color_override("icon_hover_color", Color('fff3cf'))
-	button.add_theme_color_override("icon_pressed_color", Color('8c3d28'))
-	button.add_theme_color_override("icon_disabled_color", Color(0.38, 0.29, 0.23, 0.48))
-	button.add_theme_color_override("font_disabled_color", Color(0.38, 0.29, 0.23, 0.66))
-	button.add_theme_font_size_override("font_size", 16)
+		var style: StyleBoxFlat = _button_styles[state].duplicate()
+		if prominent and state != "disabled":
+			style.bg_color = CORAL if state == "normal" else (Color('ff8b70') if state == "hover" or state == "focus" else CORAL_DARK)
+			style.border_color = INK
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", CREAM if prominent else INK)
+	button.add_theme_color_override("font_hover_color", CREAM if prominent else CORAL_DARK)
+	button.add_theme_color_override("font_pressed_color", CREAM)
+	button.add_theme_color_override("font_focus_color", CREAM if prominent else CORAL_DARK)
+	button.add_theme_color_override("icon_normal_color", Color.WHITE)
+	button.add_theme_color_override("icon_hover_color", Color.WHITE)
+	button.add_theme_color_override("icon_pressed_color", Color.WHITE)
+	button.add_theme_color_override("icon_disabled_color", Color(1.0, 1.0, 1.0, 0.42))
+	button.add_theme_color_override("font_disabled_color", Color(INK, 0.46))
+	button.add_theme_font_size_override("font_size", 17 if prominent else 16)
 
 
 func _row_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color('e4b979')
-	style.border_color = Color(0.58, 0.32, 0.18, 0.56)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(14)
+	style.bg_color = Color('fff0cf')
+	style.border_color = Color(INK, 0.82)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(18)
+	style.shadow_color = Color(0.17, 0.10, 0.08, 0.12)
+	style.shadow_size = 4
+	style.shadow_offset = Vector2(0.0, 3.0)
 	return style
 
 
