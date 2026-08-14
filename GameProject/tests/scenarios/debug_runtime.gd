@@ -2,6 +2,7 @@ extends RefCounted
 
 const EnemyFactoryScript: GDScript = preload("res://logic/enemies/enemy_factory.gd")
 const WeaponFactoryScript: GDScript = preload("res://logic/weapons/weapon_factory.gd")
+const DebugOverlayScene: PackedScene = preload("res://scenes/game/debug_overlay.tscn")
 
 func title() -> String: return "[Debug] Debug Runtime"
 
@@ -72,6 +73,17 @@ func run(runner) -> void:
     runner.check(restored is Dictionary and restored["wave"] == 8, "[Debug] serialize wave round trip")
     runner.check(restored["settings"]["invincible"] and restored["settings"]["player"]["damageMult"] == 2.25, "[Debug] serialize settings round trip")
     runner.check(restored["weaponLevels"] == serialized["weaponLevels"], "[Debug] serialize weapons round trip")
+    var debug_overlay = DebugOverlayScene.instantiate()
+    debug_overlay._ready()
+    debug_overlay.bind_run(game)
+    var launcher := debug_overlay.get_node_or_null("DebugLauncher") as Button
+    runner.check(launcher != null and launcher.visible and not launcher.disabled, "[Debug] in-game launcher visible and enabled")
+    var paused_before_open: bool = debug.settings["paused"]
+    runner.check(debug_overlay.set_open(true), "[Debug] launcher opens integrated panel")
+    runner.check(debug.settings["paused"], "[Debug] opening panel pauses simulation")
+    runner.check(debug_overlay.get_node_or_null("DebugPanel").visible and not launcher.visible, "[Debug] panel replaces launcher while open")
+    runner.check(not debug_overlay.set_open(false) and debug.settings["paused"] == paused_before_open, "[Debug] closing panel restores previous pause state")
+    debug_overlay.free()
     debug.reset_defaults()
     debug.clear_enemies()
     game.reset()

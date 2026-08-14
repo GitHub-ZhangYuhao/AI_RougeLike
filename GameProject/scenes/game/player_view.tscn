@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/game/player_view.gd" id="1_player"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/player_static.png" id="2_static"]
 
 [node name="PlayerView" type="Node2D"]
 script = ExtResource("1_player")
@@ -11,3 +12,8 @@ color = Color(0.03, 0.025, 0.04, 0.42)
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
 texture_filter = 4
+
+[node name="StaticSprite" type="Sprite2D" parent="."]
+visible = false
+texture_filter = 4
+texture = ExtResource("2_static")

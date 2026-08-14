@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/game/player_view.tscn" id="2_player"]
 [ext_resource type="Script" path="res://scenes/game/game_overlay.gd" id="3_overlay"]
 [ext_resource type="PackedScene" path="res://scenes/game/meadow_level.tscn" id="4_level"]
-[ext_resource type="Script" path="res://scenes/game/placeholder_world_view.gd" id="5_placeholders"]
+[ext_resource type="Script" path="res://scenes/game/world_art_view.gd" id="5_world_art"]
 [ext_resource type="PackedScene" path="res://scenes/ui/meta_screens.tscn" id="6_meta"]
 [ext_resource type="PackedScene" path="res://scenes/game/debug_overlay.tscn" id="7_debug"]
 
@@ -13,8 +13,8 @@ script = ExtResource("1")
 
 [node name="MeadowLevel" parent="." instance=ExtResource("4_level")]
 
-[node name="PlaceholderWorld" type="Node2D" parent="."]
-script = ExtResource("5_placeholders")
+[node name="WorldArtView" type="Node2D" parent="."]
+script = ExtResource("5_world_art")
 
 [node name="PlayerView" parent="." instance=ExtResource("2_player")]
 

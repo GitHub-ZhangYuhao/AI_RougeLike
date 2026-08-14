@@ -1,14 +1,16 @@
 extends RefCounted
 
 const CardsScript: GDScript = preload("res://logic/cards.gd")
-const PlaceholderWorldScript: GDScript = preload("res://scenes/game/placeholder_world_view.gd")
+const ArtCatalogScript: GDScript = preload("res://scenes/art_catalog.gd")
 
 func title() -> String:
 	return "[0] Weapon card structure"
 
 func run(runner) -> void:
-	runner.check(PlaceholderWorldScript.ENEMY_LABELS.size() == 7, "[0] all enemy placeholders registered")
-	runner.check(PlaceholderWorldScript.WEAPON_COLORS.size() == 6, "[0] all weapon placeholder colors registered")
+	runner.check(ArtCatalogScript.ENEMY_TEXTURES.size() == 7, "[0] all enemy production textures registered")
+	runner.check(ArtCatalogScript.WEAPON_ICONS.size() == 6, "[0] all weapon production icons registered")
+	runner.check(ArtCatalogScript.VFX_TEXTURES.size() == 16, "[0] all production VFX textures registered")
+	runner.check(ArtCatalogScript.UI_TEXTURES.size() == 12, "[0] all production UI ornaments registered")
 	for card: Dictionary in CardsScript.WEAPON_CARDS:
 		runner.check(card["maxLevel"] == 6, "[0] %s maxLevel must be 6" % card["id"])
 		runner.check(card["levels"].size() == 6, "[0] %s must have 6 levels" % card["id"])

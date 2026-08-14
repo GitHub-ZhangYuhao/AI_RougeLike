@@ -3,6 +3,8 @@ extends Control
 
 const ShopScript: GDScript = preload("res://logic/meta/shop.gd")
 const ItemsScript: GDScript = preload("res://logic/meta/items.gd")
+const ArtCatalog: GDScript = preload("res://scenes/art_catalog.gd")
+const UI_FONT: Font = preload("res://assets/fonts/noto_sans_sc.ttf")
 
 const ATTR_NAMES: Dictionary = {
 	"damage": "强攻",
@@ -35,6 +37,8 @@ var _button_styles: Dictionary = {}
 
 @onready var panel: PanelContainer = %Panel
 @onready var title_emblem: TextureRect = %TitleEmblem
+@onready var screen_medallion: TextureRect = %ScreenMedallion
+@onready var divider: TextureRect = %Divider
 @onready var title_label: Label = %Title
 @onready var subtitle_label: Label = %Subtitle
 @onready var currency_label: Label = %Currency
@@ -83,6 +87,7 @@ func refresh(force: bool = false) -> void:
 	_clear_rows()
 	currency_label.text = "暗晶  %d" % run.save.get("darkCrystals", 0)
 	title_emblem.visible = state == "menu"
+	screen_medallion.visible = state != "menu"
 	menu_buttons.visible = state == "menu"
 	action_buttons.visible = state != "menu"
 	%SellAllButton.visible = state == "storage"
@@ -118,6 +123,7 @@ func request_sell_all() -> int:
 
 func _build_menu() -> void:
 	title_label.visible = false
+	screen_medallion.texture = ArtCatalog.UI_TEXTURES["buttonCrest"]
 	subtitle_label.text = "桃林异变，百鬼夜行 · 守住灵台，择机撤离"
 	var stats: Dictionary = run.save.get("stats", {})
 	var stats_label := Label.new()
@@ -126,11 +132,19 @@ func _build_menu() -> void:
 	stats_label.add_theme_color_override("font_color", Color("b8c8b3"))
 	stats_label.add_theme_font_size_override("font_size", 14)
 	dynamic_rows.add_child(stats_label)
+	var features := HBoxContainer.new()
+	features.alignment = BoxContainer.ALIGNMENT_CENTER
+	features.add_theme_constant_override("separation", 12)
+	features.add_child(_make_menu_feature("择械入夜", "六种法器任选其一，逐级构筑流派", ArtCatalog.UI_TEXTURES["sealWeapon"]))
+	features.add_child(_make_menu_feature("镇守灵台", "完成随机任务，迎战精英与首领", ArtCatalog.UI_TEXTURES["sealTask"]))
+	features.add_child(_make_menu_feature("择机撤离", "带回稀有材料，强化下一次轮回", ArtCatalog.UI_TEXTURES["warehouse"]))
+	dynamic_rows.add_child(features)
 	footer_label.text = "Enter / Space 快速开始   ·   WASD / 方向键移动"
 
 
 func _build_shop() -> void:
 	title_label.visible = true
+	screen_medallion.texture = ArtCatalog.UI_TEXTURES["shop"]
 	title_label.text = "山门商肆 · 永久修行"
 	subtitle_label.text = "消耗暗晶强化每次轮回的基础能力"
 	var max_level: int = ShopScript.shop_max_level()
@@ -141,12 +155,13 @@ func _build_shop() -> void:
 		var enabled: bool = ShopScript.can_buy(run.save, attr_id)
 		var detail := "%s   Lv %d/%d   %s" % [ATTR_DESCRIPTIONS[attr_id], level, max_level, "MAX" if maxed else "需暗晶 %d" % price]
 		var action := Callable(self, "request_purchase").bind(attr_id)
-		dynamic_rows.add_child(_make_row(ATTR_NAMES[attr_id], detail, "已圆满" if maxed else "修行", enabled, action))
+		dynamic_rows.add_child(_make_row(ATTR_NAMES[attr_id], detail, "已圆满" if maxed else "修行", enabled, action, ArtCatalog.UI_TEXTURES["sealAttribute"]))
 	footer_label.text = "永久属性会在下一局开始时自动生效   ·   Esc 返回"
 
 
 func _build_storage() -> void:
 	title_label.visible = true
+	screen_medallion.texture = ArtCatalog.UI_TEXTURES["warehouse"]
 	title_label.text = "行囊仓库 · 撤离所得"
 	subtitle_label.text = "出售入库材料以换取暗晶"
 	var has_items: bool = false
@@ -155,14 +170,63 @@ func _build_storage() -> void:
 		has_items = has_items or count > 0
 		var detail := "持有 %d   单价 %d 暗晶   总值 %d" % [count, item["sellPrice"], count * item["sellPrice"]]
 		var action := Callable(self, "request_sell").bind(item["id"])
-		dynamic_rows.add_child(_make_row(item["name"], detail, "出售", count > 0, action))
+		dynamic_rows.add_child(_make_row(item["name"], detail, "出售", count > 0, action, ArtCatalog.PICKUP_TEXTURES["gem"]))
 	%SellAllButton.disabled = not has_items
 	footer_label.text = "死亡会失去临时背包，成功撤离才会存入仓库   ·   Esc 返回"
 
 
-func _make_row(name: String, detail: String, action_text: String, enabled: bool, action: Callable) -> PanelContainer:
+func _make_menu_feature(title: String, detail: String, icon: Texture2D) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(205.0, 92.0)
+	card.add_theme_stylebox_override("panel", _menu_feature_style())
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	card.add_child(margin)
+	var content := HBoxContainer.new()
+	content.add_theme_constant_override("separation", 10)
+	margin.add_child(content)
+	var icon_rect := TextureRect.new()
+	icon_rect.custom_minimum_size = Vector2(42.0, 42.0)
+	icon_rect.texture = icon
+	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(icon_rect)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_theme_constant_override("separation", 3)
+	content.add_child(copy)
+	var title_label := Label.new()
+	title_label.text = title
+	title_label.add_theme_color_override("font_color", Color("f2d28b"))
+	title_label.add_theme_font_size_override("font_size", 16)
+	copy.add_child(title_label)
+	var detail_label := Label.new()
+	detail_label.text = detail
+	detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail_label.add_theme_color_override("font_color", Color("c8d1c4"))
+	detail_label.add_theme_font_size_override("font_size", 12)
+	copy.add_child(detail_label)
+	return card
+
+
+func _menu_feature_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.06, 0.11, 0.085, 0.92)
+	style.border_color = Color(0.55, 0.47, 0.25, 0.72)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(10)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.24)
+	style.shadow_size = 5
+	return style
+
+
+func _make_row(name: String, detail: String, action_text: String, enabled: bool, action: Callable, icon: Texture2D = null) -> PanelContainer:
 	var row := PanelContainer.new()
-	row.custom_minimum_size = Vector2(0.0, 58.0)
+	row.custom_minimum_size = Vector2(0.0, 52.0)
 	row.add_theme_stylebox_override("panel", _row_style())
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 16)
@@ -171,8 +235,16 @@ func _make_row(name: String, detail: String, action_text: String, enabled: bool,
 	margin.add_theme_constant_override("margin_bottom", 8)
 	row.add_child(margin)
 	var line := HBoxContainer.new()
-	line.add_theme_constant_override("separation", 14)
+	line.add_theme_constant_override("separation", 12)
 	margin.add_child(line)
+	if icon != null:
+		var icon_rect := TextureRect.new()
+		icon_rect.custom_minimum_size = Vector2(38.0, 38.0)
+		icon_rect.texture = icon
+		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		line.add_child(icon_rect)
 	var name_label := Label.new()
 	name_label.custom_minimum_size.x = 90.0
 	name_label.text = name
@@ -201,6 +273,10 @@ func _clear_rows() -> void:
 
 
 func _apply_theme() -> void:
+	var ui_theme := Theme.new()
+	ui_theme.default_font = UI_FONT
+	theme = ui_theme
+	divider.texture = ArtCatalog.UI_TEXTURES["divider"]
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color(0.045, 0.075, 0.064, 0.96)
 	panel_style.border_color = Color("b99b52")
@@ -210,7 +286,14 @@ func _apply_theme() -> void:
 	panel_style.shadow_size = 18
 	panel.add_theme_stylebox_override("panel", panel_style)
 	_button_styles = _create_button_styles()
+	%StartButton.icon = ArtCatalog.UI_TEXTURES["buttonCrest"]
+	%ShopButton.icon = ArtCatalog.UI_TEXTURES["shop"]
+	%StorageButton.icon = ArtCatalog.UI_TEXTURES["warehouse"]
+	%SellAllButton.icon = ArtCatalog.PICKUP_TEXTURES["gem"]
+	%BackButton.icon = ArtCatalog.UI_TEXTURES["buttonCrest"]
 	for button: Button in [%StartButton, %ShopButton, %StorageButton, %SellAllButton, %BackButton]:
+		button.expand_icon = true
+		button.add_theme_constant_override("icon_max_width", 28)
 		_apply_button_style(button)
 	for label: Label in [title_label, subtitle_label, currency_label, footer_label]:
 		label.add_theme_color_override("font_color", Color("e8eadb"))
@@ -231,10 +314,14 @@ func _create_button_styles() -> Dictionary:
 	hover.set_border_width_all(2)
 	var pressed: StyleBoxFlat = hover.duplicate()
 	pressed.bg_color = Color(0.18, 0.29, 0.20, 1.0)
+	var focus: StyleBoxFlat = hover.duplicate()
+	focus.bg_color = Color(0.11, 0.2, 0.15, 0.98)
+	focus.shadow_color = Color(0.88, 0.75, 0.42, 0.35)
+	focus.shadow_size = 6
 	var disabled: StyleBoxFlat = normal.duplicate()
 	disabled.bg_color = Color(0.06, 0.08, 0.07, 0.8)
 	disabled.border_color = Color(0.3, 0.34, 0.3, 0.5)
-	return {"normal": normal, "hover": hover, "pressed": pressed, "disabled": disabled}
+	return {"normal": normal, "hover": hover, "pressed": pressed, "focus": focus, "disabled": disabled}
 
 
 func _apply_button_style(button: Button) -> void:
@@ -243,6 +330,11 @@ func _apply_button_style(button: Button) -> void:
 	button.add_theme_color_override("font_color", Color("e8eadb"))
 	button.add_theme_color_override("font_hover_color", Color("f2d28b"))
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_focus_color", Color("f2d28b"))
+	button.add_theme_color_override("icon_normal_color", Color(1.0, 1.0, 1.0, 0.9))
+	button.add_theme_color_override("icon_hover_color", Color.WHITE)
+	button.add_theme_color_override("icon_pressed_color", Color("f2d28b"))
+	button.add_theme_color_override("icon_disabled_color", Color(0.5, 0.55, 0.5, 0.5))
 	button.add_theme_color_override("font_disabled_color", Color(0.5, 0.55, 0.5, 0.7))
 	button.add_theme_font_size_override("font_size", 16)
 
