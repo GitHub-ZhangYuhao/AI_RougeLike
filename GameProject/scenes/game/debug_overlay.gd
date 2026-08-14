@@ -110,7 +110,7 @@ func refresh() -> void:
 func _process(delta: float) -> void:
   if not is_open():
     var meta_open: bool = run != null and str(run.state) in ['menu', 'shop', 'storage']
-    _launcher.visible = run != null and not meta_open
+    _launcher.visible = false  # Debug launcher hidden by default
     return
   _refresh_timer -= delta
   if _refresh_timer <= 0.0:

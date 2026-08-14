@@ -112,7 +112,7 @@ func _draw_weapon_zones() -> void:
       for i in stats['count']:
         var angle: float = weapon.angle + i * TAU / stats['count']
         var position := Vector2(run.player.x + cos(angle) * orbit_radius, run.player.y + sin(angle) * orbit_radius)
-        _draw_sprite(ArtCatalog.WEAPON_ICONS['ring'], position, 32.0, angle)
+        _draw_sprite(ArtCatalog.WEAPON_ICONS['ring'], position, 80.0, angle)
     elif id == 'trail':
       for zone: Dictionary in weapon.furnaces:
         _draw_zone(zone, Color(1.0, 0.2, 0.04, 0.1), Color('ff7043'))
@@ -331,7 +331,7 @@ func _draw_weapon_impact(effect: Dictionary, alpha: float) -> void:
   draw_circle(position, radius * (0.85 + progress * 1.25), Color(color, alpha * 0.11 * intensity))
   draw_arc(position, radius * (0.65 + progress * 1.55), 0.0, TAU, 28, Color(color, alpha * (0.72 + intensity * 0.18)), 2.0 + intensity)
   var texture_key: String = IMPACT_TEXTURE_KEYS.get(source, 'impact')
-  var impact_size: float = radius * (3.0 + intensity * 1.8) * (0.85 + progress * 0.35)
+  var impact_size: float = radius * (4.5 + intensity * 2.7) * (0.85 + progress * 0.35)
   var rotation: float = effect.get('angle', 0.0)
   if source == 'sword':
     impact_size *= 1.18
@@ -345,7 +345,7 @@ func _draw_weapon_impact(effect: Dictionary, alpha: float) -> void:
   elif source == 'staff':
     rotation += PI * 0.5
   _draw_sprite(ArtCatalog.VFX_TEXTURES[texture_key], position, impact_size, rotation, false, Color(1.0, 1.0, 1.0, alpha * 0.9))
-  _draw_sprite(ArtCatalog.VFX_TEXTURES['impact'], position, radius * (2.1 + progress * 1.0), rotation * 0.25, false, Color(color, alpha * 0.92))
+  _draw_sprite(ArtCatalog.VFX_TEXTURES['impact'], position, radius * (3.0 + progress * 1.5), rotation * 0.25, false, Color(color, alpha * 0.92))
   _draw_impact_sparks(position, radius, color, alpha, int(effect.get('seed', 0)), action)
   _draw_damage_number(effect, position, radius, color, alpha, progress, intensity)
 

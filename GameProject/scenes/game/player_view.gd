@@ -3,9 +3,9 @@ extends Node2D
 const PlayerSpriteFramesScript: GDScript = preload('res://scenes/game/player_sprite_frames.gd')
 const WALK_SCALE: float = 0.152
 const IDLE_SCALE: float = 0.285
-const FALLBACK_SCALE: float = 0.22
-const SPRITE_FOOT_OFFSET: float = -48.0
-const FALLBACK_FOOT_OFFSET: float = -43.0
+const FALLBACK_SCALE: float = 0.17
+const SPRITE_FOOT_OFFSET: float = -22.0
+const FALLBACK_FOOT_OFFSET: float = -18.0
 const VISIBLE_STATES: Array[String] = ['opening', 'playing', 'choice', 'extraction', 'dead', 'summary']
 
 enum State { IDLE, MOVE, DEAD }
@@ -150,8 +150,8 @@ func _draw() -> void:
   var aura_color := Color(0.37, 0.88, 0.76, 0.045 + pulse * 0.025)
   if state == State.DEAD:
     aura_color = Color(0.4, 0.45, 0.5, 0.035)
-  draw_circle(Vector2.ZERO, 23.0 + pulse * 2.0, aura_color)
-  draw_arc(Vector2.ZERO, 19.0 + pulse * 1.5, 0.0, TAU, 32, Color(0.72, 0.96, 0.76, 0.16 + pulse * 0.1), 1.3)
+  draw_circle(Vector2.ZERO, 17.0 + pulse * 1.5, aura_color)
+  draw_arc(Vector2.ZERO, 15.0 + pulse * 1.0, 0.0, TAU, 32, Color(0.72, 0.96, 0.76, 0.16 + pulse * 0.1), 1.3)
   if state == State.MOVE:
     var backward := -Vector2.RIGHT.rotated(facing_angle)
     for i in 4:
@@ -162,7 +162,7 @@ func _draw() -> void:
       draw_line(dust_position, dust_position + backward * 7.0, Color(0.8, 0.94, 0.77, 0.11), 1.2, true)
   if hurt_flash_timer > 0.0:
     var hurt_alpha: float = clampf(hurt_flash_timer / 0.22, 0.0, 1.0)
-    draw_circle(Vector2.ZERO, 28.0 * (1.25 - hurt_alpha * 0.25), Color(1.0, 0.18, 0.12, hurt_alpha * 0.12))
+    draw_circle(Vector2.ZERO, 20.0 * (1.25 - hurt_alpha * 0.25), Color(1.0, 0.18, 0.12, hurt_alpha * 0.12))
     draw_arc(Vector2.ZERO, 24.0 + (1.0 - hurt_alpha) * 9.0, 0.0, TAU, 28, Color(1.0, 0.46, 0.28, hurt_alpha * 0.88), 3.0)
   if show_collision:
     draw_circle(Vector2.ZERO, 14.0, Color(0.31, 0.76, 0.97, 0.18))

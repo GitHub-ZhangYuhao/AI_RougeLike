@@ -6,14 +6,14 @@ uniform sampler2D grass_path_mix : source_color, repeat_enable, filter_linear_mi
 uniform sampler2D dirt_soft : source_color, repeat_enable, filter_linear_mipmap_anisotropic;
 uniform sampler2D stone_moss : source_color, repeat_enable, filter_linear_mipmap_anisotropic;
 
-uniform float terrain_scale : hint_range(1.0, 4.0, 0.05) = 1.55;
-uniform float macro_scale : hint_range(1.0, 12.0, 0.1) = 4.8;
-uniform float dirt_amount : hint_range(0.0, 1.0, 0.01) = 0.30;
-uniform float stone_amount : hint_range(0.0, 1.0, 0.01) = 0.08;
-uniform float detail_contrast : hint_range(0.8, 1.5, 0.01) = 1.10;
-uniform float saturation : hint_range(0.7, 1.3, 0.01) = 1.02;
+uniform float terrain_scale : hint_range(1.0, 8.0, 0.05) = 3.2;
+uniform float macro_scale : hint_range(1.0, 16.0, 0.1) = 7.2;
+uniform float dirt_amount : hint_range(0.0, 1.0, 0.01) = 0.32;
+uniform float stone_amount : hint_range(0.0, 1.0, 0.01) = 0.10;
+uniform float detail_contrast : hint_range(0.8, 1.5, 0.01) = 1.15;
+uniform float saturation : hint_range(0.7, 1.3, 0.01) = 1.04;
 uniform vec4 terrain_tint : source_color = vec4(0.90, 0.97, 0.88, 1.0);
-uniform float tint_strength : hint_range(0.0, 0.5, 0.01) = 0.10;
+uniform float tint_strength : hint_range(0.0, 0.5, 0.01) = 0.08;
 uniform vec4 overall_tint : source_color = vec4(0.78, 0.84, 0.76, 1.0);
 
 varying vec2 terrain_position;
@@ -43,7 +43,8 @@ float terrain_noise(vec2 point) {
   float broad = value_noise(point);
   float medium = value_noise(point * 2.07 + vec2(8.3, 2.1));
   float fine = value_noise(point * 4.11 + vec2(1.7, 9.4));
-  return broad * 0.58 + medium * 0.29 + fine * 0.13;
+  float micro = value_noise(point * 8.23 + vec2(5.3, 7.8));
+  return broad * 0.48 + medium * 0.30 + fine * 0.15 + micro * 0.07;
 }
 
 vec3 boost_detail(vec3 color) {
@@ -65,7 +66,8 @@ void fragment() {
   vec4 stone_layer = texture(stone_moss, turn_a * (base_uv * 0.97) + vec2(0.41, 0.84));
 
   float macro = terrain_noise(normalized_position * macro_scale + vec2(3.7, 1.9));
-  float detail = terrain_noise(normalized_position * macro_scale * 2.3 + vec2(9.2, 4.6));
+  float detail = terrain_noise(normalized_position * macro_scale * 2.8 + vec2(9.2, 4.6));
+  float fine_detail = terrain_noise(normalized_position * macro_scale * 5.6 + vec2(2.1, 6.3));
   float stone_noise = terrain_noise(normalized_position * macro_scale * 1.42 + vec2(15.4, 7.1));
 
   vec4 ground = mix(grass_a, grass_rotated, 0.36);
@@ -82,6 +84,6 @@ void fragment() {
 
   vec3 color = boost_detail(ground.rgb);
   color = mix(color, color * terrain_tint.rgb, tint_strength);
-  color = clamp(color + vec3((detail - 0.5) * 0.035), vec3(0.0), vec3(1.0));
+  color = clamp(color + vec3((detail - 0.5) * 0.035 + (fine_detail - 0.5) * 0.018), vec3(0.0), vec3(1.0));
   COLOR = vec4(color * overall_tint.rgb, ground.a * overall_tint.a);
 }

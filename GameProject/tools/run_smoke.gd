@@ -6,19 +6,19 @@ extends SceneTree
 ## 场景注册与断言汇总在 tests/smoke_runner.gd。
 
 func _initialize() -> void:
-	var script: GDScript = load("res://tests/smoke_runner.gd")
-	if script == null:
-		printerr("[smoke] cannot load res://tests/smoke_runner.gd")
-		print("FAILED")
-		quit(1)
-		return
-	var runner: RefCounted = script.new()
-	var all_passed: bool = runner.run_all()
-	runner = null
-	script = null
-	if all_passed:
-		print("OK")
-		quit(0)
-	else:
-		print("FAILED")
-		quit(1)
+    var script: GDScript = load("res://tests/smoke_runner.gd")
+    if script == null:
+        printerr("[smoke] cannot load res://tests/smoke_runner.gd")
+        print("FAILED")
+        quit(1)
+        return
+    var runner: RefCounted = script.new()
+    var all_passed: bool = runner.run_all()
+    runner = null
+    script = null
+    if all_passed:
+        print("OK")
+        quit(0)
+    else:
+        print("FAILED")
+        quit(1)

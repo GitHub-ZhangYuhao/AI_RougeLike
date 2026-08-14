@@ -55,8 +55,8 @@ const PLUM: Color = Color('6e3f68')
 @onready var kicker_label: Label = %Kicker
 @onready var title_label: Label = %Title
 @onready var subtitle_label: Label = %Subtitle
-@onready var currency_hint: Label = %CurrencyHint
-@onready var currency_label: Label = %Currency
+@onready var currency_icon: TextureRect = %CurrencyIcon
+@onready var currency_amount: Label = %CurrencyAmount
 @onready var dynamic_rows: VBoxContainer = %DynamicRows
 @onready var menu_buttons: HBoxContainer = %MenuButtons
 @onready var action_buttons: HBoxContainer = %ActionButtons
@@ -100,7 +100,8 @@ func refresh(force: bool = false) -> void:
 		return
 	_last_signature = signature
 	_clear_rows()
-	currency_label.text = "◆  %d" % run.save.get("darkCrystals", 0)
+	currency_icon.texture = ArtCatalog.PICKUP_TEXTURES["gem"]
+	currency_amount.text = "%d" % run.save.get("darkCrystals", 0)
 	screen_medallion.visible = true
 
 	menu_buttons.visible = state == "menu"
@@ -366,8 +367,7 @@ func _apply_theme() -> void:
 	title_label.add_theme_color_override("font_outline_color", Color(CREAM, 0.96))
 	title_label.add_theme_constant_override("outline_size", 2)
 	subtitle_label.add_theme_color_override("font_color", INK)
-	currency_hint.add_theme_color_override("font_color", JADE)
-	currency_label.add_theme_color_override("font_color", JADE)
+	currency_amount.add_theme_color_override("font_color", JADE)
 	footer_label.add_theme_color_override("font_color", INK_SOFT)
 
 
