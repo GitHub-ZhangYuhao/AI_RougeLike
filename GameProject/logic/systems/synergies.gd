@@ -103,13 +103,13 @@ func toggle_build_weapon(id: String, weapons: Array, elapsed: float = 0.0) -> bo
     weapon_signature = ""
     refresh(weapons, elapsed)
     var definition = selected_definition()
-    var text: String = "Build 选择"
+    var text: String = "流派选择"
     var detail: String = "已恢复自动联动" if selected_weapon_ids.is_empty() else "已选 %s" % _weapon_name(selected_weapon_ids[0], weapons)
     var color: String = "#ffd54f"
     if selected_weapon_ids.size() == 1:
         detail = "已选 %s，再选一把武器" % _weapon_name(selected_weapon_ids[0], weapons)
     elif definition != null:
-        text = "Build · %s" % definition["name"]
+        text = "流派 · %s" % definition["name"]
         if not is_active(definition["id"]):
             detail = "需要两把武器都达到 Lv4"
         else:

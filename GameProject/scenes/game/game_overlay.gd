@@ -4,22 +4,39 @@ const UiLayoutScript: GDScript = preload("res://logic/ui_layout.gd")
 const ArtCatalog: GDScript = preload('res://scenes/art_catalog.gd')
 const UI_FONT: Font = preload('res://assets/fonts/ui_font_round.tres')
 const PLAYER_PORTRAIT: Texture2D = preload('res://assets/sprites/player/player_static.png')
+const HUD_PORTRAIT: Texture2D = preload('res://assets/ui/peach_night/atomic/portrait_character.png')
+const UI_BLOSSOM_CLUSTER: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/blossom_cluster.svg')
+const UI_PORTRAIT_RING: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/portrait_ring.svg')
+const UI_ICON_HEART: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/icon_heart.svg')
+const UI_ICON_HOURGLASS: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/icon_hourglass.svg')
+const UI_ICON_CRYSTAL: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/icon_crystal.svg')
+const UI_ICON_PAUSE: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/icon_pause.svg')
+const UI_ICON_SPIRIT: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/icon_spirit.svg')
+const UI_ICON_KILL: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/icon_kill.svg')
+const CARD_PAPER_TILE: Texture2D = preload('res://assets/ui/peach_night/atomic/card_paper_tile.png')
+const CARD_CORNER_BLOSSOM: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/card_corner_blossom.svg')
 
 const INK: Color = Color('4b2f2a')
 const INK_SOFT: Color = Color('72524a')
-const PAPER: Color = Color('fff6de')
-const PAPER_LIGHT: Color = Color('fffaf0')
-const PAPER_DEEP: Color = Color('f3deae')
-const JADE: Color = Color('2a8f76')
-const GOLD: Color = Color('ffc65c')
-const BONE: Color = Color('4b2f2a')
-const MUTED: Color = Color('98786d')
-const CINNABAR: Color = Color('ff6b5f')
-const CORAL: Color = Color('ff6b5f')
-const CORAL_DARK: Color = Color('b73f3b')
-const MINT: Color = Color('78d6b2')
-const PLUM: Color = Color('6e3f68')
-const TEAL_DEEP: Color = Color('174d46')
+const PAPER: Color = Color('f7e8c7')
+const PAPER_LIGHT: Color = Color('fff6de')
+const PAPER_DEEP: Color = Color('e6c995')
+const JADE: Color = Color('2a9079')
+const GOLD: Color = Color('e8b34c')
+const BONE: Color = Color('f1dfbd')
+const MUTED: Color = Color('a99080')
+const CINNABAR: Color = Color('ef624f')
+const CORAL: Color = Color('ef624f')
+const CORAL_DARK: Color = Color('9f352f')
+const MINT: Color = Color('79d9b7')
+const PLUM: Color = Color('714766')
+const TEAL_DEEP: Color = Color('155a52')
+const NIGHT: Color = Color('0c1628')
+const NIGHT_SOFT: Color = Color('172944')
+const NIGHT_MID: Color = Color('203a55')
+const WALNUT: Color = Color('4a2c24')
+const ANTIQUE_GOLD: Color = Color('b57b36')
+const SPIRIT_GLOW: Color = Color('79e1bd')
 const CARD_COLORS: Dictionary = {
 	"sword": Color("9fd8e8"), "cloak": Color("e97b52"), "talisman": Color("e6ca62"),
 	"trail": Color("d95b3c"), "ring": Color("acd77b"), "staff": Color("aa85d8"),
@@ -81,88 +98,218 @@ func _draw() -> void:
 
 
 func _draw_hud(size: Vector2) -> void:
+	_draw_composed_hud(size)
+
+
+func _draw_composed_hud(size: Vector2) -> void:
+	var hud_rect := Rect2(16.0, size.y - 198.0, size.x - 32.0, 180.0)
+	_draw_atomic_hud_shell(hud_rect)
+
+	var portrait_center := hud_rect.position + Vector2(78.0, 94.0)
+	draw_circle(portrait_center + Vector2(0.0, 5.0), 70.0, Color(0.01, 0.03, 0.06, 0.78))
+	_draw_texture_centered(HUD_PORTRAIT, portrait_center - Vector2(0.0, 4.0), 146.0)
+	_draw_texture_centered(UI_PORTRAIT_RING, portrait_center, 172.0)
+	var level_center := portrait_center + Vector2(55.0, 58.0)
+	draw_circle(level_center + Vector2(0.0, 3.0), 23.0, Color(NIGHT, 0.88))
+	draw_circle(level_center, 21.0, WALNUT)
+	draw_circle(level_center, 17.0, Color('15313b'))
+	draw_arc(level_center, 19.0, 0.0, TAU, 28, GOLD, 2.0)
+	draw_string(UI_FONT, level_center + Vector2(-18.0, 6.0), str(run.level), HORIZONTAL_ALIGNMENT_CENTER, 36.0, 17, PAPER_LIGHT)
+
 	var xp_need: float = run.xp_to_next()
 	var xp_ratio: float = clampf(run.xp / xp_need if xp_need > 0.0 else 0.0, 0.0, 1.0)
 	var hp_ratio: float = clampf(run.player.hp / run.player.maxHp, 0.0, 1.0)
-	# === Background vignette (subtle top/bottom darkening) ===
-	for vi in 8:
-		var alpha: float = 0.02 * (8 - vi)
-		draw_rect(Rect2(0.0, vi * 8.0, size.x, 8.0), Color(0.03, 0.08, 0.06, alpha))
-		draw_rect(Rect2(0.0, size.y - (vi + 1) * 6.0, size.x, 6.0), Color(0.03, 0.08, 0.06, alpha * 0.8))
-	# === Player panel (top-left) with decorations ===
-	var player_panel := Rect2(16.0, 16.0, 310.0, 122.0)
-	_draw_panel(player_panel, Color(PAPER, 0.98), INK, 3.0, 26.0)
-	_draw_card_corners(player_panel, Color(CORAL, 0.45))
-	# Portrait area with ornamental ring
-	draw_circle(Vector2(74.0, 78.0), 42.0, INK)
-	draw_circle(Vector2(74.0, 78.0), 38.0, Color('ffe9c4'))
-	_draw_texture_centered(PLAYER_PORTRAIT, Vector2(74.0, 76.0), 74.0)
-	draw_circle(Vector2(74.0, 78.0), 39.0, CORAL, false, 3.5)
-	draw_arc(Vector2(74.0, 78.0), 41.0, PI * 1.1, PI * 1.9, 16, GOLD, 2.0)
-	# Decorative charm below portrait
-	draw_circle(Vector2(74.0, 122.0), 6.0, INK)
-	draw_circle(Vector2(74.0, 122.0), 3.5, GOLD)
-	# Name and title
-	draw_string(UI_FONT, Vector2(116.0, 42.0), '桃源守夜者', HORIZONTAL_ALIGNMENT_LEFT, 130.0, 20, INK)
-	_draw_panel(Rect2(250.0, 26.0, 62.0, 28.0), Color('d8fff0'), JADE, 2.0, 14.0)
-	draw_string(UI_FONT, Vector2(254.0, 46.0), 'Lv %d' % run.level, HORIZONTAL_ALIGNMENT_CENTER, 54.0, 13, JADE)
-	draw_string(UI_FONT, Vector2(116.0, 62.0), '境界 · 凡尘一阶', HORIZONTAL_ALIGNMENT_LEFT, 186.0, 11, INK_SOFT)
-	# HP bar with label
-	_draw_panel(Rect2(116.0, 72.0, 36.0, 17.0), Color(CORAL, 0.18), CORAL_DARK, 1.0, 9.0)
-	draw_string(UI_FONT, Vector2(119.0, 85.0), '生命', HORIZONTAL_ALIGNMENT_CENTER, 30.0, 11, CORAL_DARK)
-	_draw_bar(Rect2(156.0, 72.0, 152.0, 17.0), hp_ratio, CINNABAR, Color('713e37'))
-	draw_string(UI_FONT, Vector2(160.0, 85.0), '%d / %d' % [ceili(maxf(0.0, run.player.hp)), ceili(run.player.maxHp)], HORIZONTAL_ALIGNMENT_CENTER, 144.0, 10, PAPER_LIGHT)
-	# XP bar with label
-	_draw_panel(Rect2(116.0, 96.0, 36.0, 17.0), Color(JADE, 0.15), JADE, 1.0, 9.0)
-	draw_string(UI_FONT, Vector2(119.0, 109.0), '悟道', HORIZONTAL_ALIGNMENT_CENTER, 30.0, 11, JADE)
-	_draw_bar(Rect2(156.0, 96.0, 152.0, 12.0), xp_ratio, MINT, Color('d2e8dc'))
-	draw_string(UI_FONT, Vector2(252.0, 126.0), '%d%%' % roundi(xp_ratio * 100.0), HORIZONTAL_ALIGNMENT_RIGHT, 56.0, 10, JADE)
-	# === Wave panel (top-center) with decorations ===
-	var center_x: float = size.x * 0.5
-	var wave_panel := Rect2(center_x - 175.0, 14.0, 350.0, 76.0)
-	_draw_panel(wave_panel, Color('fff0c8'), INK, 3.0, 26.0)
-	_draw_card_corners(wave_panel, Color(GOLD, 0.5))
-	# Wave medallion with ornament
-	draw_circle(wave_panel.position + Vector2(42.0, 38.0), 27.0, INK)
-	draw_circle(wave_panel.position + Vector2(42.0, 38.0), 23.0, GOLD)
-	draw_arc(wave_panel.position + Vector2(42.0, 38.0), 25.0, PI * 0.15, PI * 0.85, 14, Color(GOLD, 0.6), 2.0)
-	draw_string(UI_FONT, wave_panel.position + Vector2(24.0, 45.0), '夜', HORIZONTAL_ALIGNMENT_CENTER, 36.0, 18, INK)
-	draw_string(UI_FONT, wave_panel.position + Vector2(78.0, 32.0), '第 %d / %d 波' % [run.waveDirector.wave, Config.CONFIG['waves']['maxWave']], HORIZONTAL_ALIGNMENT_LEFT, 244.0, 21, INK)
-	draw_string(UI_FONT, wave_panel.position + Vector2(78.0, 52.0), _wave_phase_text(), HORIZONTAL_ALIGNMENT_LEFT, 244.0, 12, JADE)
-	_draw_bar(Rect2(wave_panel.position + Vector2(78.0, 60.0), Vector2(246.0, 8.0)), clampf(float(run.waveDirector.wave) / float(Config.CONFIG['waves']['maxWave']), 0.0, 1.0), CORAL, Color('ead9b2'))
-	# Decorative divider dots
-	for di in 3:
-		draw_circle(wave_panel.position + Vector2(72.0 + di * 86.0, 68.0), 2.0, Color(GOLD, 0.5))
-	# === Kill stats panel (top-right) with seal decoration ===
-	var right_panel := Rect2(size.x - 232.0, 14.0, 216.0, 118.0)
-	_draw_panel(right_panel, Color('e4faef'), INK, 3.0, 24.0)
-	_draw_card_corners(right_panel, Color(JADE, 0.4))
-	# Header with task seal
-	_draw_panel(Rect2(right_panel.position + Vector2(8.0, 6.0), Vector2(200.0, 30.0)), Color(JADE, 0.12), Color(JADE, 0.5), 1.0, 15.0)
-	_draw_texture_centered(ArtCatalog.UI_TEXTURES['sealTask'], right_panel.position + Vector2(188.0, 20.0), 38.0)
-	draw_string(UI_FONT, right_panel.position + Vector2(16.0, 26.0), '讨妖簿', HORIZONTAL_ALIGNMENT_LEFT, 140.0, 18, INK)
-	# Stats pills
-	var alive: int = run.enemies.filter(func(enemy) -> bool: return not enemy.dead).size()
-	_draw_stat_pill(Rect2(right_panel.position + Vector2(10.0, 46.0), Vector2(94.0, 28.0)), '斩敌', str(run.kills), CORAL)
-	_draw_stat_pill(Rect2(right_panel.position + Vector2(112.0, 46.0), Vector2(94.0, 28.0)), '妖物', str(alive), JADE)
-	_draw_stat_pill(Rect2(right_panel.position + Vector2(10.0, 82.0), Vector2(196.0, 28.0)), '首领', str(run.bossesDefeated), PLUM)
-	# Decorative line under header
-	draw_line(right_panel.position + Vector2(14.0, 40.0), right_panel.position + Vector2(202.0, 40.0), Color(JADE, 0.3), 1.0)
-	# === Weapon slots, boss bar, task panel, inventory ===
-	_draw_weapon_slots(size)
+	var content_x: float = hud_rect.position.x + 164.0
+	_draw_hud_meter(
+		Rect2(content_x, hud_rect.position.y + 10.0, 636.0, 36.0),
+		null,
+		'经验',
+		'%d / %d' % [floori(run.xp), ceili(xp_need)],
+		xp_ratio,
+		Color('39b783'),
+		Color('18333a')
+	)
+	_draw_hud_meter(
+		Rect2(content_x, hud_rect.position.y + 53.0, 304.0, 45.0),
+		UI_ICON_HEART,
+		'生命',
+		'%d / %d' % [ceili(maxf(run.player.hp, 0.0)), ceili(run.player.maxHp)],
+		hp_ratio,
+		Color('dc513e'),
+		Color('4b2a2d')
+	)
+	var duration: float = maxf(1.0, Config.CONFIG['waves']['duration'])
+	var wave_ratio: float = clampf(1.0 - run.waveDirector.timeRemaining / duration, 0.0, 1.0)
+	if run.waveDirector.phase == 'rest':
+		wave_ratio = 1.0
+	_draw_hud_meter(
+		Rect2(content_x, hud_rect.position.y + 105.0, 304.0, 38.0),
+		UI_ICON_SPIRIT,
+		'第 %d 波' % run.waveDirector.wave,
+		_format_time(ceili(maxf(0.0, run.waveDirector.timeRemaining))),
+		wave_ratio,
+		Color('36ad96'),
+		Color('153a3c')
+	)
+
+	_draw_hud_capsule(
+		Rect2(hud_rect.position.x + 808.0, hud_rect.position.y + 8.0, 160.0, 52.0),
+		UI_ICON_HOURGLASS,
+		_format_time(run.elapsed),
+		'守夜时间'
+	)
+	_draw_hud_capsule(
+		Rect2(hud_rect.position.x + 978.0, hud_rect.position.y + 8.0, 138.0, 52.0),
+		UI_ICON_CRYSTAL,
+		str(run.save.get('darkCrystals', 0)),
+		'持有暗晶'
+	)
+	_draw_hud_pause_button(Rect2(hud_rect.position.x + 1128.0, hud_rect.position.y + 7.0, 80.0, 80.0))
+
+	_draw_composed_weapon_slots(hud_rect)
+	_draw_composed_boss_plaque(hud_rect)
+	_draw_hud_capsule(
+		Rect2(hud_rect.position.x + 1024.0, hud_rect.position.y + 101.0, 92.0, 62.0),
+		UI_ICON_KILL,
+		str(run.kills),
+		'击破'
+	)
 	_draw_boss_bar(size)
 	_draw_task_panel(size)
 	_draw_inventory(size)
-	# === Bottom decorative border ===
-	var bottom_bar := Rect2(size.x * 0.5 - 320.0, size.y - 12.0, 640.0, 6.0)
-	_draw_panel(bottom_bar, Color(INK, 0.45), INK, 1.0, 3.0)
+
+func _draw_atomic_hud_shell(rect: Rect2) -> void:
+	var shadow := StyleBoxFlat.new()
+	shadow.bg_color = Color(0.0, 0.01, 0.025, 0.72)
+	shadow.set_corner_radius_all(20)
+	shadow.shadow_color = Color(0.0, 0.0, 0.0, 0.62)
+	shadow.shadow_size = 8
+	shadow.shadow_offset = Vector2(0.0, 5.0)
+	draw_style_box(shadow, rect)
+	_draw_panel(rect, Color('0b1728f2'), Color('9e6b36'), 3.0, 18.0)
+	var inner := StyleBoxFlat.new()
+	inner.bg_color = Color.TRANSPARENT
+	inner.border_color = Color('d19b48aa')
+	inner.set_border_width_all(1)
+	inner.set_corner_radius_all(13)
+	draw_style_box(inner, Rect2(rect.position + Vector2(6.0, 6.0), rect.size - Vector2(12.0, 12.0)))
+	draw_rect(Rect2(rect.position + Vector2(160.0, 8.0), Vector2(rect.size.x - 176.0, 36.0)), Color('162b3d9c'), true)
+	draw_line(rect.position + Vector2(168.0, 47.0), rect.position + Vector2(rect.size.x - 18.0, 47.0), Color(ANTIQUE_GOLD, 0.36), 1.0)
+	draw_line(rect.position + Vector2(156.0, 13.0), rect.position + Vector2(156.0, rect.size.y - 13.0), Color(ANTIQUE_GOLD, 0.48), 1.0)
+	_draw_texture_centered(UI_BLOSSOM_CLUSTER, rect.position + Vector2(67.0, 28.0), 74.0)
+	_draw_texture_centered(UI_BLOSSOM_CLUSTER, rect.end - Vector2(40.0, 22.0), 64.0, PI)
+	for ember_index in 6:
+		var ember := rect.position + Vector2(174.0 + ember_index * 168.0, rect.size.y - 10.0)
+		draw_circle(ember, 1.8, Color(SPIRIT_GLOW, 0.32))
+
+func _draw_hud_meter(rect: Rect2, icon: Texture2D, label: String, value: String, ratio: float, fill: Color, background: Color) -> void:
+	_draw_panel(rect, Color('0f2035f7'), Color('a97539'), 2.0, rect.size.y * 0.42)
+	draw_line(rect.position + Vector2(12.0, 5.0), rect.position + Vector2(rect.size.x - 12.0, 5.0), Color(GOLD, 0.34), 1.0)
+	var icon_space: float = 42.0 if icon != null else 8.0
+	if icon != null:
+		var icon_center := rect.position + Vector2(22.0, rect.size.y * 0.5)
+		draw_circle(icon_center, minf(18.0, rect.size.y * 0.40), Color(fill, 0.18))
+		draw_arc(icon_center, minf(17.0, rect.size.y * 0.38), 0.0, TAU, 28, Color(GOLD, 0.56), 1.0)
+		_draw_texture_centered(icon, icon_center, minf(30.0, rect.size.y * 0.68))
+	var label_w: float = 58.0
+	var label_rect := Rect2(rect.position + Vector2(icon_space, rect.size.y * 0.20), Vector2(label_w - 4.0, rect.size.y * 0.60))
+	_draw_panel(label_rect, Color(fill, 0.14), Color(fill, 0.48), 1.0, label_rect.size.y * 0.5)
+	draw_string(UI_FONT, label_rect.position + Vector2(1.0, label_rect.size.y * 0.72), label, HORIZONTAL_ALIGNMENT_CENTER, label_rect.size.x - 2.0, maxi(12, roundi(rect.size.y * 0.31)), PAPER_LIGHT)
+	var value_w: float = 86.0
+	var bar_x: float = label_rect.end.x + 8.0
+	var bar_rect := Rect2(bar_x, rect.position.y + rect.size.y * 0.31, rect.end.x - value_w - 12.0 - bar_x, rect.size.y * 0.38)
+	_draw_bar(bar_rect, ratio, fill, background)
+	var value_rect := Rect2(rect.end.x - value_w - 7.0, rect.position.y + rect.size.y * 0.18, value_w, rect.size.y * 0.64)
+	draw_string(UI_FONT, value_rect.position + Vector2(0.0, value_rect.size.y * 0.72), value, HORIZONTAL_ALIGNMENT_CENTER, value_rect.size.x, maxi(11, roundi(rect.size.y * 0.31)), PAPER_LIGHT)
+
+
+func _draw_hud_capsule(rect: Rect2, icon: Texture2D, value: String, caption: String) -> void:
+	_draw_panel(rect, Color('101e31f7'), Color('a97539'), 2.0, 14.0)
+	draw_line(rect.position + Vector2(42.0, 6.0), rect.position + Vector2(rect.size.x - 10.0, 6.0), Color(GOLD, 0.32), 1.0)
+	var icon_center := rect.position + Vector2(24.0, rect.size.y * 0.5)
+	draw_circle(icon_center, minf(19.0, rect.size.y * 0.38), Color('153440'))
+	draw_arc(icon_center, minf(17.0, rect.size.y * 0.34), 0.0, TAU, 28, Color(GOLD, 0.50), 1.0)
+	_draw_texture_centered(icon, icon_center, minf(31.0, rect.size.y * 0.62))
+	draw_string(UI_FONT, rect.position + Vector2(45.0, rect.size.y * 0.50), value, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 51.0, maxi(15, roundi(rect.size.y * 0.35)), PAPER_LIGHT)
+	draw_string(UI_FONT, rect.position + Vector2(45.0, rect.size.y * 0.81), caption, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 51.0, maxi(9, roundi(rect.size.y * 0.18)), Color('d6c4a9'))
+
+func _draw_hud_pause_button(rect: Rect2) -> void:
+	draw_circle(rect.get_center() + Vector2(0.0, 3.0), rect.size.x * 0.48, Color(0.0, 0.01, 0.03, 0.72))
+	draw_circle(rect.get_center(), rect.size.x * 0.46, WALNUT)
+	draw_circle(rect.get_center(), rect.size.x * 0.39, Color('15343d'))
+	draw_arc(rect.get_center(), rect.size.x * 0.42, 0.0, TAU, 36, GOLD, 2.0)
+	_draw_texture_centered(UI_ICON_PAUSE, rect.get_center() - Vector2(0.0, 8.0), 46.0)
+	draw_string(UI_FONT, rect.position + Vector2(0.0, 68.0), 'P 暂停', HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 10, PAPER_LIGHT)
+
+func _draw_composed_weapon_slots(_hud_rect: Rect2) -> void:
+	var rects: Array[Dictionary] = UiLayoutScript.get_weapon_slot_rects()
+	var selected_ids: Array[String] = run.synergies.selected_weapon_ids
+	if not rects.is_empty():
+		var first: Dictionary = rects[0]
+		var last: Dictionary = rects[rects.size() - 1]
+		var label_rect := Rect2(first['x'], first['y'] - 27.0, last['x'] + last['w'] - first['x'], 22.0)
+		_draw_panel(label_rect, Color('153c3af0'), Color('78c9a7'), 1.0, 11.0)
+		draw_string(UI_FONT, label_rect.position + Vector2(0.0, 16.0), '法器阵列', HORIZONTAL_ALIGNMENT_CENTER, label_rect.size.x, 11, Color('baf0d6'))
+	for i in rects.size():
+		var data: Dictionary = rects[i]
+		var slot_rect := Rect2(data['x'], data['y'], data['w'], data['h'])
+		var weapon = run.weapons[i] if i < run.weapons.size() else null
+		var selected: bool = weapon != null and selected_ids.has(weapon.card['id'])
+		if selected:
+			draw_circle(slot_rect.get_center(), slot_rect.size.x * 0.54, Color(SPIRIT_GLOW, 0.17))
+		var shadow_rect := Rect2(slot_rect.position + Vector2(0.0, 3.0), slot_rect.size)
+		_draw_panel(shadow_rect, Color('050b13b8'), Color.TRANSPARENT, 0.0, 11.0)
+		_draw_panel(slot_rect, Color('102633f7') if weapon != null else Color('101d2be8'), CINNABAR if selected else Color('a97539'), 3.0 if selected else 2.0, 11.0)
+		draw_line(slot_rect.position + Vector2(8.0, 5.0), slot_rect.position + Vector2(slot_rect.size.x - 8.0, 5.0), Color(GOLD, 0.66), 2.0)
+		draw_line(slot_rect.position + Vector2(8.0, slot_rect.size.y - 9.0), slot_rect.position + Vector2(slot_rect.size.x - 8.0, slot_rect.size.y - 9.0), Color(SPIRIT_GLOW, 0.18), 1.0)
+		if weapon != null:
+			var id: String = weapon.card['id']
+			_draw_texture_centered(ArtCatalog.WEAPON_ICONS.get(id), slot_rect.position + Vector2(slot_rect.size.x * 0.5, 32.0), 50.0)
+			for pip in 5:
+				var pip_rect := Rect2(slot_rect.position + Vector2(11.0 + pip * 12.0, 61.0), Vector2(9.0, 6.0))
+				_draw_panel(pip_rect, Color('6bd19b') if pip < mini(weapon.level, 5) else Color('294044'), Color('153128'), 1.0, 2.0)
+		else:
+			var empty_pulse: float = 0.5 + sin(animation_time * 2.4 + i * 0.8) * 0.5
+			var empty_center := slot_rect.get_center() - Vector2(0.0, 3.0)
+			draw_circle(empty_center, 22.0, Color(SPIRIT_GLOW, 0.05 + empty_pulse * 0.05))
+			draw_circle(empty_center, 14.0, Color(SPIRIT_GLOW, 0.04 + empty_pulse * 0.04))
+			draw_string(UI_FONT, slot_rect.position + Vector2(0.0, 49.0), '+', HORIZONTAL_ALIGNMENT_CENTER, slot_rect.size.x, 29, Color(SPIRIT_GLOW, 0.52 + empty_pulse * 0.18))
+		var key_center := slot_rect.position + Vector2(slot_rect.size.x * 0.5, slot_rect.size.y + 7.0)
+		draw_circle(key_center + Vector2(0.0, 2.0), 15.0, Color(NIGHT, 0.84))
+		draw_circle(key_center, 14.0, WALNUT)
+		draw_circle(key_center, 11.0, Color('172c38'))
+		draw_arc(key_center, 12.5, 0.0, TAU, 24, GOLD, 1.5)
+		draw_string(UI_FONT, key_center + Vector2(-10.0, 4.0), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 20.0, 11, PAPER_LIGHT)
+
+func _draw_composed_boss_plaque(hud_rect: Rect2) -> void:
+	var plaque_rect := Rect2(hud_rect.position + Vector2(784.0, 101.0), Vector2(224.0, 62.0))
+	var boss = _active_boss()
+	var border: Color = CINNABAR if boss != null else Color('5cb79b')
+	_draw_panel(plaque_rect, Color('151d2cf5'), border, 2.0, 14.0)
+	draw_line(plaque_rect.position + Vector2(58.0, 8.0), plaque_rect.position + Vector2(plaque_rect.size.x - 12.0, 8.0), Color(GOLD, 0.36), 1.0)
+	if boss != null:
+		_draw_texture_centered(ArtCatalog.UI_TEXTURES['boss'], plaque_rect.position + Vector2(34.0, 31.0), 50.0)
+		draw_string(UI_FONT, plaque_rect.position + Vector2(62.0, 29.0), '首领来袭', HORIZONTAL_ALIGNMENT_CENTER, 146.0, 18, Color('ff7a61'))
+		draw_string(UI_FONT, plaque_rect.position + Vector2(62.0, 49.0), '斩妖镇夜', HORIZONTAL_ALIGNMENT_CENTER, 146.0, 11, Color('d6b69b'))
+	else:
+		draw_circle(plaque_rect.position + Vector2(34.0, 31.0), 23.0, Color('153d3a'))
+		_draw_texture_centered(UI_ICON_SPIRIT, plaque_rect.position + Vector2(34.0, 31.0), 35.0)
+		draw_string(UI_FONT, plaque_rect.position + Vector2(62.0, 29.0), '夜巡中', HORIZONTAL_ALIGNMENT_CENTER, 146.0, 18, MINT)
+		draw_string(UI_FONT, plaque_rect.position + Vector2(62.0, 49.0), '桃灯未熄', HORIZONTAL_ALIGNMENT_CENTER, 146.0, 11, Color('b8cdbf'))
+
+func _active_boss():
+	for enemy in run.enemies:
+		if not enemy.dead and enemy.rank == 'boss':
+			return enemy
+	return null
+
 
 func _draw_weapon_slots(size: Vector2) -> void:
 	var rects: Array[Dictionary] = UiLayoutScript.get_weapon_slot_rects()
 	var selected_ids: Array[String] = run.synergies.selected_weapon_ids
 	var dock_w: float = rects.size() * 72.0 + (rects.size() - 1) * 12.0 + 36.0 if rects.size() > 0 else 452.0
 	var dock := Rect2(size.x * 0.5 - dock_w * 0.5, size.y - 92.0, dock_w, 82.0)
-	_draw_panel(dock, Color(PAPER, 0.98), INK, 3.0, 28.0)
+	_draw_panel(dock, Color(NIGHT, 0.97), ANTIQUE_GOLD, 3.0, 28.0)
 	_draw_panel(Rect2(dock.position + Vector2(14.0, -14.0), Vector2(100.0, 28.0)), CORAL, INK, 2.0, 14.0)
 	draw_string(UI_FONT, dock.position + Vector2(20.0, 5.0), '法器组', HORIZONTAL_ALIGNMENT_CENTER, 88.0, 12, PAPER_LIGHT)
 	for i in rects.size():
@@ -170,8 +317,8 @@ func _draw_weapon_slots(size: Vector2) -> void:
 		var rect := Rect2(data['x'], data['y'], data['w'], data['h'])
 		var weapon = run.weapons[i] if i < run.weapons.size() else null
 		var selected: bool = weapon != null and selected_ids.has(weapon.card['id'])
-		var fill: Color = Color('fff0c8') if weapon != null else Color('dcece4')
-		var border: Color = CORAL if selected else INK
+		var fill: Color = Color(PAPER, 0.98) if weapon != null else Color(NIGHT_MID, 0.92)
+		var border: Color = CORAL if selected else ANTIQUE_GOLD
 		_draw_panel(rect, fill, border, 3.0 if selected else 2.0, 18.0)
 		if selected:
 			draw_line(rect.position + Vector2(10.0, 5.0), rect.position + Vector2(rect.size.x - 10.0, 5.0), GOLD, 4.0)
@@ -179,7 +326,7 @@ func _draw_weapon_slots(size: Vector2) -> void:
 		draw_circle(rect.position + Vector2(rect.size.x - 10.0, 11.0), 11.0, INK)
 		draw_string(UI_FONT, rect.position + Vector2(rect.size.x - 18.0, 16.0), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 16.0, 11, PAPER_LIGHT)
 		if weapon == null:
-			draw_string(UI_FONT, rect.position + Vector2(0.0, 42.0), '+', HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 26, Color(JADE, 0.55))
+			draw_string(UI_FONT, rect.position + Vector2(0.0, 42.0), '+', HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 26, Color(SPIRIT_GLOW, 0.72))
 			continue
 		var id: String = weapon.card['id']
 		var icon_accent: Color = CARD_COLORS.get(id, MINT)
@@ -197,11 +344,11 @@ func _draw_boss_bar(size: Vector2) -> void:
 		return
 	var width: float = minf(540.0, size.x * 0.50)
 	var panel := Rect2((size.x - width) * 0.5, 100.0, width, 54.0)
-	_draw_panel(panel, Color('fff0dc'), PLUM, 3.0, 24.0)
+	_draw_panel(panel, Color('21162d'), CORAL, 3.0, 24.0)
 	_draw_card_corners(panel, Color(PLUM, 0.5))
 	# Boss medallion with flame ring
 	_draw_icon_badge(ArtCatalog.UI_TEXTURES['boss'], panel.position + Vector2(34.0, 27.0), 52.0, 38.0, PLUM, true)
-	draw_string(UI_FONT, panel.position + Vector2(66.0, 22.0), boss.name if not boss.name.is_empty() else '暗夜领主', HORIZONTAL_ALIGNMENT_LEFT, panel.size.x - 82.0, 14, PLUM)
+	draw_string(UI_FONT, panel.position + Vector2(66.0, 22.0), boss.name if not boss.name.is_empty() else '暗夜领主', HORIZONTAL_ALIGNMENT_LEFT, panel.size.x - 82.0, 14, PAPER_LIGHT)
 	var ratio: float = clampf(boss.hp / boss.maxHp, 0.0, 1.0)
 	_draw_bar(Rect2(panel.position + Vector2(66.0, 30.0), Vector2(panel.size.x - 82.0, 14.0)), ratio, PLUM if ratio > 0.5 else CORAL, Color('67364f'))
 	# Decorative skulls/dots along the bar
@@ -218,12 +365,12 @@ func _draw_task_panel(size: Vector2) -> void:
 	var type_names: Dictionary = {"guard": "镇守", "delivery": "护送", "bounty": "悬赏"}
 	var state_names: Dictionary = {"offered": "等待接取", "active": "进行中", "result": "已结束"}
 	var rect := Rect2(size.x - 248.0, 146.0, 230.0, 78.0)
-	_draw_panel(rect, Color('e0f8ee'), JADE, 2.0, 22.0)
+	_draw_panel(rect, Color(NIGHT_SOFT, 0.95), JADE, 2.0, 22.0)
 	_draw_card_corners(rect, Color(JADE, 0.35))
 	# Task header decoration
-	_draw_panel(Rect2(rect.position + Vector2(6.0, 6.0), Vector2(rect.size.x - 12.0, 26.0)), Color(JADE, 0.10), Color(JADE, 0.3), 1.0, 13.0)
+	_draw_panel(Rect2(rect.position + Vector2(6.0, 6.0), Vector2(rect.size.x - 12.0, 26.0)), Color(TEAL_DEEP, 0.82), Color(SPIRIT_GLOW, 0.34), 1.0, 13.0)
 	_draw_icon_badge(ArtCatalog.TASK_TEXTURES.get(task['type']), rect.position + Vector2(38.0, 46.0), 52.0, 38.0, MINT, task['state'] == 'active')
-	draw_string(UI_FONT, rect.position + Vector2(72.0, 24.0), '奇遇 · %s  T%d' % [type_names.get(task['type'], task['type']), task['tier']], HORIZONTAL_ALIGNMENT_LEFT, 148.0, 14, INK)
+	draw_string(UI_FONT, rect.position + Vector2(72.0, 24.0), '奇遇 · %s  T%d' % [type_names.get(task['type'], task['type']), task['tier']], HORIZONTAL_ALIGNMENT_LEFT, 148.0, 14, PAPER_LIGHT)
 	_draw_panel(Rect2(rect.position + Vector2(72.0, 42.0), Vector2(124.0, 25.0)), Color('fff6de'), JADE, 1.5, 13.0)
 	draw_string(UI_FONT, rect.position + Vector2(78.0, 60.0), state_names.get(task['state'], task['state']), HORIZONTAL_ALIGNMENT_CENTER, 112.0, 12, JADE)
 	# Active task pulse indicator
@@ -241,7 +388,7 @@ func _draw_inventory(size: Vector2) -> void:
 	if not entries.is_empty():
 		var height: float = 44.0 + entries.size() * 28.0
 		var rect := Rect2(16.0, 152.0, 196.0, height)
-		_draw_panel(rect, Color(PAPER, 0.96), INK, 2.0, 22.0)
+		_draw_panel(rect, Color(NIGHT_SOFT, 0.95), ANTIQUE_GOLD, 2.0, 22.0)
 		_draw_card_corners(rect, Color(GOLD, 0.35))
 		# Header decoration
 		_draw_panel(Rect2(rect.position + Vector2(6.0, 6.0), Vector2(rect.size.x - 12.0, 24.0)), Color(GOLD, 0.12), Color(GOLD, 0.4), 1.0, 12.0)
@@ -251,135 +398,132 @@ func _draw_inventory(size: Vector2) -> void:
 			var entry: Dictionary = entries[i]
 			var center := rect.position + Vector2(24.0, 50.0 + i * 28.0)
 			_draw_icon_badge(ArtCatalog.RARE_TEXTURES.get(entry['id']), center, 30.0, 22.0, GOLD)
-			draw_string(UI_FONT, rect.position + Vector2(44.0, 54.0 + i * 28.0), entry['label'], HORIZONTAL_ALIGNMENT_LEFT, 140.0, 12, INK)
+			draw_string(UI_FONT, rect.position + Vector2(44.0, 54.0 + i * 28.0), entry['label'], HORIZONTAL_ALIGNMENT_LEFT, 140.0, 12, PAPER_LIGHT)
 	var backpack: Array[String] = []
 	for id: String in run.tempBackpack:
 		if run.tempBackpack[id] > 0:
 			backpack.append('%s×%d' % [_material_name(id), run.tempBackpack[id]])
 	if not backpack.is_empty():
 		var copy := '临时行囊  ' + '  '.join(backpack)
-		_draw_panel(Rect2(size.x - 396.0, size.y - 44.0, 378.0, 30.0), Color('eee1f5'), PLUM, 1.5, 15.0)
+		_draw_panel(Rect2(size.x - 396.0, size.y - 44.0, 378.0, 30.0), Color(NIGHT_SOFT, 0.95), PLUM, 1.5, 15.0)
 		_draw_texture_centered(ArtCatalog.UI_TEXTURES['warehouse'], Vector2(size.x - 382.0, size.y - 29.0), 22.0)
-		draw_string(UI_FONT, Vector2(size.x - 368.0, size.y - 24.0), copy, HORIZONTAL_ALIGNMENT_RIGHT, 340.0, 11, PLUM)
+		draw_string(UI_FONT, Vector2(size.x - 368.0, size.y - 24.0), copy, HORIZONTAL_ALIGNMENT_RIGHT, 340.0, 11, PAPER_LIGHT)
 
 func _draw_choice(size: Vector2) -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.035, 0.13, 0.13, 0.78))
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.045, 0.10, 0.88))
 	var offers: Array = run.currentOffers
 	var rects: Array[Dictionary] = UiLayoutScript.get_card_rects(size.x, size.y, offers.size())
 	var top_y: float = rects[0]['y'] if not rects.is_empty() else size.y * 0.5
 	var title: String = '选择初始武器' if run.state == 'opening' else ('奇遇完成 · 选择奖励' if run.choiceOrigin == 'task' else '境界突破 · 选择一项强化')
-	var title_rect := Rect2(size.x * 0.5 - 260.0, top_y - 78.0, 520.0, 48.0)
-	_draw_panel(title_rect, Color(PAPER_LIGHT, 0.99), INK, 3.0, 24.0)
-	draw_string(UI_FONT, Vector2(title_rect.position.x, title_rect.position.y + 34.0), title, HORIZONTAL_ALIGNMENT_CENTER, title_rect.size.x, 28, INK)
-	var hint_rect := Rect2(size.x * 0.5 - 180.0, top_y - 24.0, 360.0, 22.0)
-	_draw_panel(hint_rect, Color('d8fff0'), JADE, 1.0, 11.0)
-	draw_string(UI_FONT, Vector2(hint_rect.position.x, hint_rect.position.y + 16.0), '点击卡牌或按数字键 1-%d' % offers.size(), HORIZONTAL_ALIGNMENT_CENTER, hint_rect.size.x, 12, JADE)
+	var compact_grid: bool = offers.size() > 3
+	var title_height: float = 44.0 if compact_grid else 58.0
+	var title_y: float = 3.0 if compact_grid else top_y - 100.0
+	var title_rect := Rect2(size.x * 0.5 - 220.0, title_y, 440.0, title_height)
+	_draw_panel(title_rect, Color('512b23f5'), Color('d49a46'), 3.0, 18.0)
+	draw_line(title_rect.position + Vector2(58.0, 9.0), title_rect.end - Vector2(58.0, title_rect.size.y - 9.0), Color('ffcf70aa'), 1.0)
+	_draw_texture_centered(UI_BLOSSOM_CLUSTER, title_rect.position + Vector2(28.0, 20.0), 54.0)
+	_draw_texture_centered(UI_BLOSSOM_CLUSTER, title_rect.end - Vector2(28.0, 18.0), 54.0, PI)
+	draw_string(UI_FONT, Vector2(title_rect.position.x, title_rect.position.y + (31.0 if compact_grid else 39.0)), title, HORIZONTAL_ALIGNMENT_CENTER, title_rect.size.x, 23 if compact_grid else 26, PAPER_LIGHT)
+	var hint_rect := Rect2(size.x * 0.5 - 180.0, 49.0 if compact_grid else top_y - 38.0, 360.0, 18.0 if compact_grid else 22.0)
+	_draw_panel(hint_rect, Color(TEAL_DEEP, 0.94), Color(SPIRIT_GLOW, 0.68), 1.0, hint_rect.size.y * 0.5)
+	draw_string(UI_FONT, Vector2(hint_rect.position.x, hint_rect.position.y + (14.0 if compact_grid else 17.0)), '点击卡牌或按数字键 1-%d' % offers.size(), HORIZONTAL_ALIGNMENT_CENTER, hint_rect.size.x, 11 if compact_grid else 12, SPIRIT_GLOW)
 	var mouse := Vector2(run.input.mouse_x, run.input.mouse_y)
 	for i in offers.size():
 		_draw_choice_card(offers[i], rects[i], mouse, i)
 
 func _draw_choice_card(offer: Dictionary, data: Dictionary, mouse: Vector2, index: int) -> void:
+	_draw_approved_choice_card(offer, data, mouse, index)
+
+
+func _draw_approved_choice_card(offer: Dictionary, data: Dictionary, mouse: Vector2, index: int) -> void:
 	var card: Dictionary = offer['card']
 	var id: String = card.get('id', '')
 	var hit_rect := Rect2(data['x'], data['y'], data['w'], data['h'])
 	var hover: bool = hit_rect.has_point(mouse)
-	var lift: float = -10.0 if hover else 0.0
-	var rect := Rect2(hit_rect.position + Vector2(0.0, lift), hit_rect.size)
+	var rect := Rect2(hit_rect.position + Vector2(0.0, -9.0 if hover else 0.0), hit_rect.size)
 	var accent: Color = CARD_COLORS.get(id, _type_color(offer.get('type', '')))
-	var card_radius: float = 26.0
-	# Outer glow on hover
 	if hover:
 		var glow := StyleBoxFlat.new()
-		glow.bg_color = Color(accent, 0.22)
-		glow.set_corner_radius_all(roundi(card_radius + 6.0))
-		draw_style_box(glow, Rect2(rect.position - Vector2(6.0, 6.0), rect.size + Vector2(12.0, 12.0)))
-	# Card shadow
+		glow.bg_color = Color(accent, 0.20)
+		glow.set_corner_radius_all(25)
+		draw_style_box(glow, Rect2(rect.position - Vector2(7.0, 7.0), rect.size + Vector2(14.0, 14.0)))
 	var shadow := StyleBoxFlat.new()
-	shadow.bg_color = Color(0.05, 0.12, 0.10, 0.42)
-	shadow.set_corner_radius_all(roundi(card_radius))
-	shadow.shadow_color = Color(0.03, 0.08, 0.06, 0.35)
-	shadow.shadow_size = 12 if hover else 8
-	shadow.shadow_offset = Vector2(0.0, 6.0 if hover else 4.0)
+	shadow.bg_color = Color(0.01, 0.02, 0.04, 0.82)
+	shadow.set_corner_radius_all(20)
+	shadow.shadow_color = Color(0.0, 0.0, 0.0, 0.68)
+	shadow.shadow_size = 8 if hover else 5
+	shadow.shadow_offset = Vector2(0.0, 4.0)
 	draw_style_box(shadow, rect)
-	# Card background
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = PAPER_LIGHT if hover else PAPER
-	bg.border_color = accent if hover else INK
-	bg.set_border_width_all(3 if hover else 2)
-	bg.set_corner_radius_all(roundi(card_radius))
-	bg.corner_detail = 12
-	draw_style_box(bg, rect)
-	# Inner highlight line
-	var highlight := StyleBoxFlat.new()
-	highlight.bg_color = Color.TRANSPARENT
-	highlight.border_color = Color(1.0, 1.0, 1.0, 0.5 if hover else 0.3)
-	highlight.set_border_width_all(1)
-	highlight.set_corner_radius_all(roundi(card_radius - 4.0))
-	draw_style_box(highlight, Rect2(rect.position + Vector2(4.0, 4.0), rect.size - Vector2(8.0, 8.0)))
-	# Header banner with accent color
-	var header_h: float = 48.0
-	var header_rect := Rect2(rect.position + Vector2(6.0, 6.0), Vector2(rect.size.x - 12.0, header_h))
-	var header_style := StyleBoxFlat.new()
-	header_style.bg_color = Color(accent, 0.28 if hover else 0.20)
-	header_style.set_corner_radius_all(roundi(card_radius - 8.0))
-	header_style.corner_detail_top_left = roundi(card_radius - 8.0)
-	header_style.corner_detail_top_right = roundi(card_radius - 8.0)
-	draw_style_box(header_style, header_rect)
-	# Card number badge
-	var badge_size: float = 34.0
-	var badge_pos := header_rect.position + Vector2(8.0, 7.0)
-	draw_circle(badge_pos + Vector2(badge_size * 0.5, badge_size * 0.5), badge_size * 0.5, INK)
-	draw_circle(badge_pos + Vector2(badge_size * 0.5, badge_size * 0.5), badge_size * 0.5 - 2.0, accent)
-	draw_string(UI_FONT, badge_pos + Vector2(2.0, 24.0), str(index + 1), HORIZONTAL_ALIGNMENT_CENTER, badge_size - 4.0, 15, PAPER_LIGHT)
-	# Type label in header
-	var type_text: String = TYPE_LABELS.get(offer.get('type', ''), '奖励')
-	draw_string(UI_FONT, header_rect.position + Vector2(badge_size + 14.0, 30.0), type_text, HORIZONTAL_ALIGNMENT_LEFT, header_rect.size.x - badge_size - 22.0, 13, INK)
-	# Hover cursor
-	if hover:
-		_draw_texture_centered(ArtCatalog.UI_TEXTURES['focusCursor'], header_rect.position + Vector2(header_rect.size.x - 18.0, 16.0), 36.0)
-	# Icon badge (larger, more prominent)
-	var icon_center_y: float = header_rect.position.y + header_h + 52.0
-	var icon_center := rect.position + Vector2(rect.size.x * 0.5, icon_center_y - rect.position.y)
-	var icon_badge_size: float = minf(120.0, rect.size.y * 0.30)
-	_draw_icon_badge(_choice_texture(id, offer.get('type', '')), icon_center, icon_badge_size, icon_badge_size * 0.70, accent, hover)
-	# Card name (larger, more prominent)
-	var name_y: float = icon_center_y + icon_badge_size * 0.5 + 12.0
-	draw_string(UI_FONT, rect.position + Vector2(12.0, name_y - rect.position.y), card.get('name', '未知奖励'), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 24.0, 22, INK)
-	# Decorative divider line
-	var divider_y: float = name_y + 8.0
-	var divider_w: float = rect.size.x * 0.6
-	var divider_x: float = rect.position.x + (rect.size.x - divider_w) * 0.5
-	draw_line(Vector2(divider_x, divider_y), Vector2(divider_x + divider_w, divider_y), Color(accent, 0.5), 1.5)
-	draw_circle(Vector2(divider_x, divider_y), 2.5, accent)
-	draw_circle(Vector2(divider_x + divider_w, divider_y), 2.5, accent)
-	# Level info pill
-	var level_y: float = divider_y + 10.0
-	var level_rect := Rect2(rect.position.x + (rect.size.x - 160.0) * 0.5, level_y, 160.0, 28.0)
-	_draw_panel(level_rect, Color('d8fff0'), JADE, 1.5, 14.0)
-	draw_string(UI_FONT, Vector2(level_rect.position.x + 4.0, level_rect.position.y + 20.0), _level_info(offer), HORIZONTAL_ALIGNMENT_CENTER, level_rect.size.x - 8.0, 12, JADE)
-	# Description text
-	var desc_y: float = level_rect.position.y + level_rect.size.y + 10.0
-	var lines: Array[String] = _wrap_text(card.get('desc', CARD_DESCRIPTIONS.get(id, '本局持续生效')), 15)
-	for line_index in mini(lines.size(), 2):
-		draw_string(UI_FONT, rect.position + Vector2(16.0, desc_y - rect.position.y + line_index * 17.0), lines[line_index], HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 32.0, 12, INK_SOFT)
-	# Action button at bottom
-	var btn_h: float = 30.0
-	var btn_y: float = rect.position.y + rect.size.y - btn_h - 10.0
-	var btn_rect := Rect2(rect.position.x + 20.0, btn_y, rect.size.x - 40.0, btn_h)
-	var btn_fill: Color = accent if hover else Color('fff0c8')
-	var btn_border: Color = INK
-	_draw_panel(btn_rect, btn_fill, btn_border, 2.0, 15.0)
-	if hover:
-		var btn_highlight := StyleBoxFlat.new()
-		btn_highlight.bg_color = Color.TRANSPARENT
-		btn_highlight.border_color = Color(1.0, 1.0, 1.0, 0.6)
-		btn_highlight.set_border_width_all(1)
-		btn_highlight.set_corner_radius_all(13)
-		draw_style_box(btn_highlight, Rect2(btn_rect.position + Vector2(2.0, 2.0), btn_rect.size - Vector2(4.0, 4.0)))
-	draw_string(UI_FONT, Vector2(btn_rect.position.x + 4.0, btn_rect.position.y + 21.0), '点击选择', HORIZONTAL_ALIGNMENT_CENTER, btn_rect.size.x - 8.0, 12, PAPER_LIGHT if hover else INK)
-	# Corner ornaments
-	_draw_card_corners(rect, Color(accent, 0.7 if hover else 0.4))
+	_draw_panel(rect, Color('14253af8'), accent if hover else Color('ba7d35'), 4.0 if hover else 3.0, 20.0)
+	var paper_rect := Rect2(rect.position + Vector2(9.0, 52.0), rect.size - Vector2(18.0, 61.0))
+	var paper_style := StyleBoxFlat.new()
+	paper_style.bg_color = Color('fff0cf') if hover else Color('f4dfb8')
+	paper_style.border_color = Color('6c452d')
+	paper_style.set_border_width_all(2)
+	paper_style.set_corner_radius_all(14)
+	draw_style_box(paper_style, paper_rect)
+	draw_texture_rect(CARD_PAPER_TILE, Rect2(paper_rect.position + Vector2(3.0, 3.0), paper_rect.size - Vector2(6.0, 6.0)), false, Color(1.0, 1.0, 1.0, 0.28))
+	var inner_line := StyleBoxFlat.new()
+	inner_line.bg_color = Color.TRANSPARENT
+	inner_line.border_color = Color('d6a45b88')
+	inner_line.set_border_width_all(1)
+	inner_line.set_corner_radius_all(15)
+	draw_style_box(inner_line, Rect2(rect.position + Vector2(5.0, 5.0), rect.size - Vector2(10.0, 10.0)))
 
+	var header_rect := Rect2(rect.position + Vector2(14.0, 9.0), Vector2(rect.size.x - 28.0, 48.0))
+	_draw_panel(header_rect, Color(accent.darkened(0.48), 0.98), Color('e0aa4e'), 2.0, 13.0)
+	draw_line(header_rect.position + Vector2(48.0, 7.0), header_rect.position + Vector2(header_rect.size.x - 12.0, 7.0), Color('ffd47aaa'), 1.0)
+	var header_text: String = '初始法器' if run.state == 'opening' else TYPE_LABELS.get(offer.get('type', ''), '奇遇奖励')
+	draw_string(UI_FONT, header_rect.position + Vector2(44.0, 32.0), header_text, HORIZONTAL_ALIGNMENT_CENTER, header_rect.size.x - 88.0, maxi(14, roundi(rect.size.x * 0.062)), PAPER_LIGHT)
+	var number_center := header_rect.position + Vector2(24.0, 24.0)
+	draw_circle(number_center, 17.0, WALNUT)
+	draw_circle(number_center, 13.0, accent)
+	draw_arc(number_center, 15.0, 0.0, TAU, 24, Color('ffd47a'), 1.0)
+	draw_string(UI_FONT, number_center + Vector2(-10.0, 5.0), str(index + 1), HORIZONTAL_ALIGNMENT_CENTER, 20.0, 13, PAPER_LIGHT)
+	if hover:
+		_draw_texture_centered(ArtCatalog.UI_TEXTURES['focusCursor'], header_rect.position + Vector2(header_rect.size.x - 21.0, 22.0), 31.0)
+
+	var tag_rect := Rect2(rect.end.x - 45.0, rect.position.y + 66.0, 31.0, 82.0)
+	_draw_panel(tag_rect, Color('166657f5') if offer.get('type', '') in ['upgrade', 'taskWeapon', 'taskBlessing'] else Color('8b3e31f5'), Color('d6a34e'), 2.0, 11.0)
+	draw_circle(tag_rect.position + Vector2(tag_rect.size.x * 0.5, 9.0), 3.0, GOLD)
+	var rarity_text: String = '初\n契' if run.state == 'opening' else ('精\n良' if offer.get('type', '') in ['upgrade', 'taskWeapon', 'taskBlessing'] else '奇\n遇')
+	var rarity_lines: PackedStringArray = rarity_text.replace('\\n', '\n').split('\n')
+	for tag_index in rarity_lines.size():
+		draw_string(UI_FONT, tag_rect.position + Vector2(0.0, 32.0 + tag_index * 24.0), rarity_lines[tag_index], HORIZONTAL_ALIGNMENT_CENTER, tag_rect.size.x, maxi(13, roundi(rect.size.x * 0.057)), PAPER_LIGHT)
+
+	var icon_center := rect.position + Vector2(rect.size.x * 0.50, rect.size.y * 0.30)
+	for aura_index in 3:
+		var aura_radius: float = rect.size.x * (0.18 + aura_index * 0.025)
+		draw_arc(icon_center, aura_radius, PI * 0.10, PI * 1.90, 32, Color(SPIRIT_GLOW, 0.22 - aura_index * 0.05), 2.0)
+	_draw_icon_badge(_choice_texture(id, offer.get('type', '')), icon_center, rect.size.x * 0.34, rect.size.x * 0.23, accent, hover)
+
+	var name_y: float = rect.position.y + rect.size.y * 0.52
+	draw_string(UI_FONT, Vector2(rect.position.x + 22.0, name_y), card.get('name', '未知奖励'), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 44.0, maxi(19, roundi(rect.size.x * 0.084)), INK)
+	var divider_y: float = rect.position.y + rect.size.y * 0.575
+	draw_line(Vector2(rect.position.x + rect.size.x * 0.18, divider_y), Vector2(rect.end.x - rect.size.x * 0.18, divider_y), Color(WALNUT, 0.52), 1.5)
+	draw_circle(Vector2(rect.get_center().x, divider_y), 3.0, ANTIQUE_GOLD)
+
+	var level_rect := Rect2(rect.position + Vector2(rect.size.x * 0.18, rect.size.y * 0.605), Vector2(rect.size.x * 0.64, rect.size.y * 0.088))
+	_draw_panel(level_rect, Color('e1eed4f5'), JADE, 1.0, level_rect.size.y * 0.5)
+	draw_string(UI_FONT, level_rect.position + Vector2(3.0, level_rect.size.y * 0.70), _level_info(offer), HORIZONTAL_ALIGNMENT_CENTER, level_rect.size.x - 6.0, maxi(12, roundi(rect.size.x * 0.052)), TEAL_DEEP)
+
+	var description: String = card.get('desc', CARD_DESCRIPTIONS.get(id, '本局持续生效'))
+	var lines: Array[String] = _wrap_text(description, 13 if rect.size.x < 250.0 else 15)
+	var desc_rect := Rect2(rect.position + Vector2(14.0, rect.size.y * 0.71), Vector2(rect.size.x - 28.0, rect.size.y * 0.13))
+	_draw_panel(desc_rect, Color('f8e7c9ed'), Color('9f714f99'), 1.0, 8.0)
+	var line_height: float = 19.0
+	var text_height: float = mini(lines.size(), 2) * line_height
+	var desc_y: float = desc_rect.position.y + (desc_rect.size.y - text_height) * 0.5 + 14.0
+	for line_index in mini(lines.size(), 2):
+		draw_string(UI_FONT, Vector2(desc_rect.position.x + 5.0, desc_y + line_index * line_height), lines[line_index], HORIZONTAL_ALIGNMENT_CENTER, desc_rect.size.x - 10.0, maxi(13, roundi(rect.size.x * 0.054)), INK)
+
+	var button_rect := Rect2(rect.position + Vector2(rect.size.x * 0.14, rect.size.y * 0.855), Vector2(rect.size.x * 0.72, rect.size.y * 0.105))
+	_draw_panel(button_rect, Color(accent.darkened(0.22)) if hover else Color('9e4a35'), Color('f0b553'), 2.0, button_rect.size.y * 0.5)
+	draw_line(button_rect.position + Vector2(13.0, 5.0), button_rect.position + Vector2(button_rect.size.x - 13.0, 5.0), Color('ffd27aaa'), 1.0)
+	draw_string(UI_FONT, button_rect.position + Vector2(0.0, button_rect.size.y * 0.72), '%d · 点击选择' % (index + 1), HORIZONTAL_ALIGNMENT_CENTER, button_rect.size.x, maxi(12, roundi(rect.size.x * 0.052)), PAPER_LIGHT)
+
+	_draw_texture_centered(CARD_CORNER_BLOSSOM, rect.position + Vector2(rect.size.x - 18.0, 18.0), 38.0, PI * 0.25)
+	_draw_texture_centered(CARD_CORNER_BLOSSOM, rect.end - Vector2(17.0, 19.0), 52.0, PI)
 
 func _draw_extraction(size: Vector2) -> void:
 	_draw_modal(size, "首领已伏", "此刻可携战利品安然撤离，亦可继续深入暗夜。", GOLD)
@@ -431,10 +575,11 @@ func _draw_summary(size: Vector2) -> void:
 
 
 func _draw_modal(size: Vector2, title: String, body: String, accent: Color) -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.035, 0.13, 0.13, 0.78))
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.045, 0.10, 0.88))
 	var rect := Rect2(size.x * 0.5 - 320.0, size.y * 0.5 - 154.0, 640.0, 308.0)
-	_draw_panel(rect, PAPER_LIGHT, INK, 3.0, 30.0)
-	_draw_panel(Rect2(rect.position + Vector2(190.0, 20.0), Vector2(260.0, 66.0)), Color(accent, 0.18), accent, 2.0, 26.0)
+	_draw_panel(rect, Color(NIGHT, 0.99), ANTIQUE_GOLD, 4.0, 30.0)
+	_draw_panel(Rect2(rect.position + Vector2(12.0, 12.0), rect.size - Vector2(24.0, 24.0)), PAPER_LIGHT, WALNUT, 2.0, 24.0)
+	_draw_panel(Rect2(rect.position + Vector2(190.0, 20.0), Vector2(260.0, 66.0)), Color(NIGHT_SOFT, 0.98), accent, 2.0, 26.0)
 	_draw_texture_centered(_modal_texture(title), rect.position + Vector2(rect.size.x * 0.5, 52.0), 66.0)
 	draw_string(UI_FONT, Vector2(rect.position.x, rect.position.y + 123.0), title, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 34, accent)
 	var lines: PackedStringArray = body.split('
@@ -443,7 +588,7 @@ func _draw_modal(size: Vector2, title: String, body: String, accent: Color) -> v
 		draw_string(UI_FONT, Vector2(rect.position.x + 30.0, rect.position.y + 166.0 + i * 31.0), lines[i], HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 60.0, 17, INK)
 
 func _draw_key_button(rect: Rect2, key: String, label: String, accent: Color) -> void:
-	_draw_panel(rect, Color(PAPER, 0.99), INK, 3.0, 20.0)
+	_draw_panel(rect, Color(PAPER, 0.99), ANTIQUE_GOLD, 3.0, 20.0)
 	_draw_panel(Rect2(rect.position + Vector2(9.0, 9.0), Vector2(48.0, rect.size.y - 18.0)), accent, INK, 2.0, 14.0)
 	draw_string(UI_FONT, rect.position + Vector2(12.0, 35.0), key, HORIZONTAL_ALIGNMENT_CENTER, 42.0, 13, PAPER_LIGHT)
 	draw_string(UI_FONT, rect.position + Vector2(63.0, 35.0), label, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 73.0, 17, INK)
@@ -466,7 +611,7 @@ func _draw_announcements(size: Vector2) -> void:
 
 func _draw_panel(rect: Rect2, fill: Color, border: Color, width: float = 1.0, radius: float = 18.0) -> void:
 	var shadow := StyleBoxFlat.new()
-	shadow.bg_color = Color(0.07, 0.16, 0.14, 0.28)
+	shadow.bg_color = Color(0.0, 0.02, 0.07, 0.56)
 	shadow.set_corner_radius_all(roundi(radius))
 	draw_style_box(shadow, Rect2(rect.position + Vector2(4.0, 6.0), rect.size))
 	var style := StyleBoxFlat.new()
@@ -486,7 +631,7 @@ func _draw_panel(rect: Rect2, fill: Color, border: Color, width: float = 1.0, ra
 func _draw_bar(rect: Rect2, ratio: float, fill: Color, background: Color) -> void:
 	var back := StyleBoxFlat.new()
 	back.bg_color = background
-	back.border_color = INK
+	back.border_color = WALNUT
 	back.set_border_width_all(1)
 	back.set_corner_radius_all(roundi(rect.size.y * 0.5))
 	draw_style_box(back, rect)
@@ -534,9 +679,9 @@ func _draw_icon_badge(texture: Texture2D, center: Vector2, badge_size: float, ic
 		draw_circle(badge_center, radius + 6.0, Color(CORAL, 0.20))
 		draw_circle(badge_center, radius + 4.0, Color(GOLD, 0.28))
 	# Shadow
-	draw_circle(badge_center + shadow_offset, radius + 1.5, Color(INK, 0.26))
+	draw_circle(badge_center + shadow_offset, radius + 1.5, Color(NIGHT, 0.58))
 	# Outer ring (thicker, more playful)
-	draw_circle(badge_center, radius, INK)
+	draw_circle(badge_center, radius, WALNUT)
 	# Accent ring (warm gradient feel)
 	draw_circle(badge_center, radius - 2.5, accent.lightened(0.08))
 	# Inner cream ring
@@ -549,11 +694,11 @@ func _draw_icon_badge(texture: Texture2D, center: Vector2, badge_size: float, ic
 	# Bottom charm decoration
 	if badge_size >= 36.0:
 		var charm_center := badge_center + Vector2(-radius * 0.60, radius * 0.52)
-		draw_circle(charm_center, maxf(3.5, radius * 0.15), INK)
+		draw_circle(charm_center, maxf(3.5, radius * 0.15), WALNUT)
 		draw_circle(charm_center, maxf(2.0, radius * 0.09), GOLD)
 	if badge_size >= 50.0:
 		var charm2 := badge_center + Vector2(radius * 0.62, radius * 0.48)
-		draw_circle(charm2, maxf(2.5, radius * 0.10), INK)
+		draw_circle(charm2, maxf(2.5, radius * 0.10), WALNUT)
 		draw_circle(charm2, maxf(1.5, radius * 0.06), Color(accent, 0.8))
 	# Golden ring for emphasized
 	if emphasized:

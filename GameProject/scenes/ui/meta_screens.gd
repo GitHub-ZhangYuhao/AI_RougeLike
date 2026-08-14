@@ -33,18 +33,26 @@ signal storage_sale_all_requested
 
 var run = null
 var _last_signature: String = ""
-var _button_styles: Dictionary = {}
+var _backdrop_layer: Control = null
+var _reference_menu: Control = null
 
 const INK: Color = Color('4b2f2a')
 const INK_SOFT: Color = Color('72524a')
 const CREAM: Color = Color('fff6de')
 const CREAM_DEEP: Color = Color('f3deae')
-const CORAL: Color = Color('ff6b5f')
-const CORAL_DARK: Color = Color('b73f3b')
-const MINT: Color = Color('78d6b2')
-const JADE: Color = Color('2a8f76')
-const HONEY: Color = Color('ffc65c')
-const PLUM: Color = Color('6e3f68')
+const CORAL: Color = Color('ef624f')
+const CORAL_DARK: Color = Color('9f352f')
+const MINT: Color = Color('79d9b7')
+const JADE: Color = Color('278f78')
+const JADE_DEEP: Color = Color('155a52')
+const HONEY: Color = Color('efb950')
+const PLUM: Color = Color('714766')
+const NIGHT: Color = Color('0d1729')
+const NIGHT_SOFT: Color = Color('172944')
+const NIGHT_MID: Color = Color('203a55')
+const WALNUT: Color = Color('4a2c24')
+const ANTIQUE_GOLD: Color = Color('b57b36')
+const SPIRIT_GLOW: Color = Color('79e1bd')
 
 @onready var dim: ColorRect = %Dim
 @onready var panel: PanelContainer = %Panel
@@ -64,6 +72,8 @@ const PLUM: Color = Color('6e3f68')
 
 
 func _ready() -> void:
+	_build_reference_menu()
+	_build_backdrop_decor()
 	_apply_theme()
 	%StartButton.pressed.connect(_on_start_pressed)
 	%ShopButton.pressed.connect(_on_shop_pressed)
@@ -102,9 +112,18 @@ func refresh(force: bool = false) -> void:
 	_clear_rows()
 	currency_icon.texture = ArtCatalog.PICKUP_TEXTURES["gem"]
 	currency_amount.text = "%d" % run.save.get("darkCrystals", 0)
+	if _reference_menu != null:
+		_reference_menu.set_currency(int(run.save.get("darkCrystals", 0)))
 	screen_medallion.visible = true
 
-	menu_buttons.visible = state == "menu"
+	var is_menu: bool = state == "menu"
+	if _reference_menu != null:
+		_reference_menu.visible = is_menu
+	panel.visible = not is_menu
+	dim.visible = not is_menu
+	if _backdrop_layer != null:
+		_backdrop_layer.visible = not is_menu
+	menu_buttons.visible = is_menu
 	action_buttons.visible = state != "menu"
 	%SellAllButton.visible = state == "storage"
 	match state:
@@ -157,7 +176,7 @@ func _build_menu() -> void:
 	var stats_label := Label.new()
 	stats_label.text = "桃源战绩   ·   累计 %d 局   ·   撤离 %d 次   ·   通关 %d 次   ·   最佳波数 %d" % [stats.get("runs", 0), stats.get("extractions", 0), stats.get("completions", 0), stats.get("bestWave", 0)]
 	stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stats_label.add_theme_color_override("font_color", INK)
+	stats_label.add_theme_color_override("font_color", CREAM_DEEP)
 	stats_label.add_theme_font_size_override("font_size", 14)
 	stats_margin.add_child(stats_label)
 	dynamic_rows.add_child(stats_panel)
@@ -208,69 +227,100 @@ func _build_storage() -> void:
 
 func _make_menu_feature(title: String, detail: String, icon: Texture2D, fill: Color, accent: Color) -> PanelContainer:
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(270.0, 116.0)
+	card.custom_minimum_size = Vector2(270.0, 188.0)
 	card.add_theme_stylebox_override("panel", _menu_feature_style(fill, accent))
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_top", 13)
 	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_bottom", 12)
+	margin.add_theme_constant_override("margin_bottom", 14)
 	card.add_child(margin)
-	var content := HBoxContainer.new()
+	var content := VBoxContainer.new()
 	content.alignment = BoxContainer.ALIGNMENT_CENTER
-	content.add_theme_constant_override("separation", 12)
+	content.add_theme_constant_override("separation", 7)
 	margin.add_child(content)
+	var icon_frame := PanelContainer.new()
+	icon_frame.custom_minimum_size = Vector2(104.0, 86.0)
+	icon_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	icon_frame.add_theme_stylebox_override("panel", _feature_icon_style(accent))
+	content.add_child(icon_frame)
 	var icon_rect := TextureRect.new()
-	icon_rect.custom_minimum_size = Vector2(66.0, 66.0)
+	icon_rect.custom_minimum_size = Vector2(88.0, 74.0)
 	icon_rect.texture = icon
 	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(icon_rect)
-	var copy := VBoxContainer.new()
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.alignment = BoxContainer.ALIGNMENT_CENTER
-	copy.add_theme_constant_override("separation", 4)
-	content.add_child(copy)
+	icon_frame.add_child(icon_rect)
+	var title_ribbon := PanelContainer.new()
+	title_ribbon.custom_minimum_size = Vector2(150.0, 34.0)
+	title_ribbon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	title_ribbon.add_theme_stylebox_override("panel", _feature_ribbon_style(accent))
+	content.add_child(title_ribbon)
 	var feature_title := Label.new()
 	feature_title.text = title
-	feature_title.add_theme_color_override("font_color", accent)
-	feature_title.add_theme_color_override("font_outline_color", CREAM)
-	feature_title.add_theme_constant_override("outline_size", 1)
-	feature_title.add_theme_font_size_override("font_size", 19)
-	copy.add_child(feature_title)
+	feature_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	feature_title.add_theme_color_override("font_color", CREAM)
+	feature_title.add_theme_font_size_override("font_size", 18)
+	title_ribbon.add_child(feature_title)
 	var detail_label := Label.new()
 	detail_label.text = detail
+	detail_label.custom_minimum_size = Vector2(226.0, 36.0)
+	detail_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	detail_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	detail_label.add_theme_color_override("font_color", INK)
 	detail_label.add_theme_font_size_override("font_size", 12)
-	copy.add_child(detail_label)
+	content.add_child(detail_label)
 	return card
 
 
 func _menu_feature_style(fill: Color, accent: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = fill
-	style.border_color = INK
-	style.set_border_width_all(3)
+	style.bg_color = fill.lightened(0.08)
+	style.border_color = WALNUT
+	style.set_border_width_all(4)
 	style.set_corner_radius_all(22)
-	style.shadow_color = Color(0.17, 0.10, 0.08, 0.2)
-	style.shadow_size = 7
-	style.shadow_offset = Vector2(0.0, 5.0)
+	style.shadow_color = Color(0.01, 0.03, 0.08, 0.48)
+	style.shadow_size = 10
+	style.shadow_offset = Vector2(0.0, 7.0)
 	style.content_margin_top = 4.0
 	style.content_margin_bottom = 4.0
 	return style
 
 
+func _feature_icon_style(accent: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(accent, 0.16)
+	style.border_color = Color(accent, 0.86)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(22)
+	style.shadow_color = Color(accent, 0.20)
+	style.shadow_size = 7
+	style.shadow_offset = Vector2(0.0, 3.0)
+	return style
+
+
+func _feature_ribbon_style(accent: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = accent.darkened(0.12)
+	style.border_color = WALNUT
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(12)
+	style.shadow_color = Color(0.10, 0.04, 0.03, 0.22)
+	style.shadow_size = 3
+	style.shadow_offset = Vector2(0.0, 2.0)
+	return style
+
+
 func _stats_pill_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color('d8fff0')
-	style.border_color = JADE
+	style.bg_color = Color(NIGHT_MID, 0.92)
+	style.border_color = Color(ANTIQUE_GOLD, 0.82)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(18)
-	style.shadow_color = Color(0.03, 0.18, 0.15, 0.16)
-	style.shadow_size = 4
-	style.shadow_offset = Vector2(0.0, 3.0)
+	style.shadow_color = Color(0.01, 0.03, 0.08, 0.34)
+	style.shadow_size = 6
+	style.shadow_offset = Vector2(0.0, 4.0)
 	return style
 
 
@@ -311,7 +361,7 @@ func _make_row(name: String, detail: String, action_text: String, enabled: bool,
 	button.custom_minimum_size = Vector2(100.0, 38.0)
 	button.text = action_text
 	button.disabled = not enabled
-	_apply_button_style(button)
+	_apply_button_style(button, "jade")
 	button.pressed.connect(action)
 	line.add_child(button)
 	return row
@@ -322,37 +372,78 @@ func _clear_rows() -> void:
 		child.free()
 
 
+
+func _build_reference_menu() -> void:
+	var script: GDScript = preload("res://scenes/ui/peach_night_menu.gd")
+	_reference_menu = Control.new()
+	_reference_menu.name = "PeachNightApprovedMenu"
+	_reference_menu.set_script(script)
+	add_child(_reference_menu)
+	move_child(_reference_menu, get_child_count() - 1)
+	_reference_menu.start_pressed.connect(_on_start_pressed)
+	_reference_menu.shop_pressed.connect(_on_shop_pressed)
+	_reference_menu.storage_pressed.connect(_on_storage_pressed)
+func _build_backdrop_decor() -> void:
+	_backdrop_layer = Control.new()
+	_backdrop_layer.name = "NightBackdropDecor"
+	_backdrop_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_backdrop_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_backdrop_layer)
+	move_child(_backdrop_layer, dim.get_index() + 1)
+	_add_backdrop_texture(ArtCatalog.ENVIRONMENT_TEXTURES["peachTreeLarge"], Rect2(-74.0, 238.0, 380.0, 430.0), Color(0.36, 0.48, 0.58, 0.58))
+	_add_backdrop_texture(ArtCatalog.ENVIRONMENT_TEXTURES["peachTreeMedium"], Rect2(1002.0, 256.0, 340.0, 390.0), Color(0.34, 0.46, 0.56, 0.56))
+	_add_backdrop_texture(ArtCatalog.ENVIRONMENT_TEXTURES["lanternPost"], Rect2(14.0, 378.0, 202.0, 270.0), Color(0.78, 0.64, 0.43, 0.72))
+	_add_backdrop_texture(ArtCatalog.ENVIRONMENT_TEXTURES["roadsideShrine"], Rect2(1082.0, 438.0, 190.0, 210.0), Color(0.58, 0.68, 0.62, 0.68))
+	_add_backdrop_texture(ArtCatalog.ENVIRONMENT_TEXTURES["fallenPetals"], Rect2(0.0, 0.0, 330.0, 230.0), Color(0.96, 0.56, 0.54, 0.38))
+	_add_backdrop_texture(ArtCatalog.ENVIRONMENT_TEXTURES["fallenPetals"], Rect2(950.0, 4.0, 330.0, 230.0), Color(0.96, 0.56, 0.54, 0.34))
+
+
+func _add_backdrop_texture(texture: Texture2D, rect: Rect2, tint: Color) -> void:
+	var decoration := TextureRect.new()
+	decoration.position = rect.position
+	decoration.size = rect.size
+	decoration.texture = texture
+	decoration.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	decoration.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	decoration.modulate = tint
+	decoration.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_backdrop_layer.add_child(decoration)
+
+
 func _apply_theme() -> void:
 	var ui_theme := Theme.new()
 	ui_theme.default_font = UI_FONT
 	theme = ui_theme
-	dim.color = Color(0.035, 0.13, 0.13, 0.72)
+	dim.color = Color(0.025, 0.055, 0.11, 0.91)
 	divider.texture = ArtCatalog.UI_TEXTURES["divider"]
+	divider.modulate = Color(0.92, 0.66, 0.42, 0.90)
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = CREAM
-	panel_style.border_color = INK
-	panel_style.set_border_width_all(3)
+	panel_style.bg_color = Color(NIGHT, 0.98)
+	panel_style.border_color = WALNUT
+	panel_style.set_border_width_all(5)
 	panel_style.set_corner_radius_all(32)
-	panel_style.shadow_color = Color(0.03, 0.13, 0.13, 0.48)
-	panel_style.shadow_size = 20
-	panel_style.shadow_offset = Vector2(0.0, 10.0)
+	panel_style.shadow_color = Color(0.0, 0.02, 0.07, 0.78)
+	panel_style.shadow_size = 24
+	panel_style.shadow_offset = Vector2(0.0, 12.0)
 	panel.add_theme_stylebox_override("panel", panel_style)
 	var header_style := StyleBoxFlat.new()
-	header_style.bg_color = Color('ffe8c1')
-	header_style.border_color = INK
+	header_style.bg_color = NIGHT_SOFT
+	header_style.border_color = ANTIQUE_GOLD
 	header_style.set_border_width_all(3)
 	header_style.set_corner_radius_all(24)
-	header_style.shadow_color = Color(0.17, 0.10, 0.08, 0.16)
-	header_style.shadow_size = 6
-	header_style.shadow_offset = Vector2(0.0, 4.0)
+	header_style.shadow_color = Color(0.0, 0.02, 0.07, 0.62)
+	header_style.shadow_size = 9
+	header_style.shadow_offset = Vector2(0.0, 5.0)
 	header_card.add_theme_stylebox_override("panel", header_style)
 	var currency_style := StyleBoxFlat.new()
-	currency_style.bg_color = Color('d8fff0')
-	currency_style.border_color = JADE
+	currency_style.bg_color = Color('f8ead0')
+	currency_style.border_color = JADE_DEEP
 	currency_style.set_border_width_all(3)
 	currency_style.set_corner_radius_all(22)
+	currency_style.shadow_color = Color(SPIRIT_GLOW, 0.18)
+	currency_style.shadow_size = 8
+	currency_style.shadow_offset = Vector2(0.0, 4.0)
 	currency_card.add_theme_stylebox_override("panel", currency_style)
-	_button_styles = _create_button_styles()
 	%StartButton.icon = ArtCatalog.UI_TEXTURES["buttonCrest"]
 	%ShopButton.icon = ArtCatalog.UI_TEXTURES["shop"]
 	%StorageButton.icon = ArtCatalog.UI_TEXTURES["warehouse"]
@@ -360,69 +451,84 @@ func _apply_theme() -> void:
 	%BackButton.icon = ArtCatalog.UI_TEXTURES["buttonCrest"]
 	for button: Button in [%StartButton, %ShopButton, %StorageButton, %SellAllButton, %BackButton]:
 		button.expand_icon = true
-		button.add_theme_constant_override("icon_max_width", 30)
-		_apply_button_style(button, button == %StartButton)
-	kicker_label.add_theme_color_override("font_color", CORAL_DARK)
-	title_label.add_theme_color_override("font_color", INK)
-	title_label.add_theme_color_override("font_outline_color", Color(CREAM, 0.96))
-	title_label.add_theme_constant_override("outline_size", 2)
-	subtitle_label.add_theme_color_override("font_color", INK)
-	currency_amount.add_theme_color_override("font_color", JADE)
-	footer_label.add_theme_color_override("font_color", INK_SOFT)
+		button.add_theme_constant_override("icon_max_width", 32)
+	_apply_button_style(%StartButton, "cinnabar")
+	_apply_button_style(%ShopButton, "jade")
+	_apply_button_style(%StorageButton, "paper")
+	_apply_button_style(%SellAllButton, "jade")
+	_apply_button_style(%BackButton, "paper")
+	kicker_label.add_theme_color_override("font_color", CORAL)
+	title_label.add_theme_color_override("font_color", CREAM)
+	title_label.add_theme_color_override("font_outline_color", Color(WALNUT, 0.98))
+	title_label.add_theme_constant_override("outline_size", 5)
+	subtitle_label.add_theme_color_override("font_color", Color('d8c7a9'))
+	currency_amount.add_theme_color_override("font_color", JADE_DEEP)
+	footer_label.add_theme_color_override("font_color", Color('c9b99f'))
 
 
-func _create_button_styles() -> Dictionary:
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color('fff0c8')
-	normal.border_color = INK
-	normal.set_border_width_all(3)
-	normal.set_corner_radius_all(20)
-	normal.shadow_color = Color(0.17, 0.10, 0.08, 0.2)
-	normal.shadow_size = 5
-	normal.shadow_offset = Vector2(0.0, 4.0)
-	var hover: StyleBoxFlat = normal.duplicate()
-	hover.bg_color = HONEY
-	hover.border_color = CORAL_DARK
-	var pressed: StyleBoxFlat = hover.duplicate()
-	pressed.bg_color = Color('f5aa45')
-	pressed.shadow_size = 1
+func _apply_button_style(button: Button, role: String = "paper") -> void:
+	var normal_fill: Color = Color('f6e6c4')
+	var hover_fill: Color = HONEY
+	var pressed_fill: Color = Color('d9973d')
+	var border: Color = WALNUT
+	var text_color: Color = INK
+	if role == "cinnabar":
+		normal_fill = CORAL
+		hover_fill = Color('ff8068')
+		pressed_fill = CORAL_DARK
+		border = Color('6d241f')
+		text_color = CREAM
+	elif role == "jade":
+		normal_fill = JADE_DEEP
+		hover_fill = JADE
+		pressed_fill = Color('0f4944')
+		border = Color('0a3735')
+		text_color = CREAM
+	var normal := _button_style_box(normal_fill, border, 7, Vector2(0.0, 5.0))
+	var hover := _button_style_box(hover_fill, ANTIQUE_GOLD, 10, Vector2(0.0, 5.0))
+	var pressed := _button_style_box(pressed_fill, border, 2, Vector2(0.0, 2.0))
 	var focus: StyleBoxFlat = hover.duplicate()
-	focus.shadow_color = Color(CORAL, 0.4)
-	focus.shadow_size = 8
+	focus.shadow_color = Color(SPIRIT_GLOW if role == "jade" else CORAL, 0.34)
+	focus.shadow_size = 12
 	var disabled: StyleBoxFlat = normal.duplicate()
-	disabled.bg_color = Color('ded8c7')
-	disabled.border_color = Color(INK, 0.45)
-	return {"normal": normal, "hover": hover, "pressed": pressed, "focus": focus, "disabled": disabled}
-
-
-func _apply_button_style(button: Button, prominent: bool = false) -> void:
-	for state: String in _button_styles:
-		var style: StyleBoxFlat = _button_styles[state].duplicate()
-		if prominent and state != "disabled":
-			style.bg_color = CORAL if state == "normal" else (Color('ff8b70') if state == "hover" or state == "focus" else CORAL_DARK)
-			style.border_color = INK
+	disabled.bg_color = Color('746e68')
+	disabled.border_color = Color(WALNUT, 0.58)
+	for state: String in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style: StyleBoxFlat = {"normal": normal, "hover": hover, "pressed": pressed, "focus": focus, "disabled": disabled}[state]
 		button.add_theme_stylebox_override(state, style)
-	button.add_theme_color_override("font_color", CREAM if prominent else INK)
-	button.add_theme_color_override("font_hover_color", CREAM if prominent else CORAL_DARK)
+	button.add_theme_color_override("font_color", text_color)
+	button.add_theme_color_override("font_hover_color", CREAM if role != "paper" else CORAL_DARK)
 	button.add_theme_color_override("font_pressed_color", CREAM)
-	button.add_theme_color_override("font_focus_color", CREAM if prominent else CORAL_DARK)
+	button.add_theme_color_override("font_focus_color", CREAM if role != "paper" else CORAL_DARK)
 	button.add_theme_color_override("icon_normal_color", Color.WHITE)
 	button.add_theme_color_override("icon_hover_color", Color.WHITE)
 	button.add_theme_color_override("icon_pressed_color", Color.WHITE)
 	button.add_theme_color_override("icon_disabled_color", Color(1.0, 1.0, 1.0, 0.42))
-	button.add_theme_color_override("font_disabled_color", Color(INK, 0.46))
-	button.add_theme_font_size_override("font_size", 17 if prominent else 16)
+	button.add_theme_color_override("font_disabled_color", Color(CREAM, 0.48))
+	button.add_theme_font_size_override("font_size", 18 if role == "cinnabar" else 16)
+
+
+func _button_style_box(fill: Color, border: Color, shadow_size: int, shadow_offset: Vector2) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_color = border
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(20)
+	style.shadow_color = Color(0.0, 0.02, 0.06, 0.46)
+	style.shadow_size = shadow_size
+	style.shadow_offset = shadow_offset
+	return style
 
 
 func _row_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color('fff0cf')
-	style.border_color = Color(INK, 0.82)
+	style.bg_color = Color('f7e7c8')
+	style.border_color = WALNUT
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(18)
-	style.shadow_color = Color(0.17, 0.10, 0.08, 0.12)
-	style.shadow_size = 4
-	style.shadow_offset = Vector2(0.0, 3.0)
+	style.shadow_color = Color(0.0, 0.02, 0.07, 0.42)
+	style.shadow_size = 7
+	style.shadow_offset = Vector2(0.0, 4.0)
 	return style
 
 

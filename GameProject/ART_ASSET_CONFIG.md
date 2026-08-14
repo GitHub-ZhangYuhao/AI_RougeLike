@@ -22,7 +22,7 @@
 - 正式关卡：4096×4096 草甸地形、确定性地图边界和环境装饰均已挂入主场景。
 - 正式世界表现：`WorldArtView` 已取代 `PlaceholderWorld`，接管敌人、Boss、弹道、掉落、召唤物、任务信标、武器范围与战斗 VFX。
 - 正式玩家表现：主游戏已恢复 `AnimatedSprite2D` 的 Idle / Move / Dead 八方向动画状态机，`player_static.png` 仅作为资源缺失时的回退。
-- 正式 UI：HUD、卡牌、Boss、任务、稀有物、模态框、主菜单、商城、仓库与 Debug 已统一为现代 Q 版圆角卡片体系，并完成焦点/悬停/按下/禁用状态。
+- 正式 UI：主菜单已切换为批准的桃夜巡 B+A 视觉稿；局内 HUD 与开局/升级卡牌使用桃夜巡原子资源动态拼装，商城、仓库、模态框与 Debug 保留现代 Q 版组件体系，并完成焦点/悬停/按下/禁用状态。
 - 正式字体：`Noto Sans SC` 与 OFL 许可已进入工程并应用于游戏内 UI 和 Meta UI。
 - 剩余缺口：正式音频、可选的玩家逐帧动画升级、实体视图对象池与 140 敌人压力检查。
 
@@ -53,8 +53,10 @@ ArtAsset/ 或 Experimental/
 | 掉落与稀有物 | 已配置 | `assets/icons/pickup_*.png`、`rare_*.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 召唤物与任务 | 已配置 | `assets/icons/summon_*.png`、`task_*.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 战斗 VFX | 已配置 | `assets/vfx/*.png` | `art_catalog.gd`、`world_art_view.gd` |
-| 现代 Q 版 UI 图形 | 已配置 | `assets/ui/modern/*.svg`、`*.png`（13 类）与统一圆章绘制 | `art_catalog.gd`、`game_overlay.gd`、`meta_screens.gd`、`debug_overlay.gd` |
-| 品牌吉祥物 | 已配置 | `assets/ui/modern/brand_mascot.png` | `scenes/ui/meta_screens.gd` |
+| 现代 Q 版 UI 图形 | 已配置 | `assets/ui/modern/*.svg`、`*.png`（13 类）与统一圆章绘制 | `art_catalog.gd`、`meta_screens.gd`、`debug_overlay.gd` |
+| 桃夜巡主菜单 | 已配置 | `assets/ui/peach_night/menu_bg_exact.png`、三类按钮切片 | `scenes/ui/peach_night_menu.gd`、`meta_screens.gd` |
+| 桃夜巡局内原子 UI | 已配置 | `assets/ui/peach_night/atomic/` 的背板、边框、头像、状态条、图标、花饰、法器槽、标签和纸张纹理 | `scenes/game/game_overlay.gd`、`logic/ui_layout.gd` |
+| 品牌吉祥物 | 已配置（回退保留） | `assets/ui/modern/brand_mascot.png` | `scenes/ui/meta_screens.gd` 的非桃夜巡界面 |
 | 中文字体 | 已配置 | `assets/fonts/noto_sans_sc.ttf`、`OFL.txt` | `game_overlay.gd`、`meta_screens.tscn` |
 | Debug Runtime/Overlay | 已配置 | Godot Control | `logic/debug_runtime.gd`、`scenes/game/debug_overlay.gd/.tscn` |
 
@@ -92,10 +94,10 @@ ArtAsset/ 或 Experimental/
 
 | 界面 | 状态 | 正式化内容 |
 | --- | --- | --- |
-| 基础 HUD | 已配置 | 现代圆角玩家卡、波次卡、讨妖簿、六格法器 Dock、Boss、任务、稀有物与统计；武器/任务/掉落统一使用深褐描边、奶油内底、主题色外圈与软阴影圆章 |
-| 开局/升级/任务奖励卡牌 | 已配置 | 大尺寸圆角卡、类型色边框、图标圆章、胶囊 CTA、焦点光标、悬停反馈、中文字体和快捷键提示 |
+| 基础 HUD | 已配置 | 桃夜巡深蓝金边底部壳体由原子资源和程序化面板拼装；头像环、等级、XP/生命/波次、守夜时间、暗晶、暂停、三格法器、首领状态与击破统计分区清晰，法器视觉槽和点击命中区域一致 |
+| 开局/升级/任务奖励卡牌 | 已配置 | 桃夜巡宣纸卡由纸张纹理、边框、标题牌、编号、品质签、图标灵火环、等级胶囊、描述板、选择按钮和桃花角饰拼装；六卡开局、三卡升级与 hover 上浮间距已复核 |
 | 撤离、死亡、结算 | 已配置 | medallion、按钮 crest、收益/损失汇总和键鼠操作提示 |
-| 主菜单 | 已配置 | 吉祥物 Header、暗晶卡、桃源战绩胶囊、三张功能卡与珊瑚主按钮，包含完整 normal/hover/pressed/focus/disabled 状态 |
+| 主菜单 | 已配置 | 按批准的桃夜巡 B+A 稿像素级还原背景、暗晶计数和商城/开始巡守/仓库热区，保留动态数值和交互反馈 |
 | 商城/仓库 | 已配置 | 现代 medallion、圆角列表卡、动态行图标、购买/出售状态和中文字体 |
 | Boss/任务提示 | 已配置 | Boss medallion、Boss 条、任务正式图标、世界信标与 HUD 卡片 |
 | Debug Overlay | 已配置 | 薄荷胶囊入口、奶油白圆角控制台、珊瑚标题与统一输入控件；保留自动暂停/恢复、F2/Esc/遮罩关闭及全部调试能力 |
@@ -115,6 +117,10 @@ ArtAsset/ 或 Experimental/
 - 独立预览：`scenes/game/art_ground_preview.tscn`，打开后按 `F6`。
 - `Polygon2D.texture` 和 2048×2048 像素 UV 必须保留，否则 Godot 4.7.1 会向 CanvasItem Shader 传递全零 UV，地形会退化成单色。
 
+### 8.3 桃夜巡 UI 原子化约束
+
+局内 HUD 和卡牌禁止使用整张大图覆盖动态内容。运行时以 `assets/ui/peach_night/atomic/` 中的独立切片为基础，由 `game_overlay.gd` 根据当前生命、经验、波次、货币、法器和选卡状态动态拼装；布局命中矩形统一由 `logic/ui_layout.gd` 提供。主菜单因批准稿要求保留整幅背景还原，但按钮与暗晶数值仍以独立交互层覆盖。
+
 ## 9. 尚未完成的正式资源
 
 | 类别 | 未完成内容 | 后续入口 |
@@ -131,6 +137,7 @@ ArtAsset/ 或 Experimental/
 | 地形材质 | `scenes/game/art_ground_preview.tscn` | 打开后按 `F6` |
 | 玩家动画独立预览 | `scenes/game/player_animation_preview.tscn` | 打开后按 `F6`；主游戏已使用同一 SpriteFrames 管线 |
 | 正式 Meta UI | `scenes/ui/meta_screens.tscn` | 已挂入主游戏，可单独检查布局 |
+| 桃夜巡局内 UI | `scenes/main.tscn` | 已人工复核底部 HUD、法器 hover/选中、六卡开局、三卡升级及卡牌 hover 上浮状态 |
 | Godot smoke | `res://tools/run_smoke.gd` | `Godot --headless --path GameProject --script res://tools/run_smoke.gd` |
 | 当前分支全量回归 | Godot import + Godot smoke + `npm run smoke` | 从仓库根目录分别运行；当前 `main` 未包含规则中提到的 `verify.ps1` |
 
