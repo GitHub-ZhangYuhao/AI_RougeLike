@@ -45,7 +45,7 @@ ArtAsset/ 或 Experimental/
 
 | 类别 | 状态 | 运行时资源 | 配置/绑定位置 |
 | --- | --- | --- | --- |
-| 草甸地形 | 已配置 | `assets/ground_*.png`、`ground_visual_*.tres` | `scenes/game/meadow_level.tscn` |
+| 草甸地形 | 已配置 | `assets/terrain/ground_*_crisp.webp`、`assets/ground_visual.gdshader`、`ground_visual_material.tres` | `scenes/game/meadow_level.tscn` |
 | 环境装饰 | 已配置 | `assets/environment/*.png` | `scenes/game/meadow_decor.gd`、`meadow_level.tscn` |
 | 玩家 | 已配置（回退保留） | `assets/sprites/player/player_static.png`；旧 `idle/walk_*.png` | `scenes/game/player_view.gd/.tscn` |
 | 七类敌人与 Boss | 已配置 | `assets/sprites/enemies/*.png` | `scenes/art_catalog.gd`、`scenes/game/world_art_view.gd` |
@@ -53,7 +53,7 @@ ArtAsset/ 或 Experimental/
 | 掉落与稀有物 | 已配置 | `assets/icons/pickup_*.png`、`rare_*.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 召唤物与任务 | 已配置 | `assets/icons/summon_*.png`、`task_*.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 战斗 VFX | 已配置 | `assets/vfx/*.png` | `art_catalog.gd`、`world_art_view.gd` |
-| 现代 Q 版 UI 图形 | 已配置 | `assets/ui/modern/*.svg`、`*.png`（13 类） | `art_catalog.gd`、`game_overlay.gd`、`meta_screens.gd`、`debug_overlay.gd` |
+| 现代 Q 版 UI 图形 | 已配置 | `assets/ui/modern/*.svg`、`*.png`（13 类）与统一圆章绘制 | `art_catalog.gd`、`game_overlay.gd`、`meta_screens.gd`、`debug_overlay.gd` |
 | 品牌吉祥物 | 已配置 | `assets/ui/modern/brand_mascot.png` | `scenes/ui/meta_screens.gd` |
 | 中文字体 | 已配置 | `assets/fonts/noto_sans_sc.ttf`、`OFL.txt` | `game_overlay.gd`、`meta_screens.tscn` |
 | Debug Runtime/Overlay | 已配置 | Godot Control | `logic/debug_runtime.gd`、`scenes/game/debug_overlay.gd/.tscn` |
@@ -71,6 +71,8 @@ ArtAsset/ 或 Experimental/
 5. `MetaScreens` / `DebugOverlay`：局外 UI 与调试界面。
 
 `scenes/game/placeholder_world_view.gd` 仅保留为开发回退，不再被 `scenes/main.tscn` 正式引用。
+
+草甸地形使用四张 2048×2048 无缝锐化 WebP，通过文本 Shader 以局部地形坐标混合草地、浅径、泥地和苔石；开启 mipmap 与各向异性线性过滤，避免大地图拉伸造成的模糊，同时消除旧 VisualShader 混合链失效与 UV 分块问题。
 
 ## 6. 世界资源覆盖
 
@@ -90,7 +92,7 @@ ArtAsset/ 或 Experimental/
 
 | 界面 | 状态 | 正式化内容 |
 | --- | --- | --- |
-| 基础 HUD | 已配置 | 现代圆角玩家卡、波次卡、讨妖簿、六格法器 Dock、Boss、任务、稀有物与统计；武器/任务/掉落均使用正式图标 |
+| 基础 HUD | 已配置 | 现代圆角玩家卡、波次卡、讨妖簿、六格法器 Dock、Boss、任务、稀有物与统计；武器/任务/掉落统一使用深褐描边、奶油内底、主题色外圈与软阴影圆章 |
 | 开局/升级/任务奖励卡牌 | 已配置 | 大尺寸圆角卡、类型色边框、图标圆章、胶囊 CTA、焦点光标、悬停反馈、中文字体和快捷键提示 |
 | 撤离、死亡、结算 | 已配置 | medallion、按钮 crest、收益/损失汇总和键鼠操作提示 |
 | 主菜单 | 已配置 | 吉祥物 Header、暗晶卡、桃源战绩胶囊、三张功能卡与珊瑚主按钮，包含完整 normal/hover/pressed/focus/disabled 状态 |

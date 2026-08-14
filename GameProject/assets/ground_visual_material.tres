@@ -1,6 +1,23 @@
-[gd_resource type="ShaderMaterial" format=3 uid="uid://del68k0v17v83"]
+[gd_resource type="ShaderMaterial" load_steps=6 format=3]
 
-[ext_resource type="Shader" uid="uid://bqfch5doa24c4" path="res://assets/ground_visual_shader.tres" id="1_rugbr"]
+[ext_resource type="Shader" path="res://assets/ground_visual.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/terrain/ground_grass_crisp.webp" id="2_grass"]
+[ext_resource type="Texture2D" path="res://assets/terrain/ground_grass_path_crisp.webp" id="3_grass_mix"]
+[ext_resource type="Texture2D" path="res://assets/terrain/ground_dirt_crisp.webp" id="4_dirt"]
+[ext_resource type="Texture2D" path="res://assets/terrain/ground_stone_crisp.webp" id="7_stone_moss"]
 
 [resource]
-shader = ExtResource("1_rugbr")
+shader = ExtResource("1_shader")
+shader_parameter/grass_primary = ExtResource("2_grass")
+shader_parameter/grass_path_mix = ExtResource("3_grass_mix")
+shader_parameter/dirt_soft = ExtResource("4_dirt")
+shader_parameter/stone_moss = ExtResource("7_stone_moss")
+shader_parameter/terrain_scale = 1.55
+shader_parameter/macro_scale = 4.8
+shader_parameter/dirt_amount = 0.3
+shader_parameter/stone_amount = 0.08
+shader_parameter/detail_contrast = 1.1
+shader_parameter/saturation = 1.02
+shader_parameter/terrain_tint = Color(0.9, 0.97, 0.88, 1)
+shader_parameter/tint_strength = 0.1
+shader_parameter/overall_tint = Color(0.78, 0.84, 0.76, 1)

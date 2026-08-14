@@ -145,7 +145,8 @@ func _draw_weapon_slots(size: Vector2) -> void:
 			draw_string(UI_FONT, rect.position + Vector2(0.0, 38.0), '+', HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 22, Color(JADE, 0.55))
 			continue
 		var id: String = weapon.card['id']
-		_draw_texture_centered(ArtCatalog.WEAPON_ICONS.get(id), rect.position + Vector2(rect.size.x * 0.5, 27.0), 43.0)
+		var icon_accent: Color = CARD_COLORS.get(id, MINT)
+		_draw_icon_badge(ArtCatalog.WEAPON_ICONS.get(id), rect.position + Vector2(rect.size.x * 0.5, 27.0), 46.0, 34.0, icon_accent, selected)
 		draw_string(UI_FONT, rect.position + Vector2(0.0, rect.size.y - 7.0), 'Lv%d' % weapon.level, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 10, CORAL_DARK if selected else INK)
 
 func _draw_boss_bar(size: Vector2) -> void:
@@ -159,7 +160,7 @@ func _draw_boss_bar(size: Vector2) -> void:
 	var width: float = minf(520.0, size.x * 0.48)
 	var panel := Rect2((size.x - width) * 0.5, 98.0, width, 48.0)
 	_draw_panel(panel, Color('fff0dc'), PLUM, 3.0, 22.0)
-	_draw_texture_centered(ArtCatalog.UI_TEXTURES['boss'], panel.position + Vector2(30.0, 24.0), 50.0)
+	_draw_icon_badge(ArtCatalog.UI_TEXTURES['boss'], panel.position + Vector2(30.0, 24.0), 46.0, 34.0, PLUM, true)
 	draw_string(UI_FONT, panel.position + Vector2(58.0, 20.0), boss.name if not boss.name.is_empty() else '暗夜领主', HORIZONTAL_ALIGNMENT_LEFT, panel.size.x - 74.0, 13, PLUM)
 	var ratio: float = clampf(boss.hp / boss.maxHp, 0.0, 1.0)
 	_draw_bar(Rect2(panel.position + Vector2(58.0, 27.0), Vector2(panel.size.x - 74.0, 12.0)), ratio, PLUM if ratio > 0.5 else CORAL, Color('67364f'))
@@ -172,7 +173,7 @@ func _draw_task_panel(size: Vector2) -> void:
 	var state_names: Dictionary = {"offered": "等待接取", "active": "进行中", "result": "已结束"}
 	var rect := Rect2(size.x - 242.0, 184.0, 224.0, 72.0)
 	_draw_panel(rect, Color('e0f8ee'), JADE, 2.0, 20.0)
-	_draw_texture_centered(ArtCatalog.TASK_TEXTURES.get(task['type']), rect.position + Vector2(36.0, 36.0), 50.0)
+	_draw_icon_badge(ArtCatalog.TASK_TEXTURES.get(task['type']), rect.position + Vector2(36.0, 36.0), 54.0, 39.0, MINT, task['state'] == 'active')
 	draw_string(UI_FONT, rect.position + Vector2(68.0, 29.0), '奇遇 · %s  T%d' % [type_names.get(task['type'], task['type']), task['tier']], HORIZONTAL_ALIGNMENT_LEFT, 142.0, 15, INK)
 	_draw_panel(Rect2(rect.position + Vector2(68.0, 39.0), Vector2(118.0, 23.0)), Color('fff6de'), JADE, 1.0, 12.0)
 	draw_string(UI_FONT, rect.position + Vector2(73.0, 56.0), state_names.get(task['state'], task['state']), HORIZONTAL_ALIGNMENT_CENTER, 108.0, 11, JADE)
@@ -191,7 +192,7 @@ func _draw_inventory(size: Vector2) -> void:
 		for i in entries.size():
 			var entry: Dictionary = entries[i]
 			var center := rect.position + Vector2(24.0, 47.0 + i * 26.0)
-			_draw_texture_centered(ArtCatalog.RARE_TEXTURES.get(entry['id']), center, 25.0)
+			_draw_icon_badge(ArtCatalog.RARE_TEXTURES.get(entry['id']), center, 28.0, 20.0, GOLD)
 			draw_string(UI_FONT, rect.position + Vector2(42.0, 51.0 + i * 26.0), entry['label'], HORIZONTAL_ALIGNMENT_LEFT, 136.0, 12, INK)
 	var backpack: Array[String] = []
 	for id: String in run.tempBackpack:
@@ -234,10 +235,8 @@ func _draw_choice(size: Vector2) -> void:
 		if hover:
 			_draw_texture_centered(ArtCatalog.UI_TEXTURES['focusCursor'], rect.position + Vector2(rect.size.x - 14.0, 13.0), 34.0)
 		var sigil_center := rect.position + Vector2(rect.size.x * 0.5, rect.size.y * 0.34)
-		var sigil_radius: float = minf(50.0, rect.size.y * 0.18)
-		draw_circle(sigil_center, sigil_radius, Color(accent, 0.18))
-		draw_arc(sigil_center, sigil_radius, 0.0, TAU, 32, Color(accent, 0.88), 3.0)
-		_draw_texture_centered(_choice_texture(id, offer.get('type', '')), sigil_center, minf(96.0, rect.size.y * 0.32))
+		var badge_size: float = minf(108.0, rect.size.y * 0.36)
+		_draw_icon_badge(_choice_texture(id, offer.get('type', '')), sigil_center, badge_size, badge_size * 0.68, accent, hover)
 		draw_string(UI_FONT, rect.position + Vector2(10.0, rect.size.y * 0.58), card.get('name', '未知奖励'), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 20.0, 22, INK)
 		var level_rect := Rect2(rect.position + Vector2(34.0, rect.size.y * 0.62), Vector2(rect.size.x - 68.0, 27.0))
 		_draw_panel(level_rect, Color('d8fff0'), JADE, 1.0, 14.0)
@@ -369,6 +368,29 @@ func _draw_card_corners(rect: Rect2, color: Color) -> void:
 	_draw_texture_centered(texture, rect.position + Vector2(rect.size.x - 18.0, 18.0), 46.0, PI * 0.5, Color(1.0, 1.0, 1.0, alpha))
 	_draw_texture_centered(texture, rect.position + Vector2(rect.size.x - 18.0, rect.size.y - 18.0), 46.0, PI, Color(1.0, 1.0, 1.0, alpha))
 	_draw_texture_centered(texture, rect.position + Vector2(18.0, rect.size.y - 18.0), 46.0, -PI * 0.5, Color(1.0, 1.0, 1.0, alpha))
+
+
+func _draw_icon_badge(texture: Texture2D, center: Vector2, badge_size: float, icon_size: float, accent: Color, emphasized: bool = false) -> void:
+	var radius: float = badge_size * 0.5
+	var lift: Vector2 = Vector2(0.0, -2.0) if emphasized else Vector2.ZERO
+	var badge_center: Vector2 = center + lift
+	var shadow_offset := Vector2(0.0, maxf(2.0, badge_size * 0.055))
+	draw_circle(badge_center + shadow_offset, radius + 1.5, Color(INK, 0.22))
+	if emphasized:
+		draw_circle(badge_center, radius + 4.0, Color(CORAL, 0.28))
+	draw_circle(badge_center, radius, INK)
+	draw_circle(badge_center, radius - 3.0, accent.lightened(0.04))
+	draw_circle(badge_center, radius - 7.0, PAPER_LIGHT)
+	draw_circle(badge_center + Vector2(0.0, 1.0), radius - 10.0, Color('fff2d0'))
+	var arc_radius: float = maxf(3.0, radius - 11.0)
+	draw_arc(badge_center + Vector2(0.0, -1.0), arc_radius, PI * 1.12, PI * 1.88, 18, Color(1.0, 1.0, 1.0, 0.78), maxf(1.0, badge_size * 0.025))
+	if badge_size >= 40.0:
+		var charm_center := badge_center + Vector2(-radius * 0.63, radius * 0.54)
+		draw_circle(charm_center, maxf(3.0, radius * 0.14), INK)
+		draw_circle(charm_center, maxf(1.5, radius * 0.08), GOLD)
+	if emphasized:
+		draw_arc(badge_center, radius + 1.5, PI * 0.08, PI * 0.92, 18, GOLD, maxf(2.0, badge_size * 0.035))
+	_draw_texture_centered(texture, badge_center + Vector2(0.0, 1.0), icon_size)
 
 
 func _draw_texture_centered(texture: Texture2D, center: Vector2, display_size: float, rotation: float = 0.0, modulate: Color = Color.WHITE) -> void:
