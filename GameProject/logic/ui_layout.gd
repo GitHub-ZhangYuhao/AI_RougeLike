@@ -33,11 +33,11 @@ static func get_card_rects(view_w: float, view_h: float, count: int) -> Array[Di
 
 static func get_weapon_slot_rects() -> Array[Dictionary]:
     var rects: Array[Dictionary] = []
-    var slot_w: float = 82.0
-    var slot_h: float = 74.0
-    var gap: float = 12.0
+    var slot_w: float = 70.0
+    var slot_h: float = 62.0
+    var gap: float = 10.0
     var total: float = Config.CONFIG["cards"]["maxWeaponSlots"] * slot_w + (Config.CONFIG["cards"]["maxWeaponSlots"] - 1) * gap
     var start_x: float = (1280.0 - total) * 0.5
     for i in Config.CONFIG["cards"]["maxWeaponSlots"]:
-        rects.append({"x": start_x + i * (slot_w + gap), "y": 620.0, "w": slot_w, "h": slot_h})
+        rects.append({"x": start_x + i * (slot_w + gap), "y": 638.0, "w": slot_w, "h": slot_h})
     return rects
