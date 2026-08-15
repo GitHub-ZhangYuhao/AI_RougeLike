@@ -38,6 +38,7 @@ var player
 var camera
 var input
 var enemies: Array = []
+var viewport_size: Vector2 = Vector2(1280, 720)
 var projectiles: Array = []
 var hostileProjectiles: Array = []
 var trails: Array[Dictionary] = []
@@ -544,7 +545,7 @@ func _world() -> Dictionary:
 func _handle_weapon_build_click() -> bool:
     if not input.mouse_clicked():
         return false
-    var rects: Array[Dictionary] = UiLayoutScript.get_weapon_slot_rects()
+    var rects: Array[Dictionary] = UiLayoutScript.get_weapon_slot_rects(viewport_size.x, viewport_size.y)
     for i in mini(rects.size(), weapons.size()):
         var rect: Dictionary = rects[i]
         if input.mouse_x >= rect["x"] and input.mouse_x <= rect["x"] + rect["w"] and input.mouse_y >= rect["y"] and input.mouse_y <= rect["y"] + rect["h"]:

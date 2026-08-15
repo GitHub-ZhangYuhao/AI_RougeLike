@@ -99,20 +99,20 @@ func _run_scaffold_checks() -> void:
     _check_events()
 
 
-# CONFIG 抽样：与 RULES.md 附录 A / js/config.js 对照。
+# CONFIG 抽样：与 BALANCE.md / js/config.js 对照。
 func _check_config() -> void:
     var cfg: Dictionary = Config.CONFIG
     check(cfg["player"]["radius"] == 14, "[M0] CONFIG.player.radius == 14")
     check(cfg["player"]["hurtIFrames"] == 0.8, "[M0] CONFIG.player.hurtIFrames == 0.8")
     check(cfg["camera"]["lerp"] == 8, "[M0] CONFIG.camera.lerp == 8")
-    check(cfg["spawner"]["maxAliveCap"] == 140, "[M0] CONFIG.spawner.maxAliveCap == 140")
-    check(cfg["enemy"]["hpPerWaveMid"] == 0.30, "[M0] CONFIG.enemy.hpPerWaveMid == 0.30")
+    check(cfg["spawner"]["maxAliveCap"] == 180, "[M0] CONFIG.spawner.maxAliveCap == 180")
+    check(cfg["enemy"]["hpPerWaveMid"] == 0.12, "[M0] CONFIG.enemy.hpPerWaveMid == 0.12")
     check(cfg["enemyTypes"]["chaser"]["weight"] == 62, "[M0] CONFIG.enemyTypes.chaser.weight == 62")
     check(cfg["enemyTypes"]["chaser"]["maxAlive"] == INF, "[M0] CONFIG.enemyTypes.chaser.maxAlive == INF")
     check(cfg["enemyTypes"]["boss"]["hpMult"] == 24, "[M0] CONFIG.enemyTypes.boss.hpMult == 24")
     check(cfg["enemyTypes"]["boss"]["enragedProjectileSpeed"] == 205, "[M0] CONFIG.enemyTypes.boss.enragedProjectileSpeed == 205")
     check(cfg["waves"]["duration"] == 90, "[M0] CONFIG.waves.duration == 90")
-    check(cfg["waves"]["quantityWaveCap"] == 11.25, "[M0] CONFIG.waves.quantityWaveCap == 11.25")
+    check(cfg["waves"]["quantityWaveCap"] == 14, "[M0] CONFIG.waves.quantityWaveCap == 14")
     check(cfg["tasks"]["waves"] == [3, 8, 13, 18, 23], "[M0] CONFIG.tasks.waves == [3, 8, 13, 18, 23]")
     check(cfg["tasks"]["guard"]["durations"] == [18, 20, 22, 24, 26], "[M0] CONFIG.tasks.guard.durations")
     check(cfg["tasks"]["delivery"]["distances"][4] == [1900, 2200], "[M0] CONFIG.tasks.delivery.distances[4]")

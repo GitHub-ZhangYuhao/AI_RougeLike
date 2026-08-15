@@ -1,9 +1,9 @@
 extends Node2D
 
 const PlayerSpriteFramesScript: GDScript = preload('res://scenes/game/player_sprite_frames.gd')
-const WALK_SCALE: float = 0.152
-const IDLE_SCALE: float = 0.285
-const FALLBACK_SCALE: float = 0.17
+const WALK_SCALE: float = 0.14
+const IDLE_SCALE: float = 0.262
+const FALLBACK_SCALE: float = 0.156
 const SPRITE_FOOT_OFFSET: float = -22.0
 const FALLBACK_FOOT_OFFSET: float = -18.0
 const VISIBLE_STATES: Array[String] = ['opening', 'playing', 'choice', 'extraction', 'dead', 'summary']

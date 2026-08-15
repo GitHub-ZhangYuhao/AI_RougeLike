@@ -1,8 +1,8 @@
 shader_type canvas_item;
 render_mode unshaded, blend_mix;
 
-uniform vec4 edge_color : source_color = vec4(0.025, 0.07, 0.055, 0.68);
-uniform vec4 haze_color : source_color = vec4(0.22, 0.16, 0.055, 0.14);
+uniform vec4 edge_color : source_color = vec4(0.02, 0.03, 0.09, 0.72);
+uniform vec4 haze_color : source_color = vec4(0.12, 0.08, 0.22, 0.14);
 uniform float vignette_strength : hint_range(0.0, 1.0) = 0.58;
 uniform float haze_strength : hint_range(0.0, 0.2) = 0.045;
 

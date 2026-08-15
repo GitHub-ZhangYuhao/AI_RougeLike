@@ -83,6 +83,12 @@ func _melee_slash(current_world, s: Dictionary, angle: float, damage: float) -> 
             current_world.damage_enemy.call(enemy, damage, {"sourceWeaponId": "sword", "sourceAction": "melee"})
             _on_damage_hit(enemy, current_world, s, true, "melee")
             hit_any = true
+    if hit_any:
+        var slash_x: float = current_world.player.x + cos(angle) * s["meleeRange"] * 0.55
+        var slash_y: float = current_world.player.y + sin(angle) * s["meleeRange"] * 0.55
+        current_world.effects.append({"type": "slash", "x": slash_x, "y": slash_y,
+            "range": s["meleeRange"] * 0.85, "angle": angle,
+            "ttl": 0.22, "maxTtl": 0.22})
     return hit_any
 
 

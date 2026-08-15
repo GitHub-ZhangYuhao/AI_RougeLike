@@ -4,7 +4,7 @@ const Factory = preload("res://logic/enemies/enemy_factory.gd")
 func title() -> String: return "[9] Waves, Boss, elite drops"
 func run(runner) -> void:
     var waves = Waves.new()
-    runner.check(waves._quota_for(1) == 16 and waves._quota_for(9) == 80, "[9] normal quotas")
+    runner.check(waves._quota_for(1) == 30 and waves._quota_for(9) == 318, "[9] normal quotas")
     runner.check(waves._quota_for(15) == 9 and waves._quota_for(25) == 13, "[9] boss quotas")
     var run = runner.harness.fresh_playing_game()
     Rng.set_source(func(): return 0.5)

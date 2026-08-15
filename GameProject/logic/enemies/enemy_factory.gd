@@ -13,8 +13,9 @@ static func enhanced_chaser_ratio(wave: int) -> float:
     if wave < 8: return 0.0
     if wave == 8: return 0.15
     if wave == 9: return 0.35
-    if wave == 10: return 0.65
-    return 1.0
+    if wave == 10: return 0.55
+    if wave <= 14: return 0.75
+    return 0.85  # Keep at least 15% regular chaser weight so they never fully disappear
 
 static func choose_enemy_type(elapsed: float = 0.0, enemies: Array = [], options: Dictionary = {}) -> String:
     var wave: int = maxi(1, floori(options.get("wave", 1)))

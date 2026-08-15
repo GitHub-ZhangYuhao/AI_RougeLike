@@ -10,6 +10,22 @@ const ENEMY_TEXTURES: Dictionary = {
   'boss': preload('res://assets/sprites/enemies/boss.png'),
 }
 
+# Animated sprite sheets (5x5 grid, 25 frames, 2048x2048 atlas)
+# Used by world_art_view.gd for walking animation
+const ENEMY_SPRITE_SHEETS: Dictionary = {
+  'chaser': preload('res://assets/sprites/enemies/chaser_sheet.png'),
+  'enhancedChaser': preload('res://assets/sprites/enemies/enhanced_chaser_sheet.png'),
+  'charger': preload('res://assets/sprites/enemies/charger_sheet.png'),
+  'ranged': preload('res://assets/sprites/enemies/ranged_sheet.png'),
+  'bomber': preload('res://assets/sprites/enemies/bomber_sheet.png'),
+  'shield': preload('res://assets/sprites/enemies/shield_sheet.png'),
+  'boss': preload('res://assets/sprites/enemies/boss_walk_sheet.png'),
+  'bossIdle': preload('res://assets/sprites/enemies/boss_idle_sheet.png'),
+}
+const ENEMY_SHEET_COLS: int = 5
+const ENEMY_SHEET_ROWS: int = 5
+const ENEMY_SHEET_FPS: float = 18.0
+
 const WEAPON_ICONS: Dictionary = {
   'sword': preload('res://assets/icons/weapon_sword.png'),
   'talisman': preload('res://assets/icons/weapon_talisman.png'),
@@ -21,12 +37,13 @@ const WEAPON_ICONS: Dictionary = {
 
 const PROJECTILE_TEXTURES: Dictionary = {
   'sword': preload('res://assets/icons/projectile_sword.png'),
+  'swordQi': preload('res://assets/vfx/sword_projectile_v2.png'),
   'talisman': preload('res://assets/icons/projectile_talisman.png'),
   'cloak': preload('res://assets/icons/projectile_fire.png'),
   'trail': preload('res://assets/icons/projectile_fire.png'),
   'ring': preload('res://assets/icons/weapon_ring.png'),
   'staff': preload('res://assets/vfx/staff_spirit_bolt.png'),
-  'hostile': preload('res://assets/icons/projectile_hostile.png'),
+  'hostile': preload('res://assets/vfx/hostile_projectile_v2.png'),
 }
 
 const PICKUP_TEXTURES: Dictionary = {
@@ -43,8 +60,8 @@ const RARE_TEXTURES: Dictionary = {
 }
 
 const SUMMON_TEXTURES: Dictionary = {
-  'normal': preload('res://assets/icons/summon_wood_guardian.png'),
-  'corpse': preload('res://assets/icons/summon_root_skeleton.png'),
+  'normal': preload('res://assets/vfx/skeleton_minion.png'),
+  'corpse': preload('res://assets/vfx/skeleton_minion.png'),
   'ward': preload('res://assets/icons/summon_jade_guard.png'),
   'wisp': preload('res://assets/icons/summon_wisp.png'),
 }
@@ -72,6 +89,9 @@ const VFX_TEXTURES: Dictionary = {
   'taskBeacon': preload('res://assets/vfx/task_beacon.png'),
   'synergyArc': preload('res://assets/vfx/synergy_arc.png'),
   'impact': preload('res://assets/vfx/impact_flash.png'),
+  'burnDot': preload('res://assets/vfx/burn_dot_effect.png'),
+  'chargeIndicator': preload('res://assets/vfx/charge_indicator.png'),
+  'thunderStrike': preload('res://assets/vfx/thunder_strike.png'),
 }
 
 const ENVIRONMENT_TEXTURES: Dictionary = {

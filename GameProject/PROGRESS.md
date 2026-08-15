@@ -25,7 +25,7 @@
 
 ## 2. 当前焦点（最多 3 项，随进度滚动）
 
-1. **140 敌人性能与对象池**：评估 `WorldArtView` 实体/VFX 分配，补齐压力场景和必要的降级策略。
+1. **180 敌人性能与对象池**：评估 `WorldArtView` 实体/VFX 分配，补齐压力场景和必要的降级策略。
 2. **正式音频**：补充 BGM、武器、受击、掉落、UI 与 Boss 音效，并保持音频层单向读取逻辑状态。
 3. **最终回归与导出检查**：完成全量 verify、键鼠/UI 流程复核和 Windows 导出验收。
 
@@ -35,7 +35,7 @@
 验收：`GameEngine\Godot.exe --headless --path GameProject --script res://tools/run_smoke.gd` 打印 OK、退出码 0；根目录 `npm run smoke` 无回归。
 - [x] `project.godot`（60Hz physics tick；1280×720 无 stretch；autoload 注册）
 - [x] `.gitignore` 生效验证（`.godot/`、`build/` 不进 git）
-- [x] `autoload/config.gd`（与 RULES.md 附录 A 逐键一致，camelCase）
+- [x] `autoload/config.gd`（与 BALANCE.md 逐键一致，camelCase）
 - [x] `autoload/rng.gd`（可注入随机源）
 - [x] `autoload/events.gd`（表现层信号总线）
 - [x] `autoload/meta_save.gd`（user://save.json，结构见 RULES.md §15.5）
@@ -94,7 +94,7 @@
 - [x] 正式中文字体：`Noto Sans SC` 与 OFL 许可进入工程，应用于游戏内 UI 和 Meta UI
 - [x] `logic/debug_runtime.gd`（跨 reset 存活 + serialize）
 - [x] `scenes/game/debug_overlay.gd`（右上角常驻“调试台 F2”入口；面板打开时暂停世界，支持按钮/F2/Esc/遮罩关闭，并完整保留倍率、生命、刷怪、波次、武器与配置存取功能）
-- [ ] 实体视图对象池、VFX 预算与性能检查（140 存活上限）
+- [ ] 实体视图对象池、VFX 预算与性能检查（180 存活上限）
 - [ ] 正式音频资源与音频表现层
 - [ ] Windows 导出与最终人工回归
 
@@ -156,3 +156,7 @@
 | 2026-08-14 | M6 | 完成现代 Q 版 UI 重构：新增 13 类 SVG/PNG 图形资源，重排 Meta Header、功能卡、选卡、HUD/法器 Dock、商城、仓库与 Debug；统一奶油白、珊瑚红、薄荷绿、蜂蜜黄和深褐描边；Godot smoke 358 项/23 场景与原型 smoke 双绿 | 待提交 |
 | 2026-08-14 | M6 | 优化图标 UI 与草甸材质：选卡、法器 Dock、任务、稀有物和 Boss 图标统一为现代 Q 版圆章；接入四张无缝锐化 WebP、文本 Shader、mipmap 与各向异性过滤，移除旧采样造成的矩形分区并提升地表清晰度 | 待提交 |
 | 2026-08-14 | M6 | 落地桃夜巡 B+A 视觉方向：主菜单按批准稿还原；局内 HUD 与卡牌改为 `assets/ui/peach_night/atomic/` 原子资源拼装，重排底部状态栏、法器槽、六卡开局与三卡升级选择，统一法器命中区域并完成 hover/选中态画面复核；Godot smoke 358 项/23 场景与原型 smoke 双绿 | 待提交 |
+| 2026-08-15 | M6 | 手感调参：相机 zoom 1.15→1.0、玩家视图缩小约 8%、敌人显示倍率 5.35/4.85→6.6/6.2（影子 ×0.92）；敌人速度 85→76、血量 50→45、存活上限 20/8/140→30/10/180、波配额基数 16→24、增长 0.5→0.8；RULES.md §7.1/§8/附录 A/B 与 config.gd 注释同步；Godot smoke 358 项/23 场景与原型 smoke 双绿 | 待提交 |
+| 2026-08-15 | M6 | 数值第二轮调参（血太厚/移速涨太快/怪太少）：enemy hpPerMin 54→10、hpPerWave 三段 0.16/0.30/0.28→0.10/0.12/0.10、hpWaveCap 7→3、speedPerMin 0.08→0.015、baseSpeedMult 1.5→1.35、speedWaveCap 2→1.6；存活上限 30/10→40/12（maxAliveCap 180 不动，M6 性能焦点 #1 压测指标）；波配额基数 24→30、增长 0.8→1.2、上限 11.25→14；apply_wave_scaling 由硬编码改为 Config 驱动（对齐 js/enemies/base.js）；RULES.md §7.1/§7.2/§8/附录 A/B#10 与 config.gd/smoke_runner/s08/s09 断言同步；Godot smoke 358 项/23 场景与原型 smoke 双绿 | 待提交 |
+| 2026-08-15 | M6 | 数值配置文档整合：RULES.md 附录 A 全量并入新建 BALANCE.md（分系统表格 + js 原值标注 + 调参历史），附录 A 改重定向，config.gd/smoke_runner.gd/AGENTS.md/PORT_PLAN.md/PROGRESS.md 引用同步；Godot smoke 359 项/23 场景与原型 smoke 双绿 | 待提交 |
+| 2026-08-15 | M6 | 文档体系固化：根 AGENTS.md 与 GameProject/AGENTS.md 新增「文档索引（真值与更新纪律）」章节，开篇/config.gd 条目同步 BALANCE.md 引用 | 待提交 |

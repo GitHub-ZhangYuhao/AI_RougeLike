@@ -51,14 +51,16 @@ func apply_wave_scaling(requested_wave: int = 1):
     if waveScalingApplied:
         return self
     wave = maxi(1, requested_wave)
+    var config: Dictionary = Config.CONFIG["enemy"]
     var step: int = wave - 1
-    var early: int = mini(step, 5)
-    var middle: int = mini(maxi(0, step - early), 5)
+    var early: int = mini(step, int(config["midWaveStart"]) - 2)
+    var middle: int = mini(maxi(0, step - early), int(config["lateWaveStart"]) - int(config["midWaveStart"]))
     var late: int = maxi(0, step - early - middle)
-    var hp_mult: float = minf(7.0, 1.0 + 0.16 * early + 0.30 * middle + 0.28 * late)
-    var damage_mult: float = 1.0 + 0.06 * early + 0.14 * middle + 0.18 * late
-    var speed_progress: float = minf(step, 19) / 19.0
-    var speed_mult: float = 1.5 + 0.5 * speed_progress
+    var hp_mult: float = minf(config["hpWaveCap"], 1.0 + config["hpPerWave"] * early + config["hpPerWaveMid"] * middle + config["hpPerWaveLate"] * late)
+    var damage_mult: float = 1.0 + config["damagePerWave"] * early + config["damagePerWaveMid"] * middle + config["damagePerWaveLate"] * late
+    var speed_cap_step: int = maxi(1, int(config["speedCapStartWave"]) - 1)
+    var speed_progress: float = minf(step, speed_cap_step) / speed_cap_step
+    var speed_mult: float = config["baseSpeedMult"] + (config["speedWaveCap"] - config["baseSpeedMult"]) * speed_progress
     var ratio: float = hp / maxHp if maxHp > 0.0 else 1.0
     maxHp *= hp_mult
     hp = maxHp * ratio

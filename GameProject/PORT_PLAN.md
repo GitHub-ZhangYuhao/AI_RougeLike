@@ -14,7 +14,7 @@
 3. **不使用 Godot 物理/碰撞/导航**：全部手动欧拉积分 + 距离判定，与 JS 数值逐帧对齐（物理引擎会引入不可控的求解差异）。
 4. **固定步长**：`game_view.gd` 在 `_physics_process` 中以累加器调用 `run.step(1.0/60.0)`（对应 RULES.md §2）；帧 dt 钳制 0.25s。
 5. **RNG 注入**：原型所有 `Math.random()` → `Rng.next()`（autoload/rng.gd，内部可替换为常量函数）。smoke 场景按原型 headless-smoke.mjs 的 8 个覆盖点（第 420/538/576/807/973/1032/1067/1251 行）注入确定性序列。
-6. **Config autoload**：`autoload/config.gd` 为 js/config.js 的 1:1 Dictionary 镜像，**键名保留 JS camelCase**（对照 RULES.md 附录 A）。
+6. **Config autoload**：`autoload/config.gd` 为 js/config.js 的 1:1 Dictionary 镜像，**键名保留 JS camelCase**（对照 BALANCE.md）。
 7. **统一伤害入口**：所有伤害走 `GameRun.damage_enemy(e, dmg, opts)` / `hurt_player(dmg)`（RULES.md §5），禁止旁路改 hp。
 8. **输入模型复刻**：`logic/input_state.gd` 为纯数据快照（pressed 边沿集合 + mouseClicked + 轴）；表现层从 Godot `Input` 填充，测试直接构造。卡牌/按钮点击矩形在 `logic/ui_layout.gd` 复刻 `getCardRects / getWeaponSlotRects / meta 按钮布局`，供输入与 smoke 共用。
 9. **渲染**：窗口 1280×720、stretch 关闭；逻辑层 viewW/viewH 常量 1280/720（= JS 回退值）。第一阶段程序化占位渲染（_draw / Polygon2D / Label），还原布局与信息即可。

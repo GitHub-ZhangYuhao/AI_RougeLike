@@ -2,7 +2,7 @@ extends Node2D
 ## Godot 输入 → InputState；60Hz 累加器驱动纯逻辑；正式美术表现层只读取运行状态。
 const GameRunScript: GDScript = preload('res://logic/game_run.gd')
 const STEP: float = 1.0 / 60.0
-const CAMERA_ZOOM: float = 1.15
+const CAMERA_ZOOM: float = 0.82
 const CAMERA_VISUAL_OFFSET_Y: float = -18.0
 
 var run = GameRunScript.new()
@@ -15,6 +15,7 @@ var visual_time: float = 0.0
 @onready var overlay = $GameOverlay
 @onready var meta_screens = $MetaLayer/MetaScreens
 @onready var debug_overlay = $DebugLayer/DebugOverlay
+@onready var screen_atmosphere = $ScreenAtmosphere
 
 
 func _ready() -> void:
@@ -69,6 +70,11 @@ func _physics_process(delta: float) -> void:
 
 
 func _sync_views(size: Vector2) -> void:
+	run.viewport_size = size
+	# Scale ScreenAtmosphere ColorRect to fill the viewport
+	if screen_atmosphere is ColorRect:
+		screen_atmosphere.offset_right = size.x
+		screen_atmosphere.offset_bottom = size.y
 	var camera_visual := Vector2(run.camera.x, run.camera.y + CAMERA_VISUAL_OFFSET_Y)
 	var base_offset := size * 0.5 - camera_visual
 	if run.hitShake > 0.0:

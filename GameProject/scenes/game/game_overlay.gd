@@ -37,6 +37,7 @@ const NIGHT_MID: Color = Color('203a55')
 const WALNUT: Color = Color('4a2c24')
 const ANTIQUE_GOLD: Color = Color('b57b36')
 const SPIRIT_GLOW: Color = Color('79e1bd')
+const UI_SCALE: float = 0.7
 const CARD_COLORS: Dictionary = {
 	"sword": Color("9fd8e8"), "cloak": Color("e97b52"), "talisman": Color("e6ca62"),
 	"trail": Color("d95b3c"), "ring": Color("acd77b"), "staff": Color("aa85d8"),
@@ -85,16 +86,29 @@ func _draw() -> void:
 		return
 	var size: Vector2 = get_viewport_rect().size
 	if run.state != "opening":
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(UI_SCALE, UI_SCALE))
 		_draw_hud(size)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var inv_s: float = 1.0 / UI_SCALE
 	if run.state == "opening" or run.state == "choice":
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(inv_s, inv_s))
 		_draw_choice(size)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	elif run.state == "extraction":
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(inv_s, inv_s))
 		_draw_extraction(size)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	elif run.state == "dead":
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(inv_s, inv_s))
 		_draw_dead(size)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	elif run.state == "summary":
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(inv_s, inv_s))
 		_draw_summary(size)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(inv_s, inv_s))
 	_draw_announcements(size)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_hud(size: Vector2) -> void:
@@ -241,8 +255,8 @@ func _draw_hud_pause_button(rect: Rect2) -> void:
 	if rect.size.y >= 64.0:
 		draw_string(UI_FONT, rect.position + Vector2(0.0, rect.size.y - 4.0), 'P 暂停', HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 10, PAPER_LIGHT)
 
-func _draw_composed_weapon_slots(_size: Vector2) -> void:
-	var rects: Array[Dictionary] = UiLayoutScript.get_weapon_slot_rects()
+func _draw_composed_weapon_slots(size: Vector2) -> void:
+	var rects: Array[Dictionary] = UiLayoutScript.get_weapon_slot_rects(size.x, size.y)
 	var selected_ids: Array[String] = run.synergies.selected_weapon_ids
 	if rects.is_empty():
 		return
@@ -312,7 +326,7 @@ func _active_boss():
 
 
 func _draw_weapon_slots(size: Vector2) -> void:
-	var rects: Array[Dictionary] = UiLayoutScript.get_weapon_slot_rects()
+	var rects: Array[Dictionary] = UiLayoutScript.get_weapon_slot_rects(size.x, size.y)
 	var selected_ids: Array[String] = run.synergies.selected_weapon_ids
 	var dock_w: float = rects.size() * 72.0 + (rects.size() - 1) * 12.0 + 36.0 if rects.size() > 0 else 452.0
 	var dock := Rect2(size.x * 0.5 - dock_w * 0.5, size.y - 92.0, dock_w, 82.0)

@@ -1,11 +1,11 @@
 # 仓库规范（GameProject — Godot 移植子项目）
 
-本目录是根目录 HTML 原型（`js/`）的 Godot 4.7.1 移植项目。**GDScript only（标准版 Godot，无 .NET）**。规则真值在 `RULES.md`，实现规划在 `PORT_PLAN.md`，进度管理在 `PROGRESS.md`。根目录的 `AGENTS.md` 仍然管辖原型侧代码；本文件只管辖 `GameProject/` 内部。
+本目录是根目录 HTML 原型（`js/`）的 Godot 4.7.1 移植项目。**GDScript only（标准版 Godot，无 .NET）**。规则真值在 `RULES.md`，数值真值在 `BALANCE.md`，实现规划在 `PORT_PLAN.md`，进度管理在 `PROGRESS.md`。根目录的 `AGENTS.md` 仍然管辖原型侧代码；本文件只管辖 `GameProject/` 内部。
 
 ## 项目结构与模块组织
 
 - `project.godot` — 项目入口：60Hz 逻辑帧；窗口 1280×720、不开 stretch；注册 autoload。
-- `autoload/` — 全局单例：`config.gd`（← js/config.js，1:1 Dictionary，**保留 JS camelCase 键名**以便逐键对照）、`rng.gd`（可注入随机源）、`events.gd`（表现层信号总线）、`meta_save.gd`（← js/meta/save.js，user:// JSON）。
+- `autoload/` — 全局单例：`config.gd`（← js/config.js，1:1 Dictionary，**保留 JS camelCase 键名**以便与 `BALANCE.md` 逐键对照）、`rng.gd`（可注入随机源）、`events.gd`（表现层信号总线）、`meta_save.gd`（← js/meta/save.js，user:// JSON）。
 - `logic/` — **纯 GDScript 类（RefCounted），不依赖 Node/SceneTree，可无头运行**。与根目录 `js/` 一一对应：顶层文件对应 `js/*.js`；`enemies/ weapons/ systems/ meta/` 对应 `js/` 同名子目录；`index.js` 移植为工厂（`*_factory.gd`）。数值、公式、时序、RNG 顺序必须与 `RULES.md` 一致。
 - `scenes/` — 表现层（Node/场景）：`main.tscn`、`game/`（game_view 驱动定步长、实体视图对象池、debug_overlay）、`ui/`（hud、card_choice、pause_overlay、meta_screens）。**只允许单向依赖 scenes → logic**，禁止 logic 引用任何 Node。
 - `tests/` — `smoke_runner.gd` + `scenarios/`（原型 headless-smoke.mjs 的 23 个章节逐章复刻，一个 .gd 一个章节）。
@@ -13,6 +13,16 @@
 - `ART_ASSET_CONFIG.md` — 美术资源配置台账；记录已配置、待修订、未配置和集中式占位符，资源状态变化时同步更新。
 - 原型侧文件（`js/`、`index.html`、`tools/headless-smoke.mjs` 等）**只读参照，禁止在移植工作中修改**。
 
+## 文档索引与更新纪律
+
+| 文档 | 角色 | 更新纪律 |
+| --- | --- | --- |
+| `RULES.md` | 游戏规则真值：机制、公式、时序、RNG 顺序（§1–§17）；附录 B 矛盾裁决表；附录 C smoke 章节对照 | 规则变化必须同步；不放数值表（原附录 A 已全量并入 BALANCE.md，现为重定向） |
+| `BALANCE.md` | 数值配置唯一文档真值：CONFIG 全量表格（与 `autoload/config.gd` 逐键一致）、16 处 js 差异键原值标注、调参历史 | 改数流程：先改 `autoload/config.gd` → 同步本表 → 跑 headless smoke 验证 |
+| `PROGRESS.md` | 里程碑进度与时间线（§6 表格） | 状态变化只追加一行，不回改历史行 |
+| `PORT_PLAN.md` | JS↔GDScript 移植映射、命名对照与关键决策 | 移植约定变化时同步 |
+| `PLANS/` | 里程碑计划拆解（M1/M2/M3-plan.md） | 按里程碑维护 |
+| `ART_ASSET_CONFIG.md` | 美术资源台账（已配置/待修订/未配置/集中式占位符） | 资源状态变化时同步 |
 ## 工作目录管理
 
 ### 全仓库目录归属（谁可以写哪里）
@@ -60,7 +70,7 @@
 ## 代码风格与命名规范
 
 - 遵循 Godot 官方 GDScript 风格：4 空格缩进；变量与函数 snake_case（`damage_enemy`）；类名 PascalCase 且与文件名一致（`GameRun` → `game_run.gd`）；常量 UPPER_SNAKE（`RING_HIT_COOLDOWN`）；信号 snake_case；尽量使用静态类型标注。
-- **CONFIG 例外**：`autoload/config.gd` 的 Dictionary 键保留 JS camelCase（`startInterval`、`hpPerWaveMid`），与 RULES.md 附录 A 逐键可对照；除此之外禁止在 GDScript 标识符里用 camelCase。
+- **CONFIG 例外**：`autoload/config.gd` 的 Dictionary 键保留 JS camelCase（`startInterval`、`hpPerWaveMid`），与 BALANCE.md 逐键可对照；除此之外禁止在 GDScript 标识符里用 camelCase。
 - 逻辑类方法与字段命名尽量映射 JS 原型（`damage_enemy(e, dmg, opts)` ↔ `damageEnemy(e, dmg, opts)`），便于 diff 式核对；映射表见 PORT_PLAN。
 - 保持"逻辑 / 表现 / 配置"三类职责分离；表现层不得改写逻辑状态，只能通过逻辑层公开方法驱动。
 - 只在机制或约束不明显时才添加注释（例如" bombers 被击杀不爆炸""磁力为锁定式"这类反直觉规则必须注释，并注明 RULES.md 章节号）。
@@ -89,7 +99,7 @@
 
 1. **headless `--script` 没有全局类缓存**：`--headless --script res://...` 运行时不能按 `class_name` 直接按名引用其他脚本类；跨脚本类型引用一律写 `const Foo = preload("res://path/foo.gd")`（场景节点的脚本类型标注同理）。`tests/`、`tools/`、`scenes/` 下的脚本必须遵守。
 2. **smoke runner 对"场景不可加载"必须显式失败**：宁可大声报错退出，也不能静默跳过，否则缺章节会被误判为全绿。
-3. **config.js 是纯数据**：`autoload/config.gd` 只镜像数据键值（附录 A 逐键 camelCase）；原型中不存在函数型配置，移植时不要为"配置函数"预留结构。
+3. **config.js 是纯数据**：`autoload/config.gd` 只镜像数据键值（BALANCE.md 逐键 camelCase）；原型中不存在函数型配置，移植时不要为"配置函数"预留结构。
 4. **MetaSave 做成纯函数库**：`load_save / persist_save / reset_save / merge_into / default_save`，不持有状态，便于 headless 场景直接调用与测试替换。
 
 ### 2026-08-14 ｜ M6

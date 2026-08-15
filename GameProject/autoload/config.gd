@@ -1,11 +1,15 @@
 extends Node
 ## 全局平衡数值配置（autoload 名：Config）。
-## 原型 js/config.js 的 1:1 Dictionary 镜像（与 RULES.md 附录 A 逐字一致）：
-## - 键名保留 JS camelCase，便于与 RULES.md 附录 A / js/config.js 逐键对照；
+## 原型 js/config.js 的 Dictionary 镜像（与 BALANCE.md 逐键一致）；
+## 2026-08-15 两轮手感调参后与 js/config.js 存在 16 处有意差异（enemy.speed/hp/hpPerMin/
+## speedPerMin/hpPerWave/hpPerWaveMid/hpPerWaveLate/hpWaveCap/baseSpeedMult/speedWaveCap、
+## spawner.startMaxAlive/maxAlivePerWave/maxAliveCap、waves.baseQuota/quantityPerWave/
+## quantityWaveCap，裁决见 RULES.md 附录 B #9/#10）：
+## - 键名保留 JS camelCase，便于与 BALANCE.md / js/config.js 逐键对照；
 ##   这是本仓库唯一允许出现 camelCase 的地方（见 GameProject/AGENTS.md）。
 ## - JS 的 Infinity 一律写作 INF。
 ## - 原型 config.js 全为纯数据、无函数型配置；若未来出现函数型配置，
-##   按 RULES.md 附录 A 的数值语义落地为数据，并在注释标注 js/config.js 来源行号。
+##   按 BALANCE.md 的数值语义落地为数据，并在注释标注 js/config.js 来源行号。
 
 const CONFIG: Dictionary = {
     "view": {"background": "#0e0e16", "gridSize": 64},
@@ -24,32 +28,32 @@ const CONFIG: Dictionary = {
         "startInterval": 1.0,
         "minInterval": 0.14,
         "intervalPerWave": 0.12,
-        "startMaxAlive": 20,
-        "maxAlivePerWave": 8,
-        "maxAliveCap": 140,
+        "startMaxAlive": 40,
+        "maxAlivePerWave": 12,
+        "maxAliveCap": 180,
         "spawnMargin": 80,
     },
 
     "enemy": {
         "radius": 13,
-        "speed": 85,
-        "baseSpeedMult": 1.5,
+        "speed": 76,
+        "baseSpeedMult": 1.35,
         "speedVariance": 0.25,
-        "hp": 50,
+        "hp": 45,
         "damage": 7,
-        "hpPerMin": 54,
+        "hpPerMin": 10,
         "damagePerMin": 2.2,
-        "speedPerMin": 0.08,
-        "hpPerWave": 0.16,
+        "speedPerMin": 0.015,
+        "hpPerWave": 0.10,
         "damagePerWave": 0.06,
         "midWaveStart": 7,
-        "hpPerWaveMid": 0.30,
+        "hpPerWaveMid": 0.12,
         "damagePerWaveMid": 0.14,
         "lateWaveStart": 12,
-        "hpPerWaveLate": 0.28,
+        "hpPerWaveLate": 0.10,
         "damagePerWaveLate": 0.18,
-        "hpWaveCap": 7,
-        "speedWaveCap": 2,
+        "hpWaveCap": 3,
+        "speedWaveCap": 1.6,
         "speedCapStartWave": 20,
         "separation": 60,
         "color": "#ef5350",
@@ -104,9 +108,9 @@ const CONFIG: Dictionary = {
     "waves": {
         "maxWave": 25,
         "duration": 90,
-        "baseQuota": 16,
-        "quantityPerWave": 0.5,
-        "quantityWaveCap": 11.25,
+        "baseQuota": 30,
+        "quantityPerWave": 1.2,
+        "quantityWaveCap": 14,
         "restDuration": 3.5,
         "bossEvery": 5,
         "eliteEvery": 3,

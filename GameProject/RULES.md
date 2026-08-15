@@ -28,7 +28,7 @@
 15. 局外 Meta（掉落 / 商城 / 仓库 / 存档）
 16. 调试系统
 17. 渲染、HUD 与 UI 布局
-- 附录 A：CONFIG 全量（js/config.js 逐字）
+- 附录 A：CONFIG 全量（已并入 BALANCE.md）
 - 附录 B：矛盾裁决表
 - 附录 C：smoke 测试章节对照表
 
@@ -286,8 +286,8 @@ opts 字段：`sourceWeaponId, sourceAction, sourceTags, synergyId, noSynergy, n
 ```
 minutes = elapsed / 60
 jitter  = 1 + rand(-0.25, +0.25)        # 类型 speedVariance:false 时 jitter = 1
-maxHp   = (50 + 54 × minutes) × hpMult   # hp = maxHp
-speed   = 85 × jitter × (1 + 0.08 × minutes) × speedMult
+maxHp   = (45 + 10 × minutes) × hpMult   # hp = maxHp
+speed   = 76 × jitter × (1 + 0.015 × minutes) × speedMult
 damage  = (7 + 2.2 × minutes) × damageMult
 ```
 
@@ -306,15 +306,15 @@ step  = wave - 1
 early = min(step, 5)
 mid   = min(max(0, step - early), 5)
 late  = step - early - mid
-hpMult     = min(7, 1 + 0.16×early + 0.30×mid + 0.28×late)
+hpMult     = min(3, 1 + 0.10×early + 0.12×mid + 0.10×late)
 damageMult = 1 + 0.06×early + 0.14×mid + 0.18×late
 speedProgress = min(step, 19) / 19              # speedCapStartWave 20 → 步长上限 19
-speedMult  = 1.5 + (2 - 1.5) × speedProgress    # baseSpeedMult 1.5 → speedWaveCap 2
+speedMult  = 1.35 + (1.6 - 1.35) × speedProgress    # baseSpeedMult 1.35 → speedWaveCap 1.6
 ```
 
 应用时保持当前 hp/maxHp 比例不变（先缩放 maxHp 再按比例调整 hp）。
 
-> CONFIG 中 `hpPerWave:0.16 / damagePerWave:0.06` 为前期段；`midWaveStart:7` 起用 `hpPerWaveMid:0.30 / damagePerWaveMid:0.14`；`lateWaveStart:12` 起用 `hpPerWaveLate:0.28 / damagePerWaveLate:0.18`；上面三段式代码即该配置的实现形态。
+> CONFIG 中 `hpPerWave:0.10 / damagePerWave:0.06` 为前期段；`midWaveStart:7` 起用 `hpPerWaveMid:0.12 / damagePerWaveMid:0.14`；`lateWaveStart:12` 起用 `hpPerWaveLate:0.10 / damagePerWaveLate:0.18`；上面三段式代码即该配置的实现形态。
 
 ### 7.3 分离 separateEnemies(dt)
 
@@ -386,7 +386,7 @@ elite/boss 档享受任务增伤（§5.1 步骤 2）；elite 死亡掉稀有拾�
 ### 8.1 Spawner（spawner.js）
 
 - 刷怪间隔：`requestedInterval = options.spawnInterval ?? (startInterval − (wave − 1) × 0.12)`；`interval = max(0.14, requestedInterval) × intervalMult`（intervalMult 下限 0.01）。
-- 存活上限：`maxAlive = aliveCap ?? min(140, 20 + (wave − 1) × 8)`。
+- 存活上限：`maxAlive = aliveCap ?? min(180, 40 + (wave − 1) × 12)`。
 - `spawnLimit`（默认 ∞）；调试 `spawn.paused` → 不刷。
 - update：`while timer ≤ 0 && spawned < limit`：存活 ≥ maxAlive → `timer = 0` 并跳出；否则 `timer += interval`，按 `forceType ?? chooseEnemyType()` 生成。
 - **生成位置（环形边缘）**：以相机为中心，半边长 `viewW/2 + 80` / `viewH/2 + 80` 的矩形框（margin 80）；随机取 4 边之一（floor(rand(0,4))），`t = rand(−1,1)` 在该边上线性取点。
@@ -395,9 +395,9 @@ elite/boss 档享受任务增伤（§5.1 步骤 2）；elite 死亡掉稀有拾�
 
 初始：`wave = 1, phase = 'wave', waveTimer = 90, bannerTimer = 2.4`。
 
-**配额（quota）**：`quota = round(16 × quotaMult)`
-- 普通波：`quotaMult = min(11.25, 1 + (wave − 1) × 0.5)`。
-- Boss 波（wave % 5 == 0）：`quotaMult = (1 + reinforcements) / 16`；reinforcements：wave 5 → 4；wave 10 → 6；其余 → `min(12, 6 + floor((wave − 10) / 5) × 2)`。
+**配额（quota）**：`quota = round(30 × quotaMult)`
+- 普通波：`quotaMult = min(14, 1 + (wave − 1) × 1.2)`。
+- Boss 波（wave % 5 == 0）：`quotaMult = (1 + reinforcements) / 30`；reinforcements：wave 5 → 4；wave 10 → 6；其余 → `min(12, 6 + floor((wave − 10) / 5) × 2)`。
 - `spawnInterval = 90 / max(1, quota − (isBossWave ? 1 : 0))`（90 = 波时长）。
 - 调试 `spawn.quotaMult` 生效方式：`quota = max(spawned, round(baseQuota × quotaMult))`，Boss 波最低 1。
 
@@ -867,198 +867,19 @@ pairKey = 两个武器 id 排序后以 `+` 连接。
 
 ---
 
-## 附录 A：CONFIG 全量（js/config.js 逐字）
+## 附录 A：CONFIG 全量（已并入 BALANCE.md）
 
-```js
-// 全局配置：所有平衡性数值集中在这里，方便调参
-export const CONFIG = {
-  view: { background: '#0e0e16', gridSize: 64 },
-
-  player: {
-    radius: 14,
-    speed: 230,
-    maxHp: 100,
-    hurtIFrames: 0.8,
-    color: '#4fc3f7',
-  },
-
-  camera: { lerp: 8 },
-
-  spawner: {
-    startInterval: 1.0,
-    minInterval: 0.14,
-    intervalPerWave: 0.12,
-    startMaxAlive: 20,
-    maxAlivePerWave: 8,
-    maxAliveCap: 140,
-    spawnMargin: 80,
-  },
-
-  enemy: {
-    radius: 13,
-    speed: 85,
-    baseSpeedMult: 1.5,
-    speedVariance: 0.25,
-    hp: 50,
-    damage: 7,
-    hpPerMin: 54,
-    damagePerMin: 2.2,
-    speedPerMin: 0.08,
-    hpPerWave: 0.16,
-    damagePerWave: 0.06,
-    midWaveStart: 7,
-    hpPerWaveMid: 0.30,
-    damagePerWaveMid: 0.14,
-    lateWaveStart: 12,
-    hpPerWaveLate: 0.28,
-    damagePerWaveLate: 0.18,
-    hpWaveCap: 7,
-    speedWaveCap: 2,
-    speedCapStartWave: 20,
-    separation: 60,
-    color: '#ef5350',
-  },
-
-  enemyTypes: {
-    chaser: {
-      unlockAt: 0, weight: 62, maxAlive: Infinity,
-    },
-    enhancedChaser: {
-      unlockAt: 0, weight: 0, maxAlive: Infinity,
-      hpMult: 2.2, speedMult: 1.05, damageMult: 1.45,
-      enrageHpRatio: 0.5, warningDuration: 0.45,
-      enragedSpeedMult: 1.5, enragedDamageMult: 1.35,
-    },
-    charger: {
-      unlockAt: 45, weight: 18, maxAlive: 8,
-      hpMult: 1.7, speedMult: 1.05, damageMult: 1.1,
-      chargeRange: 260, windup: 0.65, dashSpeed: 400,
-      dashDuration: 0.55, recovery: 0.85, cooldown: 1.7,
-    },
-    ranged: {
-      unlockAt: 90, weight: 11, maxAlive: 8,
-      hpMult: 0.8, speedMult: 0.8, damageMult: 0.95,
-      preferredDistance: 260, retreatDistance: 170,
-      fireInterval: 1.7, projectileSpeed: 175,
-      projectileRadius: 5, projectileLifetime: 4,
-    },
-    bomber: {
-      unlockAt: 135, weight: 14, maxAlive: 6,
-      hpMult: 0.85, speedMult: 1.25, damageMult: 1.6,
-      triggerDistance: 58, windup: 0.9, blastRadius: 88,
-    },
-    shield: {
-      unlockAt: 180, weight: 4, maxAlive: 1,
-      hpMult: 2.6, speedMult: 0.8, damageMult: 1.15,
-      shieldDuration: 3, openDuration: 1.5,
-      shieldDamageMult: 0.35, openDamageMult: 1.25,
-    },
-    boss: {
-      unlockAt: 0, weight: 0, maxAlive: 1,
-      hpMult: 24, speedMult: 0.68, damageMult: 2.4,
-      radius: 34, attackInterval: 2.9, windup: 0.85,
-      projectileCount: 12, projectileSpeed: 180,
-      projectileRadius: 7, projectileLifetime: 5,
-      enragedHpRatio: 0.5, enragedProjectileCount: 18,
-      enragedProjectileSpeed: 205,
-    },
-  },
-
-  // Timed waves: each wave lasts 90 seconds; quota controls spawn density only.
-  waves: {
-    maxWave: 25,
-    duration: 90,
-    baseQuota: 16,
-    quantityPerWave: 0.5,
-    quantityWaveCap: 11.25,
-    restDuration: 3.5,
-    bossEvery: 5,
-    eliteEvery: 3,
-    bannerDuration: 2.4,
-  },
-
-  cards: {
-    maxWeaponSlots: 3,
-    choicesCount: 3,
-    attrMaxStack: 5,
-  },
-
-  tasks: {
-    waves: [3, 8, 13, 18, 23],
-    triggerWindow: [35, 45],
-    offerDuration: 12,
-    acceptDuration: 1,
-    beaconRadius: 60,
-    beaconDistance: [300, 440],
-    resultDuration: 3.5,
-    guard: {
-      durations: [18, 20, 22, 24, 26],
-      radii: [130, 125, 120, 115, 110],
-      leaveGrace: [1, 1, 0.9, 0.9, 0.8],
-    },
-    delivery: {
-      distances: [[1500, 1750], [1600, 1850], [1700, 1950], [1800, 2050], [1900, 2200]],
-      timeLimits: [22, 22, 21, 21, 20],
-      interceptorCounts: [[1, 2], [2, 2], [2, 2], [2, 3], [3, 3]],
-      interceptorIntervals: [6, 5.5, 5, 4.5, 4],
-      destinationRadius: 72,
-    },
-    bounty: {
-      spawnDistance: [450, 650],
-      hpMultipliers: [2.5, 3, 3.5, 4, 4.5],
-      damageMultipliers: [1.1, 1.15, 1.2, 1.25, 1.3],
-      timeLimits: [40, 40, 38, 38, 36],
-    },
-    rewards: {
-      choicesCount: 3,
-      weights: { weapon: 0.4, stat: 0.35, blessing: 0.25 },
-    },
-  },
-
-  gems: {
-    magnetRadius: 180,
-    magnetStartSpeed: 300,
-    magnetAcceleration: 900,
-    magnetMaxSpeed: 680,
-    pickupRadius: 22,
-    cap: 300,
-    tiers: [
-      { until: 90, value: 1, color: '#5ac8fa' },
-      { until: 180, value: 2, color: '#66bb6a' },
-      { until: Infinity, value: 3, color: '#ff8a65' },
-    ],
-  },
-
-  xp: { base: 6, perLevel: 4 },
-
-  killLog: { cap: 256 },
-  corpses: { stainTtl: 3, cap: 80 },
-  pickups: {
-    hpValue: 15,
-    pickupRadius: 22,
-    rarePickupRadius: 30,
-    maxAlive: 5,
-  },
-  hud: { font: '16px "Segoe UI", "Microsoft YaHei", sans-serif' },
-  meta: {
-    dropChance: { base: 0.08, perTier: 0.03, cap: 0.20 },
-    tierWeights: { 1: [100, 0, 0], 2: [70, 30, 0], 3: [45, 45, 10], 4: [25, 45, 30], 5: [10, 40, 50] }, // 权重对应 [T1,T2,T3]；5 阶及以上 Boss 一律用第 5 档
-    dropCount: { 1: [1, 1], 2: [1, 1], 3: [1, 2], 4: [1, 2], 5: [2, 2] }, // [min,max]；5 阶及以上用第 5 档
-    guaranteedMinTier: { 3: 2, 5: 3 }, // Boss 阶位 → 保底最低材料阶（取 ≤bossTier 的最大键；1~2 阶无保底即 1）
-    waveRewardMult: 1.5,
-    shopMaxLevel: 10,
-    shopPrice: { base: 20, growth: 1.6 },
-    saveKey: 'ai-roguelike-meta-save-v1',
-  },
-};
-
-```
+> **本附录已重定向**：全量数值配置表于 2026-08-15 全量并入 `BALANCE.md`（Godot 侧真值），此处不再重复数值表。
+>
+> - 数值文档真值：`BALANCE.md`（分系统表格 + 16 处差异键的 js 原值标注 + 两轮调参历史）
+> - 代码真值：`autoload/config.gd`（CONFIG 字典与 BALANCE.md 逐键一致）
+> - 差异裁决过程：RULES.md 附录 B #9 / #10
 
 ---
 
 ## 附录 B：矛盾裁决表
 
-以下条目中文档（主要是 `Docs/weapon-upgrade-guide.md`）与 `js/` 代码不一致。**裁决一律以代码为准**，移植按本表右列实现：
+以下条目中文档（主要是 `Docs/weapon-upgrade-guide.md`）与 `js/` 代码不一致，以及 Godot 侧与 `js/` 的有意差异。**裁决一律以代码为准**，移植按本表右列实现：
 
 | # | 主题 | Docs 说法 | js/ 代码实际 | 裁决依据 |
 | --- | --- | --- | --- | --- |
@@ -1070,6 +891,8 @@ export const CONFIG = {
 | 6 | 玉环 Lv6 狂暴/反制 | 每 100 杀狂暴 3s；冻结 1.5s；CD ≥ 20s | 每 50 杀狂暴 4s；冻结 2s；counterCd 16 | ring.js FRENZY_KILL_STEP=50 + CARD |
 | 7 | 披风 Lv6 击杀特效 | 每 100 杀重置震荡 CD | 每 100 杀追加强化冲击（半径 ×1.8 / 8 ticks / 减速 3s），不重置普通 CD | cloak.js + DESIGN.md |
 | 8 | 法杖 Lv4 爆炸半径 | 卡面注释"半径 70" | CARD blastRadius = 85（Lv5/Lv6 = 125） | staff.js CARD |
+| 9 | Godot 侧手感调参（2026-08-15） | js/config.js 原值：enemy.speed 85 / enemy.hp 50 / 存活上限 min(140, 20+8×(wave−1)) / quota round(16×mult)、增长 0.5 | Godot CONFIG：speed 76 / hp 45 / min(180, 30+10×(wave−1)) / quota round(24×mult)、增长 0.8 | 按实机反馈调参，Godot 侧为准；js 原型不回改，BALANCE.md（原附录 A）已同步为 Godot 真值 |
+| 10 | Godot 侧第二轮数值调参（2026-08-15） | 第一轮后 Godot CONFIG：hpPerMin 54 / speedPerMin 0.08 / hpPerWave 三段 0.16/0.30/0.28 / hpWaveCap 7 / baseSpeedMult 1.5 / speedWaveCap 2 / startMaxAlive 30 / maxAlivePerWave 10 / baseQuota 24 / quantityPerWave 0.8 / quantityWaveCap 11.25 | hpPerMin 10 / speedPerMin 0.015 / hpPerWave 三段 0.10/0.12/0.10 / hpWaveCap 3 / baseSpeedMult 1.35 / speedWaveCap 1.6 / startMaxAlive 40 / maxAlivePerWave 12 / baseQuota 30 / quantityPerWave 1.2 / quantityWaveCap 14；maxAliveCap 保持 180；apply_wave_scaling 由硬编码改为 Config 驱动 | 按实机反馈"血太厚/移速涨太快/怪太少"调参，Godot 侧为准；js 原型不回改，BALANCE.md（原附录 A）已同步为 Godot 真值 |
 
 ---
 

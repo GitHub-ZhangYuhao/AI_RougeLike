@@ -1,23 +1,16 @@
-[gd_resource type="ShaderMaterial" load_steps=6 format=3]
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://ubsudpg9liz"]
 
 [ext_resource type="Shader" path="res://assets/ground_visual.gdshader" id="1_shader"]
-[ext_resource type="Texture2D" path="res://assets/terrain/ground_grass_crisp.webp" id="2_grass"]
-[ext_resource type="Texture2D" path="res://assets/terrain/ground_grass_path_crisp.webp" id="3_grass_mix"]
-[ext_resource type="Texture2D" path="res://assets/terrain/ground_dirt_crisp.webp" id="4_dirt"]
-[ext_resource type="Texture2D" path="res://assets/terrain/ground_stone_crisp.webp" id="7_stone_moss"]
+[ext_resource type="Texture2D" path="res://assets/terrain/night_ground.png" id="2_night_ground"]
 
 [resource]
 shader = ExtResource("1_shader")
-shader_parameter/grass_primary = ExtResource("2_grass")
-shader_parameter/grass_path_mix = ExtResource("3_grass_mix")
-shader_parameter/dirt_soft = ExtResource("4_dirt")
-shader_parameter/stone_moss = ExtResource("7_stone_moss")
-shader_parameter/terrain_scale = 3.2
-shader_parameter/macro_scale = 7.2
-shader_parameter/dirt_amount = 0.32
-shader_parameter/stone_amount = 0.10
-shader_parameter/detail_contrast = 1.15
-shader_parameter/saturation = 1.04
-shader_parameter/terrain_tint = Color(0.9, 0.97, 0.88, 1)
-shader_parameter/tint_strength = 0.08
-shader_parameter/overall_tint = Color(0.78, 0.84, 0.76, 1)
+shader_parameter/night_ground = ExtResource("2_night_ground")
+shader_parameter/terrain_scale = 4.0
+shader_parameter/moonlight_tint = Color(0.65, 0.7, 0.95, 1)
+shader_parameter/moonlight_strength = 0.35
+shader_parameter/atmosphere_tint = Color(0.55, 0.5, 0.8, 1)
+shader_parameter/atmosphere_strength = 0.12
+shader_parameter/contrast = 1.1
+shader_parameter/saturation = 0.9
+shader_parameter/brightness = 0.88
