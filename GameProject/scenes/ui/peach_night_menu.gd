@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 ## Pixel-faithful interactive menu assembled from the approved B+A concept artwork.
 
 signal start_pressed

@@ -42,8 +42,8 @@ func set_editor_plugin(plugin: EditorPlugin) -> void:
 # get_project_settings
 # =============================================================================
 func get_project_settings(args: Dictionary) -> Dictionary:
-	var include_render: bool = bool(args.get(&"include_render", true))
-	var include_physics: bool = bool(args.get(&"include_physics", true))
+	var include_render: bool = (args.get(&"include_render", true) == true)
+	var include_physics: bool = (args.get(&"include_physics", true) == true)
 
 	var out: Dictionary = {}
 	out[&"main_scene"] = str(ProjectSettings.get_setting("application/run/main_scene", ""))
@@ -178,7 +178,7 @@ func update_project_settings(args: Dictionary) -> Dictionary:
 # get_input_map
 # =============================================================================
 func get_input_map(args: Dictionary) -> Dictionary:
-	var include_deadzones: bool = bool(args.get(&"include_deadzones", true))
+	var include_deadzones: bool = (args.get(&"include_deadzones", true) == true)
 
 	# Merge action names from both sources:
 	# - InputMap.get_actions() covers built-ins (ui_*, spatial_editor/*, etc.)
@@ -675,7 +675,7 @@ const _ERROR_PREFIXES: PackedStringArray = [
 
 func get_errors(args: Dictionary) -> Dictionary:
 	var max_errors: int = int(args.get(&"max_errors", 50))
-	var include_warnings: bool = bool(args.get(&"include_warnings", true))
+	var include_warnings: bool = str(args.get(&"include_warnings", true)).to_lower() == "true"
 
 	var all_errors: Array = []
 
@@ -936,8 +936,8 @@ func run_scene(args: Dictionary) -> Dictionary:
 		return {&"ok": false, &"error": "Editor plugin not available"}
 	var ei := _editor_plugin.get_editor_interface()
 	var scene: String = str(args.get(&"scene", ""))
-	var block_until_started: bool = bool(args.get(&"block_until_started", true))
-	var wait_for_runtime: bool = bool(args.get(&"wait_for_runtime", false))
+	var block_until_started: bool = str(args.get(&"block_until_started", true)).to_lower() == "true"
+	var wait_for_runtime: bool = str(args.get(&"wait_for_runtime", false)).to_lower() == "true"
 	# Default of 10s gives slower machines (cold-cache import, autoload heavy
 	# games) enough headroom for the editor to reach the playing state and
 	# for MCPRuntime to connect. Tune up via the argument if needed.

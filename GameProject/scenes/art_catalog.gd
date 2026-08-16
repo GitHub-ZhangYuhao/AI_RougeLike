@@ -24,7 +24,7 @@ const ENEMY_SPRITE_SHEETS: Dictionary = {
 }
 const ENEMY_SHEET_COLS: int = 5
 const ENEMY_SHEET_ROWS: int = 5
-const ENEMY_SHEET_FPS: float = 18.0
+const ENEMY_SHEET_FPS: float = 54.0
 
 const WEAPON_ICONS: Dictionary = {
   'sword': preload('res://assets/icons/weapon_sword.png'),

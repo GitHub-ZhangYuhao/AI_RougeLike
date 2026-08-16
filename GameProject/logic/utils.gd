@@ -1,4 +1,4 @@
-﻿extends RefCounted
+extends RefCounted
 ## ← js/utils.js：通用小工具（纯静态函数）。
 ## rand/point_around 的随机源一律走注入的 Rng.next()（禁止系统随机）。
 

@@ -1,4 +1,4 @@
-﻿extends RefCounted
+extends RefCounted
 ## ← js/player.js：玩家实体。字段名与原型一致（camelCase，便于逐键 diff）。
 
 var x: float

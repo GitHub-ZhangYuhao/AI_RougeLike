@@ -28,10 +28,9 @@ func update(player, dt: float, world = null) -> void:
     shotFlash = maxf(0.0, shotFlash - dt)
     var direction: Dictionary = direction_to(player)
     aimAngle = atan2(direction["y"], direction["x"])
+    # 远程兵只接近到最佳距离，不再后撤拉扯——降低难度
     if direction["distance"] > preferredDistance + 12.0:
         self.move_toward(player, dt)
-    elif direction["distance"] < retreatDistance:
-        self.move_away_from(player, dt)
     fireCooldown -= dt
     if fireCooldown > 0.0:
         return

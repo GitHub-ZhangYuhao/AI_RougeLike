@@ -15,6 +15,9 @@ const UI_ICON_SPIRIT: Texture2D = preload('res://assets/ui/peach_night/atomic/cl
 const UI_ICON_KILL: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/icon_kill.svg')
 const CARD_PAPER_TILE: Texture2D = preload('res://assets/ui/peach_night/atomic/card_paper_tile.png')
 const CARD_CORNER_BLOSSOM: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/card_corner_blossom.svg')
+const TAROT_AGED_PAPER: Texture2D = preload('res://assets/ui/tarot_textures/tarot_aged_paper_bg_00001_.png')
+const TAROT_ORNATE_BORDER: Texture2D = preload('res://assets/ui/tarot_textures/tarot_ornate_golden_border_00001_.png')
+const TAROT_ICON_FRAME: Texture2D = preload('res://assets/ui/tarot_textures/tarot_circular_icon_frame_00001_.png')
 
 const INK: Color = Color('4b2f2a')
 const INK_SOFT: Color = Color('72524a')
@@ -69,6 +72,33 @@ const TYPE_LABELS: Dictionary = {
 
 var run = null
 var animation_time: float = 0.0
+# 预分配 StyleBoxFlat 避免每帧新建对象（主要 HUD 元素每帧调用）
+var _sb_shadow: StyleBoxFlat = StyleBoxFlat.new()
+var _sb_inner_border: StyleBoxFlat = StyleBoxFlat.new()
+var _sb_card_shadow: StyleBoxFlat = StyleBoxFlat.new()
+var _sb_card_inner: StyleBoxFlat = StyleBoxFlat.new()
+var _sb_card_glow: StyleBoxFlat = StyleBoxFlat.new()
+var _sb_panel_shadow: StyleBoxFlat = StyleBoxFlat.new()
+var _sb_panel_style: StyleBoxFlat = StyleBoxFlat.new()
+var _sb_panel_highlight: StyleBoxFlat = StyleBoxFlat.new()
+var _sb_bar_back: StyleBoxFlat = StyleBoxFlat.new()
+var _sb_bar_front: StyleBoxFlat = StyleBoxFlat.new()
+var _init_done: bool = false
+
+
+func _ensure_styleboxes() -> void:
+	if _init_done:
+		return
+	_init_done = true
+	_sb_shadow.shadow_color = Color(0.0, 0.0, 0.0, 0.62)
+	_sb_shadow.shadow_size = 7
+	_sb_shadow.shadow_offset = Vector2(0.0, 4.0)
+	_sb_inner_border.bg_color = Color.TRANSPARENT
+	_sb_inner_border.set_border_width_all(1)
+	_sb_card_shadow.shadow_color = Color(0.08, 0.04, 0.02, 0.68)
+	_sb_card_shadow.shadow_offset = Vector2(0.0, 4.0)
+	_sb_card_inner.bg_color = Color.TRANSPARENT
+	_sb_card_inner.set_border_width_all(1)
 
 
 func bind_run(game_run) -> void:
@@ -85,7 +115,8 @@ func _draw() -> void:
 	if run == null or run.state == "menu" or run.state == "shop" or run.state == "storage":
 		return
 	var size: Vector2 = get_viewport_rect().size
-	if run.state != "opening":
+	# HUD 仅在游玩/选择/开场状态显示，结算/死亡/提取时隐藏
+	if run.state != "opening" and run.state != "extraction" and run.state != "dead" and run.state != "summary":
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2(UI_SCALE, UI_SCALE))
 		_draw_hud(size)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
@@ -186,20 +217,14 @@ func _draw_composed_hud(size: Vector2) -> void:
 	_draw_inventory(size)
 
 func _draw_atomic_hud_shell(rect: Rect2) -> void:
-	var shadow := StyleBoxFlat.new()
-	shadow.bg_color = Color(0.0, 0.01, 0.025, 0.72)
-	shadow.set_corner_radius_all(20)
-	shadow.shadow_color = Color(0.0, 0.0, 0.0, 0.62)
-	shadow.shadow_size = 7
-	shadow.shadow_offset = Vector2(0.0, 4.0)
-	draw_style_box(shadow, rect)
+	_ensure_styleboxes()
+	_sb_shadow.bg_color = Color(0.0, 0.01, 0.025, 0.72)
+	_sb_shadow.set_corner_radius_all(20)
+	draw_style_box(_sb_shadow, rect)
 	_draw_panel(rect, Color('0b1728f2'), Color('9e6b36'), 3.0, 18.0)
-	var inner := StyleBoxFlat.new()
-	inner.bg_color = Color.TRANSPARENT
-	inner.border_color = Color('d19b48aa')
-	inner.set_border_width_all(1)
-	inner.set_corner_radius_all(13)
-	draw_style_box(inner, Rect2(rect.position + Vector2(6.0, 6.0), rect.size - Vector2(12.0, 12.0)))
+	_sb_inner_border.border_color = Color('d19b48aa')
+	_sb_inner_border.set_corner_radius_all(13)
+	draw_style_box(_sb_inner_border, Rect2(rect.position + Vector2(6.0, 6.0), rect.size - Vector2(12.0, 12.0)))
 	draw_line(rect.position + Vector2(18.0, 7.0), rect.position + Vector2(rect.size.x - 18.0, 7.0), Color(GOLD, 0.28), 1.0)
 	_draw_texture_centered(UI_BLOSSOM_CLUSTER, rect.end - Vector2(22.0, rect.size.y - 18.0), 42.0, PI, Color(1.0, 1.0, 1.0, 0.36))
 
@@ -352,8 +377,11 @@ func _draw_weapon_slots(size: Vector2) -> void:
 		var id: String = weapon.card['id']
 		var icon_accent: Color = CARD_COLORS.get(id, MINT)
 		# Larger icon badge for Q-style feel
-		_draw_icon_badge(ArtCatalog.WEAPON_ICONS.get(id), rect.position + Vector2(rect.size.x * 0.5, 32.0), 56.0, 42.0, icon_accent, selected)
-		draw_string(UI_FONT, rect.position + Vector2(0.0, rect.size.y - 7.0), 'Lv%d' % weapon.level, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 11, CORAL_DARK if selected else INK)
+		_draw_icon_badge(ArtCatalog.WEAPON_ICONS.get(id), rect.position + Vector2(rect.size.x * 0.5, 30.0), 52.0, 38.0, icon_accent, selected)
+		# 武器等级（醒目显示）
+		var lvl_text: String = 'Lv.%d' % weapon.level
+		var lvl_color: Color = GOLD if weapon.level >= 3 else (BONE if weapon.level == 2 else MUTED)
+		draw_string(UI_FONT, rect.position + Vector2(0.0, rect.size.y - 5.0), lvl_text, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 12, lvl_color)
 
 func _draw_boss_bar(size: Vector2) -> void:
 	var boss = null
@@ -473,87 +501,83 @@ func _draw_approved_choice_card(offer: Dictionary, data: Dictionary, mouse: Vect
 	var hover: bool = hit_rect.has_point(mouse)
 	var rect := Rect2(hit_rect.position + Vector2(0.0, -9.0 if hover else 0.0), hit_rect.size)
 	var accent: Color = CARD_COLORS.get(id, _type_color(offer.get('type', '')))
+	_ensure_styleboxes()
+	# Warm hover glow
 	if hover:
-		var glow := StyleBoxFlat.new()
-		glow.bg_color = Color(accent, 0.20)
-		glow.set_corner_radius_all(25)
-		draw_style_box(glow, Rect2(rect.position - Vector2(7.0, 7.0), rect.size + Vector2(14.0, 14.0)))
-	var shadow := StyleBoxFlat.new()
-	shadow.bg_color = Color(0.01, 0.02, 0.04, 0.82)
-	shadow.set_corner_radius_all(20)
-	shadow.shadow_color = Color(0.0, 0.0, 0.0, 0.68)
-	shadow.shadow_size = 8 if hover else 5
-	shadow.shadow_offset = Vector2(0.0, 4.0)
-	draw_style_box(shadow, rect)
-	_draw_panel(rect, Color('14253af8'), accent if hover else Color('ba7d35'), 4.0 if hover else 3.0, 20.0)
-	var paper_rect := Rect2(rect.position + Vector2(9.0, 52.0), rect.size - Vector2(18.0, 61.0))
-	var paper_style := StyleBoxFlat.new()
-	paper_style.bg_color = Color('fff0cf') if hover else Color('f4dfb8')
-	paper_style.border_color = Color('6c452d')
-	paper_style.set_border_width_all(2)
-	paper_style.set_corner_radius_all(14)
-	draw_style_box(paper_style, paper_rect)
-	draw_texture_rect(CARD_PAPER_TILE, Rect2(paper_rect.position + Vector2(3.0, 3.0), paper_rect.size - Vector2(6.0, 6.0)), false, Color(1.0, 1.0, 1.0, 0.28))
-	var inner_line := StyleBoxFlat.new()
-	inner_line.bg_color = Color.TRANSPARENT
-	inner_line.border_color = Color('d6a45b88')
-	inner_line.set_border_width_all(1)
-	inner_line.set_corner_radius_all(15)
-	draw_style_box(inner_line, Rect2(rect.position + Vector2(5.0, 5.0), rect.size - Vector2(10.0, 10.0)))
-
+		_sb_card_glow.bg_color = Color(GOLD, 0.22)
+		_sb_card_glow.set_corner_radius_all(25)
+		draw_style_box(_sb_card_glow, Rect2(rect.position - Vector2(7.0, 7.0), rect.size + Vector2(14.0, 14.0)))
+	# Shadow (warm tone)
+	_sb_card_shadow.bg_color = Color(0.15, 0.08, 0.04, 0.78)
+	_sb_card_shadow.set_corner_radius_all(20)
+	_sb_card_shadow.shadow_size = 8 if hover else 5
+	draw_style_box(_sb_card_shadow, rect)
+	# Tarot aged paper background
+	draw_texture_rect(TAROT_AGED_PAPER, rect, false, Color.WHITE)
+	# Tarot ornate border overlay
+	draw_texture_rect(TAROT_ORNATE_BORDER, rect, false, Color.WHITE)
+	# Subtle inner frame
+	_sb_card_inner.border_color = Color(ANTIQUE_GOLD, 0.4)
+	_sb_card_inner.set_corner_radius_all(15)
+	draw_style_box(_sb_card_inner, Rect2(rect.position + Vector2(5.0, 5.0), rect.size - Vector2(10.0, 10.0)))
+	# Header (walnut + gold)
 	var header_rect := Rect2(rect.position + Vector2(14.0, 9.0), Vector2(rect.size.x - 28.0, 48.0))
-	_draw_panel(header_rect, Color(accent.darkened(0.48), 0.98), Color('e0aa4e'), 2.0, 13.0)
-	draw_line(header_rect.position + Vector2(48.0, 7.0), header_rect.position + Vector2(header_rect.size.x - 12.0, 7.0), Color('ffd47aaa'), 1.0)
+	_draw_panel(header_rect, Color(WALNUT, 0.92), Color(GOLD, 0.8), 2.0, 13.0)
+	draw_line(header_rect.position + Vector2(48.0, 7.0), header_rect.position + Vector2(header_rect.size.x - 12.0, 7.0), Color(GOLD, 0.6), 1.0)
 	var header_text: String = '初始法器' if run.state == 'opening' else TYPE_LABELS.get(offer.get('type', ''), '奇遇奖励')
 	draw_string(UI_FONT, header_rect.position + Vector2(44.0, 32.0), header_text, HORIZONTAL_ALIGNMENT_CENTER, header_rect.size.x - 88.0, maxi(14, roundi(rect.size.x * 0.062)), PAPER_LIGHT)
 	var number_center := header_rect.position + Vector2(24.0, 24.0)
 	draw_circle(number_center, 17.0, WALNUT)
-	draw_circle(number_center, 13.0, accent)
-	draw_arc(number_center, 15.0, 0.0, TAU, 24, Color('ffd47a'), 1.0)
+	draw_circle(number_center, 13.0, GOLD)
+	draw_arc(number_center, 15.0, 0.0, TAU, 24, Color(GOLD, 0.7), 1.0)
 	draw_string(UI_FONT, number_center + Vector2(-10.0, 5.0), str(index + 1), HORIZONTAL_ALIGNMENT_CENTER, 20.0, 13, PAPER_LIGHT)
 	if hover:
 		_draw_texture_centered(ArtCatalog.UI_TEXTURES['focusCursor'], header_rect.position + Vector2(header_rect.size.x - 21.0, 22.0), 31.0)
-
+	# Rarity tag (walnut / antique_gold)
 	var tag_rect := Rect2(rect.end.x - 45.0, rect.position.y + 66.0, 31.0, 82.0)
-	_draw_panel(tag_rect, Color('166657f5') if offer.get('type', '') in ['upgrade', 'taskWeapon', 'taskBlessing'] else Color('8b3e31f5'), Color('d6a34e'), 2.0, 11.0)
+	var tag_color: Color = Color(WALNUT, 0.95) if offer.get('type', '') in ['upgrade', 'taskWeapon', 'taskBlessing'] else Color(ANTIQUE_GOLD, 0.95)
+	_draw_panel(tag_rect, tag_color, Color(GOLD, 0.7), 2.0, 11.0)
 	draw_circle(tag_rect.position + Vector2(tag_rect.size.x * 0.5, 9.0), 3.0, GOLD)
 	var rarity_text: String = '初\n契' if run.state == 'opening' else ('精\n良' if offer.get('type', '') in ['upgrade', 'taskWeapon', 'taskBlessing'] else '奇\n遇')
 	var rarity_lines: PackedStringArray = rarity_text.replace('\\n', '\n').split('\n')
 	for tag_index in rarity_lines.size():
 		draw_string(UI_FONT, tag_rect.position + Vector2(0.0, 32.0 + tag_index * 24.0), rarity_lines[tag_index], HORIZONTAL_ALIGNMENT_CENTER, tag_rect.size.x, maxi(13, roundi(rect.size.x * 0.057)), PAPER_LIGHT)
-
+	# Icon area (gold auras)
 	var icon_center := rect.position + Vector2(rect.size.x * 0.50, rect.size.y * 0.30)
 	for aura_index in 3:
 		var aura_radius: float = rect.size.x * (0.18 + aura_index * 0.025)
-		draw_arc(icon_center, aura_radius, PI * 0.10, PI * 1.90, 32, Color(SPIRIT_GLOW, 0.22 - aura_index * 0.05), 2.0)
+		draw_arc(icon_center, aura_radius, PI * 0.10, PI * 1.90, 32, Color(GOLD, 0.3 - aura_index * 0.07), 2.0)
 	_draw_icon_badge(_choice_texture(id, offer.get('type', '')), icon_center, rect.size.x * 0.34, rect.size.x * 0.23, accent, hover)
-
+	# Card name
 	var name_y: float = rect.position.y + rect.size.y * 0.52
 	draw_string(UI_FONT, Vector2(rect.position.x + 22.0, name_y), card.get('name', '未知奖励'), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 44.0, maxi(19, roundi(rect.size.x * 0.084)), INK)
 	var divider_y: float = rect.position.y + rect.size.y * 0.575
 	draw_line(Vector2(rect.position.x + rect.size.x * 0.18, divider_y), Vector2(rect.end.x - rect.size.x * 0.18, divider_y), Color(WALNUT, 0.52), 1.5)
 	draw_circle(Vector2(rect.get_center().x, divider_y), 3.0, ANTIQUE_GOLD)
-
+	# Level info (paper_light + antique_gold)
 	var level_rect := Rect2(rect.position + Vector2(rect.size.x * 0.18, rect.size.y * 0.605), Vector2(rect.size.x * 0.64, rect.size.y * 0.088))
-	_draw_panel(level_rect, Color('e1eed4f5'), JADE, 1.0, level_rect.size.y * 0.5)
+	_draw_panel(level_rect, Color(PAPER_LIGHT, 0.9), Color(ANTIQUE_GOLD, 0.7), 1.0, level_rect.size.y * 0.5)
 	draw_string(UI_FONT, level_rect.position + Vector2(3.0, level_rect.size.y * 0.70), _level_info(offer), HORIZONTAL_ALIGNMENT_CENTER, level_rect.size.x - 6.0, maxi(12, roundi(rect.size.x * 0.052)), TEAL_DEEP)
-
-	var description: String = card.get('desc', CARD_DESCRIPTIONS.get(id, '本局持续生效'))
+	# Description (paper + walnut)
+	var description: String = card.get('desc', CARD_DESCRIPTIONS.get(id, ''))
+	if description == '':
+		description = '本局持续生效'
 	var lines: Array[String] = _wrap_text(description, 13 if rect.size.x < 250.0 else 15)
 	var desc_rect := Rect2(rect.position + Vector2(14.0, rect.size.y * 0.71), Vector2(rect.size.x - 28.0, rect.size.y * 0.13))
-	_draw_panel(desc_rect, Color('f8e7c9ed'), Color('9f714f99'), 1.0, 8.0)
+	_draw_panel(desc_rect, Color(PAPER, 0.85), Color(WALNUT, 0.5), 1.0, 8.0)
 	var line_height: float = 19.0
 	var text_height: float = mini(lines.size(), 2) * line_height
 	var desc_y: float = desc_rect.position.y + (desc_rect.size.y - text_height) * 0.5 + 14.0
 	for line_index in mini(lines.size(), 2):
 		draw_string(UI_FONT, Vector2(desc_rect.position.x + 5.0, desc_y + line_index * line_height), lines[line_index], HORIZONTAL_ALIGNMENT_CENTER, desc_rect.size.x - 10.0, maxi(13, roundi(rect.size.x * 0.054)), INK)
-
+	# Button (walnut + gold)
 	var button_rect := Rect2(rect.position + Vector2(rect.size.x * 0.14, rect.size.y * 0.855), Vector2(rect.size.x * 0.72, rect.size.y * 0.105))
-	_draw_panel(button_rect, Color(accent.darkened(0.22)) if hover else Color('9e4a35'), Color('f0b553'), 2.0, button_rect.size.y * 0.5)
-	draw_line(button_rect.position + Vector2(13.0, 5.0), button_rect.position + Vector2(button_rect.size.x - 13.0, 5.0), Color('ffd27aaa'), 1.0)
+	_draw_panel(button_rect, Color(WALNUT, 0.95), Color(GOLD, 0.85), 2.0, button_rect.size.y * 0.5)
+	draw_line(button_rect.position + Vector2(13.0, 5.0), button_rect.position + Vector2(button_rect.size.x - 13.0, 5.0), Color(GOLD, 0.55), 1.0)
 	draw_string(UI_FONT, button_rect.position + Vector2(0.0, button_rect.size.y * 0.72), '%d · 点击选择' % (index + 1), HORIZONTAL_ALIGNMENT_CENTER, button_rect.size.x, maxi(12, roundi(rect.size.x * 0.052)), PAPER_LIGHT)
-
+	# Corner decorations
 	_draw_texture_centered(CARD_CORNER_BLOSSOM, rect.position + Vector2(rect.size.x - 18.0, 18.0), 38.0, PI * 0.25)
+	_draw_texture_centered(CARD_CORNER_BLOSSOM, rect.end - Vector2(17.0, 19.0), 52.0, PI)
 	_draw_texture_centered(CARD_CORNER_BLOSSOM, rect.end - Vector2(17.0, 19.0), 52.0, PI)
 
 func _draw_extraction(size: Vector2) -> void:
@@ -641,38 +665,33 @@ func _draw_announcements(size: Vector2) -> void:
 
 
 func _draw_panel(rect: Rect2, fill: Color, border: Color, width: float = 1.0, radius: float = 18.0) -> void:
-	var shadow := StyleBoxFlat.new()
-	shadow.bg_color = Color(0.0, 0.02, 0.07, 0.56)
-	shadow.set_corner_radius_all(roundi(radius))
-	draw_style_box(shadow, Rect2(rect.position + Vector2(4.0, 6.0), rect.size))
-	var style := StyleBoxFlat.new()
-	style.bg_color = fill
-	style.border_color = border
-	style.set_border_width_all(roundi(width))
-	style.set_corner_radius_all(roundi(radius))
-	style.corner_detail = 10
-	draw_style_box(style, rect)
-	var highlight := StyleBoxFlat.new()
-	highlight.bg_color = Color.TRANSPARENT
-	highlight.border_color = Color(1.0, 1.0, 1.0, 0.42)
-	highlight.set_border_width_all(1)
-	highlight.set_corner_radius_all(maxi(2, roundi(radius - 4.0)))
-	draw_style_box(highlight, Rect2(rect.position + Vector2(4.0, 4.0), rect.size - Vector2(8.0, 8.0)))
+	_sb_panel_shadow.bg_color = Color(0.0, 0.02, 0.07, 0.56)
+	_sb_panel_shadow.set_corner_radius_all(roundi(radius))
+	draw_style_box(_sb_panel_shadow, Rect2(rect.position + Vector2(4.0, 6.0), rect.size))
+	_sb_panel_style.bg_color = fill
+	_sb_panel_style.border_color = border
+	_sb_panel_style.set_border_width_all(roundi(width))
+	_sb_panel_style.set_corner_radius_all(roundi(radius))
+	_sb_panel_style.corner_detail = 10
+	draw_style_box(_sb_panel_style, rect)
+	_sb_panel_highlight.bg_color = Color.TRANSPARENT
+	_sb_panel_highlight.border_color = Color(1.0, 1.0, 1.0, 0.42)
+	_sb_panel_highlight.set_border_width_all(1)
+	_sb_panel_highlight.set_corner_radius_all(maxi(2, roundi(radius - 4.0)))
+	draw_style_box(_sb_panel_highlight, Rect2(rect.position + Vector2(4.0, 4.0), rect.size - Vector2(8.0, 8.0)))
 
 func _draw_bar(rect: Rect2, ratio: float, fill: Color, background: Color) -> void:
-	var back := StyleBoxFlat.new()
-	back.bg_color = background
-	back.border_color = WALNUT
-	back.set_border_width_all(1)
-	back.set_corner_radius_all(roundi(rect.size.y * 0.5))
-	draw_style_box(back, rect)
+	_sb_bar_back.bg_color = background
+	_sb_bar_back.border_color = WALNUT
+	_sb_bar_back.set_border_width_all(1)
+	_sb_bar_back.set_corner_radius_all(roundi(rect.size.y * 0.5))
+	draw_style_box(_sb_bar_back, rect)
 	if ratio <= 0.0:
 		return
 	var inner := Rect2(rect.position + Vector2(2.0, 2.0), Vector2(maxf(2.0, (rect.size.x - 4.0) * ratio), rect.size.y - 4.0))
-	var front := StyleBoxFlat.new()
-	front.bg_color = fill
-	front.set_corner_radius_all(roundi(inner.size.y * 0.5))
-	draw_style_box(front, inner)
+	_sb_bar_front.bg_color = fill
+	_sb_bar_front.set_corner_radius_all(roundi(inner.size.y * 0.5))
+	draw_style_box(_sb_bar_front, inner)
 	if inner.size.x > 8.0:
 		draw_line(inner.position + Vector2(4.0, 2.0), inner.position + Vector2(inner.size.x - 4.0, 2.0), Color(1.0, 1.0, 1.0, 0.56), 2.0)
 
@@ -704,37 +723,15 @@ func _draw_icon_badge(texture: Texture2D, center: Vector2, badge_size: float, ic
 	var radius: float = badge_size * 0.5
 	var lift: Vector2 = Vector2(0.0, -3.0) if emphasized else Vector2(0.0, -1.0)
 	var badge_center: Vector2 = center + lift
-	var shadow_offset := Vector2(0.0, maxf(2.5, badge_size * 0.06))
-	# Outer glow for emphasized badges
-	if emphasized:
-		draw_circle(badge_center, radius + 6.0, Color(CORAL, 0.20))
-		draw_circle(badge_center, radius + 4.0, Color(GOLD, 0.28))
 	# Shadow
-	draw_circle(badge_center + shadow_offset, radius + 1.5, Color(NIGHT, 0.58))
-	# Outer ring (thicker, more playful)
-	draw_circle(badge_center, radius, WALNUT)
-	# Accent ring (warm gradient feel)
-	draw_circle(badge_center, radius - 2.5, accent.lightened(0.08))
-	# Inner cream ring
-	draw_circle(badge_center, radius - 5.5, PAPER_LIGHT)
-	# Subtle warm tint on inner area
-	draw_circle(badge_center + Vector2(0.0, 1.0), radius - 8.0, Color('fff4d6'))
-	# Top highlight arc (more pronounced for Q feel)
-	var arc_radius: float = maxf(3.0, radius - 10.0)
-	draw_arc(badge_center + Vector2(0.0, -1.5), arc_radius, PI * 1.08, PI * 1.92, 20, Color(1.0, 1.0, 1.0, 0.82), maxf(1.5, badge_size * 0.03))
-	# Bottom charm decoration
-	if badge_size >= 36.0:
-		var charm_center := badge_center + Vector2(-radius * 0.60, radius * 0.52)
-		draw_circle(charm_center, maxf(3.5, radius * 0.15), WALNUT)
-		draw_circle(charm_center, maxf(2.0, radius * 0.09), GOLD)
-	if badge_size >= 50.0:
-		var charm2 := badge_center + Vector2(radius * 0.62, radius * 0.48)
-		draw_circle(charm2, maxf(2.5, radius * 0.10), WALNUT)
-		draw_circle(charm2, maxf(1.5, radius * 0.06), Color(accent, 0.8))
+	draw_circle(badge_center + Vector2(0.0, maxf(2.5, badge_size * 0.06)), radius + 1.5, Color(WALNUT, 0.58))
+	# Tarot icon frame texture
+	var frame_rect := Rect2(badge_center - Vector2(radius, radius), Vector2(badge_size, badge_size))
+	draw_texture_rect(TAROT_ICON_FRAME, frame_rect, false, Color.WHITE)
 	# Golden ring for emphasized
 	if emphasized:
 		draw_arc(badge_center, radius + 1.5, PI * 0.06, PI * 0.94, 20, GOLD, maxf(2.5, badge_size * 0.04))
-	# Icon texture (slightly larger for Q style)
+	# Icon texture
 	_draw_texture_centered(texture, badge_center + Vector2(0.0, 1.0), icon_size * 1.08)
 
 

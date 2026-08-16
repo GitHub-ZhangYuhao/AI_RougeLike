@@ -1,4 +1,4 @@
-﻿extends RefCounted
+extends RefCounted
 ## ← js/input.js：键盘 + 鼠标输入快照（纯数据，不依赖 Node/Input）。
 ## down = 按住集合；pressed = 本帧刚按下的边沿集合，每帧末清空；
 ## 原型 mousedown 仅置 _clicked = true（无鼠标按住状态）。

@@ -31,6 +31,8 @@ func _ready() -> void:
   sprite.position.y = SPRITE_FOOT_OFFSET
   fallback_sprite.position.y = FALLBACK_FOOT_OFFSET
   fallback_sprite.scale = Vector2.ONE * FALLBACK_SCALE
+  # 将阴影贴花向下偏移，使其对齐序列帧角色的脚底
+  shadow.position.y = 12.0
   _animated_assets_ready = _has_required_animations(sprite.sprite_frames)
   _refresh_visual(true)
   queue_redraw()
@@ -67,7 +69,7 @@ func sync_from(player, game_state: String, screen_position: Vector2) -> void:
   _transition(next_state)
   _refresh_visual()
   if simulation_active and state != State.DEAD:
-    sprite.speed_scale = 1.0
+    sprite.speed_scale = 3.0
     if sprite.visible and not sprite.is_playing():
       sprite.play()
   else:

@@ -1,4 +1,4 @@
-﻿extends RefCounted
+extends RefCounted
 ## ← js/camera.js：指数平滑跟随目标。位置用 float x/y（逻辑层禁 Vector2）。
 
 var x: float

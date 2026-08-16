@@ -368,7 +368,7 @@ func _emit_damage_feedback(enemy, damage: float, options: Dictionary, defeated: 
             "radius": enemy.radius, "damage": damage, "sourceWeaponId": source_weapon_id,
             "sourceAction": options.get("sourceAction", "hit"),
             "angle": atan2(enemy.y - player.y, enemy.x - player.x),
-            "seed": _next_kill_id + effects.size(), "ttl": 0.2, "maxTtl": 0.2})
+            "seed": _next_kill_id + effects.size(), "ttl": 0.5, "maxTtl": 0.5})
     if defeated and effects.size() < 220:
         effects.append({"type": "enemyDefeat", "x": enemy.x, "y": enemy.y,
             "radius": enemy.radius, "enemyType": enemy.type, "rank": enemy.rank,

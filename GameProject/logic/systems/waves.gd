@@ -46,6 +46,10 @@ func _update_normal_wave(dt: float, game, camera, view_w: float, view_h: float) 
             eliteSpawned = true
             spawned += 1
             game.spawner.timer = spawnInterval
+    # Guard任务期间持续刷怪，增加quota以维持压力
+    if game.taskDirector != null and game.taskDirector.current != null and game.taskDirector.current.get('type') == 'guard':
+        if quota - spawned < 4:
+            quota += 2
     if remaining > 0:
         var options: Dictionary = _debug_spawn_options(game, {"spawnLimit": remaining, "spawnInterval": spawnInterval,
             "wave": wave, "quota": quota, "spawnedByType": spawnedByType, "bossWave": false})

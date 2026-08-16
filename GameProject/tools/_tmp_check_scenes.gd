@@ -1,4 +1,4 @@
-﻿extends SceneTree
+extends SceneTree
 func _initialize() -> void:
     var scene: PackedScene = load("res://scenes/main.tscn")
     if scene == null:

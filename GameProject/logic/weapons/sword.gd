@@ -53,7 +53,7 @@ func update(dt: float, current_world) -> void:
 func _fire_main_sword(current_world, s: Dictionary, angle: float, damage: float) -> void:
     var projectile = ProjectileScript.new(current_world.player.x, current_world.player.y, angle, {
         "speed": s["projectileSpeed"], "radius": 11.0, "damage": damage,
-        "lifetime": s["projectileRange"] / s["projectileSpeed"], "maxHits": s["maxHits"],
+        "lifetime": float(s["projectileRange"]) / float(s["projectileSpeed"]), "maxHits": s["maxHits"],
         "damageOptions": {"sourceWeaponId": "sword", "sourceAction": "projectile", "sourceTags": ["projectile"]},
     })
     projectile.swordQi = true

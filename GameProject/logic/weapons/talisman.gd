@@ -43,7 +43,7 @@ func update(dt: float, current_world) -> void:
     var angle: float = atan2(target.y - current_world.player.y, target.x - current_world.player.x)
     var projectile = ProjectileScript.new(current_world.player.x, current_world.player.y, angle, {
         "speed": s["speed"], "radius": 5.0, "damage": s["damage"] * current_world.mods["damageMult"],
-        "lifetime": s["range"] / s["speed"] + 0.3,
+        "lifetime": float(s["range"]) / float(s["speed"]) + 0.3,
         "damageOptions": {"sourceWeaponId": "talisman", "sourceAction": "projectile", "sourceTags": ["lightning", "projectile"]},
     })
     projectile.attackSeq = attack_seq

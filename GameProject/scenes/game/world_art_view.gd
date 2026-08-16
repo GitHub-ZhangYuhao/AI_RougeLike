@@ -23,6 +23,10 @@ const IMPACT_TEXTURE_KEYS: Dictionary = {
 
 var run = null
 var animation_time: float = 0.0
+# 缓存 AtlasTexture —— 避免每帧为每个敌人创建新对象（主要性能瓶颈）
+var _atlas_cache: Dictionary = {}
+# 上一帧编号，用于失效缓存
+var _last_frame_index: int = -1
 
 
 func bind_run(game_run) -> void:
@@ -32,6 +36,12 @@ func bind_run(game_run) -> void:
 
 func refresh(delta: float = 0.0) -> void:
   animation_time += delta
+  # 动画帧变化时清理 atlas 缓存（每帧只失效一次，而不是每敌一次）
+  var total_frames: int = ArtCatalog.ENEMY_SHEET_COLS * ArtCatalog.ENEMY_SHEET_ROWS
+  var current_frame: int = int(animation_time * ArtCatalog.ENEMY_SHEET_FPS) % total_frames
+  if current_frame != _last_frame_index:
+    _last_frame_index = current_frame
+    _atlas_cache.clear()
   queue_redraw()
 
 
@@ -41,6 +51,8 @@ func _draw() -> void:
   _draw_ambient_motes()
   _draw_tasks()
   _draw_weapon_zones()
+  _draw_weapon_loadout()
+  _draw_sword_rings()
   _draw_trails()
   _draw_gems()
   _draw_pickups()
@@ -125,6 +137,67 @@ func _draw_weapon_zones() -> void:
         draw_line(Vector2(zone['x1'], zone['y1']), Vector2(zone['x2'], zone['y2']), Color(1.0, 0.35, 0.08, alpha), zone['width'])
 
 
+# 在玩家周围绘制武器图标，让玩家清楚看到当前持有法器
+func _draw_weapon_loadout() -> void:
+  if run.weapons.is_empty():
+    return
+  var player_position := Vector2(run.player.x, run.player.y)
+  var count: int = run.weapons.size()
+  # 根据武器数量决定环绕半径
+  var orbit_radius: float = 44.0 if count <= 3 else 52.0
+  var icon_size: float = 20.0
+  var slow_spin: float = animation_time * 0.25
+  for i in count:
+    var weapon = run.weapons[i]
+    var weapon_id: String = weapon.card['id']
+    var texture: Texture2D = ArtCatalog.WEAPON_ICONS.get(weapon_id)
+    if texture == null:
+      continue
+    var angle: float = slow_spin + float(i) * TAU / float(count)
+    var icon_position := player_position + Vector2(cos(angle) * orbit_radius, sin(angle) * orbit_radius - 18.0)
+    # 底部小光晕
+    draw_circle(icon_position, icon_size * 0.7, Color(1.0, 0.88, 0.55, 0.10))
+    draw_arc(icon_position, icon_size * 0.75, 0.0, TAU, 20, Color(1.0, 0.82, 0.4, 0.28), 1.0)
+    # 武器图标
+    _draw_sprite(texture, icon_position, icon_size * 2.0, 0.0, false, Color(1.0, 0.96, 0.82, 0.92))
+    # 武器等级徽章（右上角）
+    var level: int = weapon.level
+    if level > 1:
+      var badge_pos := icon_position + Vector2(icon_size * 0.6, -icon_size * 0.6)
+      draw_circle(badge_pos, 8.0, Color(0.72, 0.38, 0.12, 0.92))
+      draw_circle(badge_pos, 6.0, Color(0.92, 0.55, 0.18, 0.95))
+      draw_string(UI_FONT, badge_pos + Vector2(-4.0, 5.0), str(level), HORIZONTAL_ALIGNMENT_LEFT, 12.0, 9, Color.WHITE)
+
+
+# 绘制道剑剑阵特效（ring effect）
+func _draw_sword_rings() -> void:
+  var sword = null
+  for weapon in run.weapons:
+    if weapon.card['id'] == 'sword':
+      sword = weapon
+      break
+  if sword == null:
+    return
+  var sword_rings: Array = sword.rings
+  if sword_rings.is_empty():
+    return
+  for ring: Dictionary in sword.rings:
+    var position := Vector2(ring['x'], ring['y'])
+    var radius: float = ring['r']
+    var alpha: float = clampf(ring['ttl'] / 0.28, 0.0, 1.0)
+    var progress: float = 1.0 - alpha
+    # 外圈扩散光环
+    draw_circle(position, radius * (0.5 + progress * 0.5), Color(1.0, 0.72, 0.25, alpha * 0.08))
+    draw_arc(position, radius * (0.8 + progress * 0.4), 0.0, TAU, 48, Color(1.0, 0.82, 0.35, alpha * 0.55), 2.5)
+    draw_arc(position, radius * (0.6 + progress * 0.3), 0.0, TAU, 36, Color(1.0, 0.92, 0.55, alpha * 0.35), 1.5)
+    # 剑阵符文粒子
+    for rune_i in 8:
+      var rune_angle: float = float(rune_i) * TAU / 8.0 + animation_time * 1.5
+      var rune_pos := position + Vector2(cos(rune_angle), sin(rune_angle)) * radius * 0.75
+      var rune_size: float = 3.0 + sin(animation_time * 6.0 + float(rune_i)) * 1.0
+      draw_circle(rune_pos, rune_size, Color(1.0, 0.88, 0.45, alpha * 0.6))
+
+
 func _draw_zone(zone: Dictionary, fill: Color, outline: Color) -> void:
   var points := PackedVector2Array()
   for point: Dictionary in zone['points']:
@@ -155,6 +228,8 @@ func _draw_gems() -> void:
     if gem['dead']:
       continue
     var position := Vector2(gem['x'], gem['y'])
+    if not _is_on_screen(position, 40.0):
+      continue
     var bob := Vector2(0.0, sin(animation_time * 4.0 + gem['x'] * 0.01) * 2.0)
     var gem_color := Color(gem['color'])
     var display_position: Vector2 = position + bob
@@ -170,6 +245,8 @@ func _draw_pickups() -> void:
     if pickup.get('dead', false):
       continue
     var position := Vector2(pickup['x'], pickup['y'])
+    if not _is_on_screen(position, 50.0):
+      continue
     var bob := Vector2(0.0, sin(animation_time * 3.4 + pickup['x'] * 0.015) * 2.5)
     _draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], position, 40.0, -animation_time * 0.5, false, Color(1.0, 1.0, 1.0, 0.42))
     if pickup.get('kind') == 'rare':
@@ -180,85 +257,132 @@ func _draw_pickups() -> void:
 
 
 func _draw_enemies() -> void:
+  # ===== 分批次绘制（instance 风格）=====
+  # 收集所有可见敌人，按绘制层分组；相同纹理的精灵连续绘制，引擎可自动合批
+  var visible_enemies: Array = []
   for enemy in run.enemies:
     if enemy.dead:
       continue
-    _draw_enemy(enemy)
+    if not _is_on_screen(Vector2(enemy.x, enemy.y), 180.0):
+      continue
+    visible_enemies.append(enemy)
+  if visible_enemies.is_empty():
+    return
+
+  # --- Pass 1: 地面阴影（统一 draw_circle/ellipse） ---
+  for enemy in visible_enemies:
+    var pos := Vector2(enemy.x, enemy.y)
+    var r: float = maxf(enemy.radius, 10.0)
+    _draw_ellipse_shape(pos + Vector2(0.0, r * 0.72), Vector2(r * 1.22, r * 0.5), Color(0.03, 0.025, 0.035, 0.38))
+
+  # --- Pass 2: 光环 / Boss 光效 ---
+  for enemy in visible_enemies:
+    var pos := Vector2(enemy.x, enemy.y)
+    var r: float = maxf(enemy.radius, 10.0)
+    var is_boss: bool = enemy.type == 'boss'
+    var pulse: float = 0.5 + sin(animation_time * (2.4 if is_boss else 3.6) + enemy.y * 0.006) * 0.5
+    if is_boss:
+      draw_circle(pos, r * (1.55 + pulse * 0.12), Color(0.34, 0.12, 0.42, 0.08 + pulse * 0.04))
+      draw_arc(pos, r * (1.6 + pulse * 0.08), 0.0, TAU, 48, Color(0.76, 0.42, 0.95, 0.22 + pulse * 0.16), 2.0)
+    elif enemy.rank == 'elite':
+      draw_circle(pos, r * 1.35, Color(1.0, 0.72, 0.18, 0.07 + pulse * 0.03))
+
+  # --- Pass 3: Boss 怒气 / 冰冻 / 受击精灵（按纹理分组连续绘制，引擎自动合批） ---
+  for enemy in visible_enemies:
+    var pos := Vector2(enemy.x, enemy.y)
+    var r: float = maxf(enemy.radius, 10.0)
+    var is_boss: bool = enemy.type == 'boss'
+    var pulse: float = 0.5 + sin(animation_time * (2.4 if is_boss else 3.6) + enemy.y * 0.006) * 0.5
+    var display_size: float = r * (6.6 if is_boss else 6.2)
+    if enemy.type == 'charger':
+      display_size *= 1.12
+    elif enemy.type == 'shield':
+      display_size *= 1.08
+    var bob: float = sin(animation_time * (2.2 if is_boss else 4.2) + enemy.x * 0.008) * (1.2 if is_boss else 2.0)
+    if is_boss and enemy.enraged:
+      _draw_sprite(ArtCatalog.VFX_TEXTURES['bossEnraged'], pos, display_size * (1.45 + pulse * 0.08), animation_time * 0.15, false, Color(1.0, 1.0, 1.0, 0.72))
+    var hit_ratio: float = clampf(enemy.hitFlash / 0.14, 0.0, 1.0)
+    var modulate := Color.WHITE
+    if enemy.frozenTimer > 0.0:
+      modulate = Color(0.65, 0.9, 1.0, 0.94)
+      _draw_sprite(ArtCatalog.VFX_TEXTURES['freeze'], pos, display_size * 0.85, 0.0, false, Color(1.0, 1.0, 1.0, 0.46))
+    elif hit_ratio > 0.0:
+      modulate = Color(1.35, 1.2, 0.95, 1.0)
+      display_size *= 1.0 + hit_ratio * 0.08
+    var flip_h: bool = run.player.x < enemy.x
+    # 取精灵纹理（使用缓存的 atlas）
+    var enemy_type_key: String = enemy.type if enemy.type != 'enhanced_chaser' else 'enhancedChaser'
+    if enemy_type_key == 'boss' and enemy.has('state') and enemy.state == 'windup':
+      enemy_type_key = 'bossIdle'
+    var sheet: Texture2D = ArtCatalog.ENEMY_SPRITE_SHEETS.get(enemy_type_key)
+    var texture: Texture2D
+    if sheet != null:
+      texture = _get_animated_frame(sheet, enemy_type_key)
+    else:
+      texture = ArtCatalog.ENEMY_TEXTURES.get(enemy.type, ArtCatalog.ENEMY_TEXTURES['chaser'])
+    _draw_sprite(texture, pos + Vector2(0.0, bob - display_size * 0.31), display_size, 0.0, flip_h, modulate)
+
+  # --- Pass 4: 叠加效果（受击弧、精英标识、减速、冲锋、dot、任务、血条） ---
+  for enemy in visible_enemies:
+    var pos := Vector2(enemy.x, enemy.y)
+    var r: float = maxf(enemy.radius, 10.0)
+    var is_boss: bool = enemy.type == 'boss'
+    var pulse: float = 0.5 + sin(animation_time * (2.4 if is_boss else 3.6) + enemy.y * 0.006) * 0.5
+    var display_size: float = r * (6.6 if is_boss else 6.2)
+    if enemy.type == 'charger':
+      display_size *= 1.12
+    elif enemy.type == 'shield':
+      display_size *= 1.08
+    var hit_ratio: float = clampf(enemy.hitFlash / 0.14, 0.0, 1.0)
+    if hit_ratio > 0.0:
+      draw_arc(pos, r * (1.0 + (1.0 - hit_ratio) * 0.6), 0.0, TAU, 24, Color(1.0, 0.9, 0.55, hit_ratio * 0.78), 2.5)
+      _draw_sprite(ArtCatalog.VFX_TEXTURES['impact'], pos - Vector2(0.0, r * 0.25), display_size * (0.42 + (1.0 - hit_ratio) * 0.18), animation_time * 0.6, false, Color(1.0, 1.0, 1.0, hit_ratio * 0.88))
+    if enemy.rank == 'elite':
+      draw_arc(pos, r + 7.0 + pulse * 2.0, 0.0, TAU, 32, Color(1.0, 0.84, 0.31, 0.72 + pulse * 0.22), 2.5)
+      _draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], pos, r * (3.4 + pulse * 0.18), animation_time * 0.3, false, Color(1.0, 0.86, 0.38, 0.24 + pulse * 0.1))
+    if enemy.slowTimer > 0.0:
+      draw_arc(pos, r + 9.0, 0.0, TAU, 24, Color('80cbc4'), 2.0)
+    if enemy.type == 'charger' and enemy.get('state', '') == 'windup':
+      _draw_charge_indicator(pos, r, enemy)
+    if not enemy.dots.is_empty():
+      _draw_enemy_dots(pos, r, enemy.dots, pulse)
+    if enemy.taskRole != null:
+      _draw_sprite(ArtCatalog.TASK_TEXTURES['bounty'], pos - Vector2(0.0, r + 24.0), 30.0 + pulse * 2.0)
+    if enemy.hp < enemy.maxHp or enemy.rank == 'elite' or enemy.rank == 'boss':
+      _draw_health_bar(pos, r, enemy.hp, enemy.maxHp, is_boss)
 
 
 # Returns an AtlasTexture for the current animation frame from a sprite sheet
-func _get_animated_frame(sheet: Texture2D, _enemy_key: String) -> AtlasTexture:
-  var atlas := AtlasTexture.new()
-  atlas.atlas = sheet
+# 使用缓存，避免每帧每个敌人创建新的 AtlasTexture 对象
+func _get_animated_frame(sheet: Texture2D, enemy_key: String) -> AtlasTexture:
   var cols: int = ArtCatalog.ENEMY_SHEET_COLS
   var rows: int = ArtCatalog.ENEMY_SHEET_ROWS
   var total_frames: int = cols * rows
   var frame_index: int = int(animation_time * ArtCatalog.ENEMY_SHEET_FPS) % total_frames
+  var cache_key: String = enemy_key + str(frame_index)
+  var cached = _atlas_cache.get(cache_key)
+  if cached != null:
+    return cached
+  var atlas := AtlasTexture.new()
+  atlas.atlas = sheet
   var col: int = frame_index % cols
   var row: int = frame_index / cols
   var frame_w: float = sheet.get_width() / float(cols)
   var frame_h: float = sheet.get_height() / float(rows)
   atlas.region = Rect2(col * frame_w, row * frame_h, frame_w, frame_h)
+  _atlas_cache[cache_key] = atlas
   return atlas
 
 
-func _draw_enemy(enemy) -> void:
-  var position := Vector2(enemy.x, enemy.y)
-  var radius: float = maxf(enemy.radius, 10.0)
-  var enemy_type_key: String = enemy.type if enemy.type != 'enhanced_chaser' else 'enhancedChaser'
-  # Boss: use idle sheet during windup/attack, walk sheet otherwise
-  if enemy_type_key == 'boss':
-    if enemy.has('state') and enemy.state == 'windup':
-      enemy_type_key = 'bossIdle'
-  var sheet_texture: Texture2D = ArtCatalog.ENEMY_SPRITE_SHEETS.get(enemy_type_key)
-  var texture: Texture2D
-  if sheet_texture != null:
-    texture = _get_animated_frame(sheet_texture, enemy_type_key)
-  else:
-    texture = ArtCatalog.ENEMY_TEXTURES.get(enemy.type, ArtCatalog.ENEMY_TEXTURES['chaser'])
-  var is_boss: bool = enemy.type == 'boss'
-  var display_size: float = radius * (6.6 if is_boss else 6.2)
-  if enemy.type == 'charger':
-    display_size *= 1.12
-  elif enemy.type == 'shield':
-    display_size *= 1.08
-  var bob: float = sin(animation_time * (2.2 if is_boss else 4.2) + enemy.x * 0.008) * (1.2 if is_boss else 2.0)
-  var pulse: float = 0.5 + sin(animation_time * (2.4 if is_boss else 3.6) + enemy.y * 0.006) * 0.5
-  _draw_ellipse_shape(position + Vector2(0.0, radius * 0.72), Vector2(radius * 1.22, radius * 0.5), Color(0.03, 0.025, 0.035, 0.38))
-  if is_boss:
-    draw_circle(position, radius * (1.55 + pulse * 0.12), Color(0.34, 0.12, 0.42, 0.08 + pulse * 0.04))
-    draw_arc(position, radius * (1.6 + pulse * 0.08), 0.0, TAU, 48, Color(0.76, 0.42, 0.95, 0.22 + pulse * 0.16), 2.0)
-  elif enemy.rank == 'elite':
-    draw_circle(position, radius * 1.35, Color(1.0, 0.72, 0.18, 0.07 + pulse * 0.03))
-  if is_boss and enemy.enraged:
-    _draw_sprite(ArtCatalog.VFX_TEXTURES['bossEnraged'], position, display_size * (1.45 + pulse * 0.08), animation_time * 0.15, false, Color(1.0, 1.0, 1.0, 0.72))
-  var hit_ratio: float = clampf(enemy.hitFlash / 0.14, 0.0, 1.0)
-  var modulate := Color.WHITE
-  if enemy.frozenTimer > 0.0:
-    modulate = Color(0.65, 0.9, 1.0, 0.94)
-    _draw_sprite(ArtCatalog.VFX_TEXTURES['freeze'], position, display_size * 0.85, 0.0, false, Color(1.0, 1.0, 1.0, 0.46))
-  elif hit_ratio > 0.0:
-    modulate = Color(1.35, 1.2, 0.95, 1.0)
-    display_size *= 1.0 + hit_ratio * 0.08
-  # Shield enemy: shield side faces the player
-  var flip_h: bool = run.player.x < enemy.x
-  _draw_sprite(texture, position + Vector2(0.0, bob - display_size * 0.31), display_size, 0.0, flip_h, modulate)
-  if hit_ratio > 0.0:
-    draw_arc(position, radius * (1.0 + (1.0 - hit_ratio) * 0.6), 0.0, TAU, 24, Color(1.0, 0.9, 0.55, hit_ratio * 0.78), 2.5)
-    _draw_sprite(ArtCatalog.VFX_TEXTURES['impact'], position - Vector2(0.0, radius * 0.25), display_size * (0.42 + (1.0 - hit_ratio) * 0.18), animation_time * 0.6, false, Color(1.0, 1.0, 1.0, hit_ratio * 0.88))
-  if enemy.rank == 'elite':
-    draw_arc(position, radius + 7.0 + pulse * 2.0, 0.0, TAU, 32, Color(1.0, 0.84, 0.31, 0.72 + pulse * 0.22), 2.5)
-    _draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], position, radius * (3.4 + pulse * 0.18), animation_time * 0.3, false, Color(1.0, 0.86, 0.38, 0.24 + pulse * 0.1))
-  if enemy.slowTimer > 0.0:
-    draw_arc(position, radius + 9.0, 0.0, TAU, 24, Color('80cbc4'), 2.0)
-  if enemy.type == 'charger' and enemy.get('state', '') == 'windup':
-    _draw_charge_indicator(position, radius, enemy)
-  if not enemy.dots.is_empty():
-    _draw_enemy_dots(position, radius, enemy.dots, pulse)
-  if enemy.taskRole != null:
-    _draw_sprite(ArtCatalog.TASK_TEXTURES['bounty'], position - Vector2(0.0, radius + 24.0), 30.0 + pulse * 2.0)
-  if enemy.hp < enemy.maxHp or enemy.rank == 'elite' or enemy.rank == 'boss':
-    _draw_health_bar(position, radius, enemy.hp, enemy.maxHp, is_boss)
+# 判断一个世界坐标点是否在可见范围内（带额外边距以容纳大型精灵）
+func _is_on_screen(world_pos: Vector2, margin: float = 120.0) -> bool:
+  if run.camera == null:
+    return true
+  var half_w: float = run.viewport_size.x * 0.5 / 0.82 + margin
+  var half_h: float = run.viewport_size.y * 0.5 / 0.82 + margin
+  var dx: float = world_pos.x - run.camera.x
+  var dy: float = world_pos.y - run.camera.y
+  return dx > -half_w and dx < half_w and dy > -half_h and dy < half_h
 
 
 func _draw_health_bar(position: Vector2, radius: float, hp: float, max_hp: float, is_boss: bool) -> void:
@@ -274,6 +398,8 @@ func _draw_summons() -> void:
     if summon.get('dead', false):
       continue
     var position := Vector2(summon['x'], summon['y'])
+    if not _is_on_screen(position, 120.0):
+      continue
     var radius: float = summon.get('radius', 11.0)
     var is_corpse: bool = summon.get('corpse', false)
     var texture: Texture2D = ArtCatalog.SUMMON_TEXTURES['corpse'] if is_corpse else ArtCatalog.SUMMON_TEXTURES['normal']
@@ -293,6 +419,8 @@ func _draw_player_projectiles() -> void:
     if projectile.dead:
       continue
     var position := Vector2(projectile.x, projectile.y)
+    if not _is_on_screen(position, 80.0):
+      continue
     var source: String = projectile.damageOptions.get('sourceWeaponId', 'sword')
     var texture: Texture2D = ArtCatalog.PROJECTILE_TEXTURES.get(source, ArtCatalog.PROJECTILE_TEXTURES['sword'])
     var color: Color = Color(projectile.color) if not projectile.color.is_empty() else WEAPON_COLORS.get(source, Color.WHITE)
@@ -338,6 +466,8 @@ func _draw_hostile_projectiles() -> void:
     if projectile.dead:
       continue
     var position := Vector2(projectile.x, projectile.y)
+    if not _is_on_screen(position, 60.0):
+      continue
     var velocity := Vector2(projectile.vx, projectile.vy)
     var direction: Vector2 = velocity.normalized() if velocity.length_squared() > 0.0 else Vector2.RIGHT
     var angle: float = direction.angle()
@@ -479,43 +609,45 @@ func _draw_weapon_impact(effect: Dictionary, alpha: float) -> void:
   var radius: float = maxf(effect.get('radius', 12.0), 10.0)
   var intensity: float = clampf(effect.get('damage', 1.0) / 80.0, 0.35, 1.0)
   var action: String = effect.get('sourceAction', 'hit')
-  # Brighter, larger glow circle — all impacts are more visible now
-  draw_circle(position, radius * (1.4 + progress * 2.0), Color(color, alpha * 0.32 * intensity))
-  draw_circle(position, radius * (0.8 + progress * 1.2), Color(1.0, 1.0, 1.0, alpha * 0.18))
-  draw_arc(position, radius * (1.0 + progress * 2.2), 0.0, TAU, 32, Color(color, alpha * (0.9 + intensity * 0.1)), 3.5 + intensity * 2.0)
+  # 缩小后的光晕
+  draw_circle(position, radius * (0.9 + progress * 1.2), Color(color, alpha * 0.28 * intensity))
+  draw_circle(position, radius * (0.5 + progress * 0.7), Color(1.0, 1.0, 1.0, alpha * 0.14))
+  draw_arc(position, radius * (0.7 + progress * 1.3), 0.0, TAU, 24, Color(color, alpha * (0.7 + intensity * 0.1)), 2.0 + intensity * 1.2)
   var texture_key: String = IMPACT_TEXTURE_KEYS.get(source, 'impact')
-  var impact_size: float = radius * (8.0 + intensity * 4.5) * (0.9 + progress * 0.5)
+  # 击中精灵整体缩小到原来的 ~45%
+  var impact_size: float = radius * (3.5 + intensity * 2.0) * (0.9 + progress * 0.35)
   var rotation: float = effect.get('angle', 0.0)
   if source == 'sword':
-    impact_size *= 1.6
+    impact_size *= 1.4
   elif source == 'talisman':
     rotation += sin(float(effect.get('seed', 0))) * 0.3
   elif source == 'cloak' or source == 'trail':
-    impact_size *= 1.5
+    impact_size *= 1.3
     rotation = animation_time * 0.8
   elif source == 'ring':
     rotation = animation_time * 1.4
   elif source == 'staff':
     rotation += PI * 0.5
   _draw_sprite(ArtCatalog.VFX_TEXTURES[texture_key], position, impact_size, rotation, false, Color(1.0, 1.0, 1.0, alpha))
-  _draw_sprite(ArtCatalog.VFX_TEXTURES['impact'], position, radius * (4.0 + progress * 2.0), rotation * 0.25, false, Color(color, alpha * 0.95))
-  _draw_impact_sparks(position, radius * 1.2, color, alpha, int(effect.get('seed', 0)), action)
+  _draw_sprite(ArtCatalog.VFX_TEXTURES['impact'], position, radius * (2.4 + progress * 1.2), rotation * 0.25, false, Color(color, alpha * 0.85))
+  _draw_impact_sparks(position, radius * 0.9, color, alpha, int(effect.get('seed', 0)), action)
   _draw_damage_number(effect, position, radius, color, alpha, progress, intensity)
 
 
 func _draw_damage_number(effect: Dictionary, position: Vector2, radius: float, color: Color, alpha: float, progress: float, intensity: float) -> void:
   var damage: int = maxi(1, roundi(effect.get('damage', 1.0)))
   var text: String = str(damage)
-  var text_position := position + Vector2(-34.0, -radius * 1.15 - progress * 26.0)
-  var font_size: int = 18 + roundi(intensity * 8.0)
-  var shadow := Color(0.22, 0.09, 0.045, alpha * 0.94)
-  for offset: Vector2 in [Vector2(-2.0, 0.0), Vector2(2.0, 0.0), Vector2(0.0, -2.0), Vector2(0.0, 2.0)]:
-    draw_string(UI_FONT, text_position + offset, text, HORIZONTAL_ALIGNMENT_CENTER, 68.0, font_size, shadow)
-  draw_string(UI_FONT, text_position, text, HORIZONTAL_ALIGNMENT_CENTER, 68.0, font_size, Color(1.0, 0.92, 0.62, alpha))
+  var text_position := position + Vector2(-38.0, -radius * 1.15 - progress * 22.0)
+  var font_size: int = 22 + roundi(intensity * 10.0)
+  # 更深的描边，确保数字清晰可见
+  var shadow := Color(0.12, 0.05, 0.02, alpha * 0.98)
+  for offset: Vector2 in [Vector2(-2.0, 0.0), Vector2(2.0, 0.0), Vector2(0.0, -2.0), Vector2(0.0, 2.0), Vector2(-1.5, -1.5), Vector2(1.5, -1.5), Vector2(-1.5, 1.5), Vector2(1.5, 1.5)]:
+    draw_string(UI_FONT, text_position + offset, text, HORIZONTAL_ALIGNMENT_CENTER, 76.0, font_size, shadow)
+  draw_string(UI_FONT, text_position, text, HORIZONTAL_ALIGNMENT_CENTER, 76.0, font_size, Color(1.0, 0.94, 0.68, alpha))
   if intensity >= 0.82:
-    var tag_position := text_position + Vector2(48.0, 8.0)
+    var tag_position := text_position + Vector2(54.0, 8.0)
     draw_circle(tag_position + Vector2(11.0, -7.0), 13.0, Color(0.48, 0.12, 0.08, alpha * 0.94))
-    draw_string(UI_FONT, tag_position, '?!', HORIZONTAL_ALIGNMENT_CENTER, 22.0, 11, Color(1.0, 0.92, 0.68, alpha))
+    draw_string(UI_FONT, tag_position, '?!', HORIZONTAL_ALIGNMENT_CENTER, 22.0, 12, Color(1.0, 0.92, 0.68, alpha))
 
 
 func _draw_enemy_dots(position: Vector2, radius: float, dots: Dictionary, pulse: float) -> void:

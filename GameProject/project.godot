@@ -20,6 +20,7 @@ Config="*res://autoload/config.gd"
 Rng="*res://autoload/rng.gd"
 Events="*res://autoload/events.gd"
 MetaSave="*res://autoload/meta_save.gd"
+MCPRuntime="*res://addons/godot_mcp/runtime/mcp_runtime.gd"
 
 [display]
 
@@ -28,6 +29,6 @@ window/size/viewport_height=720
 window/stretch/mode="viewport"
 window/stretch/aspect="ignore"
 
-[plugin]
+[editor_plugins]
 
-"Godot MCP/enabled"=true
+enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
