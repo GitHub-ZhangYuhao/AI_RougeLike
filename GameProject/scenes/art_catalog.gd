@@ -41,7 +41,7 @@ const PROJECTILE_TEXTURES: Dictionary = {
   'talisman': preload('res://assets/icons/projectile_talisman.png'),
   'cloak': preload('res://assets/icons/projectile_fire.png'),
   'trail': preload('res://assets/icons/projectile_fire.png'),
-  'ring': preload('res://assets/icons/weapon_ring.png'),
+  'ring': preload('res://assets/sprites/weapons/jade_ring_world.png'),
   'staff': preload('res://assets/vfx/staff_spirit_bolt.png'),
   'hostile': preload('res://assets/vfx/hostile_projectile_v2.png'),
 }
@@ -61,9 +61,9 @@ const RARE_TEXTURES: Dictionary = {
 
 const SUMMON_TEXTURES: Dictionary = {
   'normal': preload('res://assets/vfx/skeleton_minion.png'),
-  'corpse': preload('res://assets/vfx/skeleton_minion.png'),
-  'ward': preload('res://assets/icons/summon_jade_guard.png'),
-  'wisp': preload('res://assets/icons/summon_wisp.png'),
+  'corpse': preload('res://assets/vfx/skeleton_minion_corpse.png'),
+  'ward': preload('res://assets/sprites/summons/jade_guard_world.png'),
+  'wisp': preload('res://assets/sprites/summons/wisp_world.png'),
 }
 
 const TASK_TEXTURES: Dictionary = {

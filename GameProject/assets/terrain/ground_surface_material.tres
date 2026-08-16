@@ -1,0 +1,16 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://assets/terrain/ground_surface.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/terrain/night_meadow_ground_1024.png" id="2_ground"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/ground_albedo = ExtResource("2_ground")
+shader_parameter/tile_count = 4.0
+shader_parameter/secondary_detail = 0.02
+shader_parameter/macro_variation = 0.025
+shader_parameter/night_grade = Color(0.82, 0.9, 1, 1)
+shader_parameter/grade_strength = 0.08
+shader_parameter/brightness = 1.03
+shader_parameter/contrast = 1.02
+

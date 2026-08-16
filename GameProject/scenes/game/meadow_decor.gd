@@ -1,6 +1,7 @@
 extends Node2D
 
 const ArtCatalog: GDScript = preload('res://scenes/art_catalog.gd')
+const SHOW_LEGACY_DECOR: bool = false
 const PROPS: Array[Dictionary] = [
   {'key': 'peachTreeLarge', 'position': Vector2(-1780, -1690), 'size': 420.0, 'flip': false},
   {'key': 'peachTreeMedium', 'position': Vector2(-1180, -1840), 'size': 330.0, 'flip': true},
@@ -57,23 +58,10 @@ func _ready() -> void:
 
 
 func _draw() -> void:
-  _draw_ground_accents()
+  if not SHOW_LEGACY_DECOR:
+    return
   for prop: Dictionary in PROPS:
     _draw_prop(prop)
-
-
-func _draw_ground_accents() -> void:
-  var patches: Array[Dictionary] = [
-    {'position': Vector2(-170, -80), 'radii': Vector2(125, 34), 'rotation': -0.28},
-    {'position': Vector2(90, 110), 'radii': Vector2(150, 42), 'rotation': 0.18},
-    {'position': Vector2(370, 180), 'radii': Vector2(105, 30), 'rotation': -0.4},
-    {'position': Vector2(-440, 310), 'radii': Vector2(92, 26), 'rotation': 0.52},
-    {'position': Vector2(650, -390), 'radii': Vector2(115, 31), 'rotation': 0.22},
-  ]
-  for patch: Dictionary in patches:
-    draw_set_transform(patch['position'], patch['rotation'], patch['radii'])
-    draw_circle(Vector2.ZERO, 1.0, Color(0.16, 0.22, 0.12, 0.045))
-    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_prop(prop: Dictionary) -> void:

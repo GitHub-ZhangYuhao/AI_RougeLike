@@ -79,59 +79,60 @@
 
 ---
 
-## 第三轮：美术资源优化（待执行）
+## 第三轮：美术资源优化（静态图片已完成，动态资源延期）
 
-### 🔴 需要正式资源替换（占位/粗糙）
+### ✅ 本轮已完成的静态图片
 
-#### 1. 世界掉落物（经验球/宝石）
-- **现状**：`_draw_gems()` 用6层 `draw_circle` 画几何圆形
-- **资源**：`pickup_gem.png`（37KB）存在但只在UI中使用，未用于世界掉落
-- **需要**：世界掉落用的宝石精灵图/序列帧
+#### 1. 世界掉落与世界实体
 
-#### 2. 闪电链特效（雷符 chain_fx）
-- **现状**：纯 `draw_line` 锯齿线段 + 4px圆点，无任何纹理
-- **资源**：完全不存在
-- **需要**：闪电链精灵图或序列帧
+- `pickup_gem.png` 已重绘并正式绑定 `_draw_gems()`；主体不再由六层圆形模拟，仅保留光晕、阴影和磁吸反馈。
+- 新增 `assets/sprites/weapons/jade_ring_world.png`，轨道玉环不再复用 HUD 武器图标。
+- 新增 `assets/sprites/summons/jade_guard_world.png` 与 `wisp_world.png`，玉卫和鬼火不再复用 UI 图标。
+- 新增 `assets/vfx/skeleton_minion_corpse.png`，骷髅尸体与存活召唤物已使用独立图片和落地构图。
 
-#### 3. 第一代VFX贴图（<20KB，粗糙，需重新生成）
+#### 2. 第一代单帧 VFX
 
-| 文件 | 大小 | 用途 | 严重度 |
-|------|------|------|--------|
-| `synergy_arc.png` | **2.8KB** | 协同弧线 | 🔴 最小资源 |
-| `sword_slash.png` | **7.1KB** | 道剑斩击特效 | 🔴 每次攻击都出现 |
-| `talisman_lightning.png` | **8.3KB** | 雷符闪电 | 🔴 每次落雷都出现 |
-| `healing_petals.png` | 8.7KB | 治疗花瓣 | |
-| `poison_mist.png` | 8.9KB | 毒雾 | |
-| `dot_curse.png` | 9.4KB | 诅咒DOT | |
-| `task_beacon.png` | 9.5KB | 任务信标 | |
-| `staff_spirit_bolt.png` | **10.5KB** | 法杖弹道 | 🔴 每次射击都出现 |
-| `freeze_burst.png` | 11.1KB | 冰冻爆裂 | |
-| `impact_flash.png` | **12.2KB** | 打击闪光 | 🔴 每次命中都出现 |
-| `pickup_glow.png` | 14.8KB | 拾取发光 | |
-| `furnace_flame.png` | 15.1KB | 丹火火焰 | |
-| `boss_enraged.png` | 16.5KB | Boss狂暴 | |
-| `jade_ring_trail.png` | 17.4KB | 玉戒拖尾 | |
-| `explosion.png` | 20.8KB | 爆炸 | 临界 |
+以下 16 张旧的低容量/占位式图片已替换为 384×384 RGBA 手绘资源，并沿用原绑定键名：
 
-#### 4. UI扁平装饰（`ui/modern/`）
-- `divider_blossom.svg` 只有2.5KB，`panel_corner` 12KB — 极简几何图形
-- 备选：`ui/ornaments/` 目录有12个手绘风格版本（53-172KB）但未被引用
-
-### 🟡 可以打磨优化
-
-| 项目 | 现状 | 建议 |
+| 文件 | 用途 | 状态 |
 |------|------|------|
-| 道剑剑气拖尾 | 多层圆形+线条叠加在sprite上 | 用烘焙拖尾纹理替代 |
-| 普通弹道拖尾 | 同上，glow+线条+核心圆 | 同上 |
-| 雷符闪电束 | 6段程序化锯齿线+分支 | 用序列帧闪电动画替代 |
-| 骷髅召唤物 | 普通/尸体共用同一张 `skeleton_minion.png` | 尸体形态需独立贴图 |
-| HUD几何图元 | `game_overlay.gd` 中等级徽章、暂停按钮等用圆形/矩形绘制 | 出专用UI小图标 |
-| 敌人动画同步 | 同类敌人共享 `animation_time`，完全同步 | 需要每敌人随机相位偏移 |
+| `sword_slash.png` | 道剑斩击 | ✅ 已替换 |
+| `talisman_lightning.png` | 雷符落雷 | ✅ 已替换 |
+| `cloak_fire_burst.png` | 披风火焰爆发 | ✅ 已替换 |
+| `staff_spirit_bolt.png` | 法杖灵弹 | ✅ 已替换 |
+| `synergy_arc.png` | 协同弧线 | ✅ 已替换 |
+| `impact_flash.png` | 通用命中闪光 | ✅ 已替换 |
+| `explosion.png` | 爆炸 | ✅ 已替换 |
+| `freeze_burst.png` | 冰冻爆裂 | ✅ 已替换 |
+| `poison_mist.png` | 毒雾 | ✅ 已替换 |
+| `dot_curse.png` | 诅咒 DoT | ✅ 已替换 |
+| `healing_petals.png` | 治疗花瓣 | ✅ 已替换 |
+| `pickup_glow.png` | 拾取发光 | ✅ 已替换 |
+| `boss_enraged.png` | Boss 狂暴 | ✅ 已替换 |
+| `furnace_flame.png` | 丹火 | ✅ 已替换 |
+| `jade_ring_trail.png` | 玉环拖尾 | ✅ 已替换 |
+| `task_beacon.png` | 任务信标 | ✅ 已替换 |
 
-### ✅ 资源充足的类别
+#### 3. 静态 UI 装饰
 
-- **敌人精灵图**：7种敌人全部有静态贴图+5×5动画序列帧（1.8-5.7MB/张）
-- **玩家角色**：8方向行走序列帧+idle，完整覆盖
-- **环境装饰**：12种全部有正式贴图（49-238KB）
-- **地面纹理**：6张高清贴图（4.9-6.4MB）+ shader材质
-- **地形瓦片**：4张webp（1.9-2.7MB）
+- `ui/modern/` 中 11 张方形徽章、印章、卡角和光标已换成细节更完整的手绘版本，现有 `ArtCatalog.UI_TEXTURES` 绑定保持不变。
+- `divider_blossom.png` 保留横向原子切片：它需要在 Debug 面板中按 22px 高度横向排版，不属于未配置占位符。
+- 桃夜巡 HUD/卡牌继续使用 `ui/peach_night/atomic/` 的正式切片，本轮不重做已批准的 UI 原子资源。
+
+### ⏸ 按本轮范围延期的动态资源
+
+| 项目 | 当前表现 | 后续方向 |
+|------|----------|----------|
+| 闪电链 `chain_fx` | 程序化锯齿线与节点 | 动态闪电材质或序列帧 |
+| 道剑/普通弹道拖尾 | 贴图主体叠加程序化线条和光晕 | 动态拖尾材质或序列帧 |
+| 雷符闪电束 | 程序化分段闪电 | 动态闪电动画 |
+| 玩家、敌人、Boss 动画 | 现有序列帧可运行 | 攻击/受击/死亡补帧与随机相位 |
+| 视频资源 | 当前无正式视频管线 | 后续按界面或剧情需求单独规划 |
+
+### ✅ 当前静态图片覆盖结论
+
+- **敌人/Boss 静态图**：7 类全部有正式图片。
+- **玩家静态回退与八方向图片**：已配置。
+- **世界掉落、弹道、召唤状态、任务和单帧战斗 VFX**：均已绑定正式图片。
+- **环境装饰、地面纹理、地形瓦片**：已配置。
+- **现代 UI 与桃夜巡原子 UI 图片**：已配置；后续只做明确批准的风格迭代，不再视为占位符。

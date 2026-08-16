@@ -113,7 +113,7 @@ func _draw_weapon_zones() -> void:
       for i in stats['count']:
         var angle: float = weapon.angle + i * TAU / stats['count']
         var position := Vector2(run.player.x + cos(angle) * orbit_radius, run.player.y + sin(angle) * orbit_radius)
-        _draw_sprite(ArtCatalog.WEAPON_ICONS['ring'], position, 80.0, angle)
+        _draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['ring'], position, 76.0, angle)
     elif id == 'trail':
       for zone: Dictionary in weapon.furnaces:
         _draw_zone(zone, Color(1.0, 0.2, 0.04, 0.1), Color('ff7043'))
@@ -156,22 +156,13 @@ func _draw_gems() -> void:
       continue
     var position := Vector2(gem['x'], gem['y'])
     var bob := Vector2(0.0, sin(animation_time * 4.0 + gem['x'] * 0.01) * 2.0)
-    var gem_radius: float = 8.4
     var gem_color := Color(gem['color'])
-    # Draw glowing orb — simple sphere with depth
+    var display_position: Vector2 = position + bob
     if gem['magnetized']:
       _draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], position, 34.0, animation_time, false, Color(0.75, 1.0, 1.0, 0.65))
-    # Outer glow
-    draw_circle(position + bob, gem_radius + 5.0, Color(gem_color, 0.15))
-    # Shadow underneath
-    draw_circle(position + bob + Vector2(0.0, 2.0), gem_radius * 0.9, Color(0.0, 0.0, 0.0, 0.12))
-    # Main sphere body
-    draw_circle(position + bob, gem_radius, gem_color)
-    # Inner lighter ring for 3D depth
-    draw_circle(position + bob, gem_radius * 0.72, gem_color.lightened(0.25))
-    # Specular highlight
-    draw_circle(position + bob + Vector2(-2.5, -3.5), gem_radius * 0.35, Color(1.0, 1.0, 1.0, 0.7))
-    draw_circle(position + bob + Vector2(-1.5, -2.0), gem_radius * 0.18, Color(1.0, 1.0, 1.0, 0.9))
+    draw_circle(display_position, 13.0, Color(gem_color, 0.16))
+    _draw_ellipse_shape(display_position + Vector2(0.0, 7.0), Vector2(7.5, 3.0), Color(0.0, 0.0, 0.0, 0.16))
+    _draw_sprite(ArtCatalog.PICKUP_TEXTURES['gem'], display_position, 27.0)
 
 
 func _draw_pickups() -> void:
@@ -284,13 +275,17 @@ func _draw_summons() -> void:
       continue
     var position := Vector2(summon['x'], summon['y'])
     var radius: float = summon.get('radius', 11.0)
-    var texture: Texture2D = ArtCatalog.SUMMON_TEXTURES['corpse'] if summon.get('corpse', false) else ArtCatalog.SUMMON_TEXTURES['normal']
+    var is_corpse: bool = summon.get('corpse', false)
+    var texture: Texture2D = ArtCatalog.SUMMON_TEXTURES['corpse'] if is_corpse else ArtCatalog.SUMMON_TEXTURES['normal']
     _draw_ellipse_shape(position + Vector2(0.0, radius * 0.7), Vector2(radius, radius * 0.38), Color(0.03, 0.025, 0.035, 0.28))
-    _draw_sprite(texture, position - Vector2(0.0, radius * 1.05), radius * 4.1, 0.0, run.player.x < summon['x'])
+    if is_corpse:
+      _draw_sprite(texture, position - Vector2(0.0, radius * 0.18), radius * 4.3)
+    else:
+      _draw_sprite(texture, position - Vector2(0.0, radius * 1.05), radius * 4.1, 0.0, run.player.x < summon['x'])
     if summon.get('guardianWardActive', false):
-      _draw_sprite(ArtCatalog.SUMMON_TEXTURES['ward'], position, radius * 3.6, 0.0, false, Color(1.0, 1.0, 1.0, 0.72))
+      _draw_sprite(ArtCatalog.SUMMON_TEXTURES['ward'], position + Vector2(radius * 1.35, -radius * 0.35), radius * 3.4, -0.08, false, Color(1.0, 1.0, 1.0, 0.82))
     if summon.get('ghostfireActive', false):
-      _draw_sprite(ArtCatalog.SUMMON_TEXTURES['wisp'], position - Vector2(0.0, radius * 1.8), radius * 2.4, animation_time * 0.2)
+      _draw_sprite(ArtCatalog.SUMMON_TEXTURES['wisp'], position + Vector2(-radius * 1.25, -radius * 1.85), radius * 3.0, sin(animation_time * 2.4) * 0.08)
 
 
 func _draw_player_projectiles() -> void:

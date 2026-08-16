@@ -2,7 +2,7 @@ extends Node2D
 
 @export var pan_speed: float = 900.0
 @export var zoom_step: float = 0.12
-@export var min_zoom: float = 0.3
+@export var min_zoom: float = 0.15
 @export var max_zoom: float = 2.5
 
 @onready var camera: Camera2D = $Camera2D
@@ -26,7 +26,7 @@ func _unhandled_input(event: InputEvent) -> void:
             _set_zoom(camera.zoom.x - zoom_step)
     elif event is InputEventKey and event.pressed and event.keycode == KEY_R:
         camera.position = Vector2.ZERO
-        _set_zoom(0.5)
+        _set_zoom(0.18)
 
 
 func _set_zoom(value: float) -> void:
