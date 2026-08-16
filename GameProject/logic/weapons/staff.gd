@@ -71,8 +71,8 @@ func update(dt: float, current_world) -> void:
         if slot["summon"] != null and not slot["summon"]["dead"]:
             _update_summon(slot["summon"], current_world, s, dt)
 
-    var log: Array = current_world.get("kill_log", current_world.get("killLog", []))
-    for kill: Dictionary in log:
+    var kill_log: Array = current_world.get("kill_log", current_world.get("killLog", []))
+    for kill: Dictionary in kill_log:
         if kill["id"] <= last_kill_id:
             continue
         last_kill_id = kill["id"]

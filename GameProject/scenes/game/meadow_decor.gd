@@ -66,16 +66,16 @@ func _draw() -> void:
 
 func _draw_prop(prop: Dictionary) -> void:
   var texture: Texture2D = ArtCatalog.ENVIRONMENT_TEXTURES[prop['key']]
-  var position: Vector2 = prop['position']
+  var prop_position: Vector2 = prop['position']
   var size: float = prop['size']
   if prop['key'] != 'fallenPetals':
     var shadow_width: float = size * (0.33 if 'Tree' in prop['key'] else 0.27)
-    draw_set_transform(position + Vector2(0.0, size * 0.18), 0.0, Vector2(shadow_width, size * 0.08))
+    draw_set_transform(prop_position + Vector2(0.0, size * 0.18), 0.0, Vector2(shadow_width, size * 0.08))
     draw_circle(Vector2.ZERO, 1.0, Color(0.025, 0.04, 0.028, 0.19))
     draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
   var texture_size: Vector2 = texture.get_size()
   var factor: float = size / maxf(texture_size.x, texture_size.y)
-  var scale := Vector2(-factor if prop['flip'] else factor, factor)
-  draw_set_transform(position - Vector2(0.0, size * 0.2), 0.0, scale)
+  var prop_scale := Vector2(-factor if prop['flip'] else factor, factor)
+  draw_set_transform(prop_position - Vector2(0.0, size * 0.2), 0.0, prop_scale)
   draw_texture(texture, -texture_size * 0.5, Color.WHITE)
   draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

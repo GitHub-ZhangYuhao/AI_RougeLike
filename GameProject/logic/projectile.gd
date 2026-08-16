@@ -27,14 +27,14 @@ var ringReturnUsed: bool = false
 var furnaceCuts: Dictionary = {}
 
 
-func _init(x0: float, y0: float, angle: float, options: Dictionary = {}) -> void:
+func _init(x0: float, y0: float, initial_angle: float, options: Dictionary = {}) -> void:
     x = x0
     y = y0
-    self.angle = angle
+    angle = initial_angle
     color = options.get("color", "")
     speed = options.get("speed", 0.0)
-    vx = cos(angle) * speed
-    vy = sin(angle) * speed
+    vx = cos(initial_angle) * speed
+    vy = sin(initial_angle) * speed
     damage = options.get("damage", 0.0)
     radius = options.get("radius", 5.0)
     lifetime = options.get("lifetime", 4.0)

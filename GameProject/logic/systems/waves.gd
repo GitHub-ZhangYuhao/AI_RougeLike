@@ -19,7 +19,7 @@ var timeRemaining: float:
 var remaining: int:
     get: return maxi(0, quota - spawned)
 var spawnInterval: float:
-    get: return Config.CONFIG["waves"]["duration"] / maxi(1, quota - (1 if isBossWave else 0))
+    get: return float(Config.CONFIG["waves"]["duration"]) / float(maxi(1, quota - (1 if isBossWave else 0)))
 
 func update(dt: float, game, camera, view_w: float, view_h: float) -> void:
     bannerTimer -= dt

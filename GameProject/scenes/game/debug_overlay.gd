@@ -109,7 +109,6 @@ func refresh() -> void:
 
 func _process(delta: float) -> void:
   if not is_open():
-    var meta_open: bool = run != null and str(run.state) in ['menu', 'shop', 'storage']
     _launcher.visible = false  # Debug launcher hidden by default
     return
   _refresh_timer -= delta
@@ -400,7 +399,10 @@ func _spawn_setting(value: float, key: String) -> void:
 
 func _alive_cap_changed(value: float) -> void:
   if not _updating and run != null:
-    run.debug.set_spawn_settings({'aliveCap': null if value <= 0.0 else floori(value)})
+    var alive_cap: Variant = null
+    if value > 0.0:
+      alive_cap = floori(value)
+    run.debug.set_spawn_settings({'aliveCap': alive_cap})
 
 
 func _weapon_level(value: float, id: String) -> void:
@@ -449,7 +451,7 @@ func _alive_count() -> int:
 
 func _format_time(value: float) -> String:
   var seconds: int = maxi(0, floori(value))
-  return '%02d:%02d' % [seconds / 60, seconds % 60]
+  return '%02d:%02d' % [floori(float(seconds) / 60.0), seconds % 60]
 
 
 func _panel_style() -> StyleBoxFlat:

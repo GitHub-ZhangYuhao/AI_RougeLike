@@ -32,8 +32,8 @@ func update(dt: float, current_world) -> void:
 
     if s.get("shock", false):
         if s.get("enhancedKillShock", false) and last_kills >= 0:
-            var previous: int = last_kills / 100
-            var current: int = int(current_world.kills) / 100
+            var previous: int = floori(float(last_kills) / 100.0)
+            var current: int = floori(float(current_world.kills) / 100.0)
             for ignored in range(previous, current):
                 fire_shock(current_world, true)
         shock_timer -= dt

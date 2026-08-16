@@ -274,7 +274,7 @@ func _make_menu_feature(title: String, detail: String, icon: Texture2D, fill: Co
 	return card
 
 
-func _menu_feature_style(fill: Color, accent: Color) -> StyleBoxFlat:
+func _menu_feature_style(fill: Color, _accent: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill.lightened(0.08)
 	style.border_color = WALNUT
@@ -324,7 +324,7 @@ func _stats_pill_style() -> StyleBoxFlat:
 	return style
 
 
-func _make_row(name: String, detail: String, action_text: String, enabled: bool, action: Callable, icon: Texture2D = null) -> PanelContainer:
+func _make_row(feature_name: String, detail: String, action_text: String, enabled: bool, action: Callable, icon: Texture2D = null) -> PanelContainer:
 	var row := PanelContainer.new()
 	row.custom_minimum_size = Vector2(0.0, 58.0)
 	row.add_theme_stylebox_override("panel", _row_style())
@@ -347,7 +347,7 @@ func _make_row(name: String, detail: String, action_text: String, enabled: bool,
 		line.add_child(icon_rect)
 	var name_label := Label.new()
 	name_label.custom_minimum_size.x = 90.0
-	name_label.text = name
+	name_label.text = feature_name
 	name_label.add_theme_color_override("font_color", CORAL_DARK)
 	name_label.add_theme_font_size_override("font_size", 18)
 	line.add_child(name_label)

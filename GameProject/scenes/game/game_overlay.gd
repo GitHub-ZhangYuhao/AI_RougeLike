@@ -1,6 +1,7 @@
 extends Node2D
 
 const UiLayoutScript: GDScript = preload("res://logic/ui_layout.gd")
+const ChoiceCardRendererScript: GDScript = preload("res://scenes/game/choice_card_renderer.gd")
 const ArtCatalog: GDScript = preload('res://scenes/art_catalog.gd')
 const UI_FONT: Font = preload('res://assets/fonts/ui_font_round.tres')
 const PLAYER_PORTRAIT: Texture2D = preload('res://assets/sprites/player/player_static.png')
@@ -13,10 +14,6 @@ const UI_ICON_CRYSTAL: Texture2D = preload('res://assets/ui/peach_night/atomic/c
 const UI_ICON_PAUSE: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/icon_pause.svg')
 const UI_ICON_SPIRIT: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/icon_spirit.svg')
 const UI_ICON_KILL: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/icon_kill.svg')
-const CARD_PAPER_TILE: Texture2D = preload('res://assets/ui/peach_night/atomic/card_paper_tile.png')
-const CARD_CORNER_BLOSSOM: Texture2D = preload('res://assets/ui/peach_night/atomic/clean/card_corner_blossom.svg')
-const TAROT_AGED_PAPER: Texture2D = preload('res://assets/ui/tarot_textures/tarot_aged_paper_bg_00001_.png')
-const TAROT_ORNATE_BORDER: Texture2D = preload('res://assets/ui/tarot_textures/tarot_ornate_golden_border_00001_.png')
 const TAROT_ICON_FRAME: Texture2D = preload('res://assets/ui/tarot_textures/tarot_circular_icon_frame_00001_.png')
 
 const INK: Color = Color('4b2f2a')
@@ -47,37 +44,13 @@ const CARD_COLORS: Dictionary = {
 	"damage": Color("df6b55"), "armor": Color("94a7a9"), "magnet": Color("6fc9d8"),
 	"xp": Color("c5a1df"), "maxHp": Color("d9838b"), "moveSpeed": Color("79c99b"),
 }
-const CARD_SIGILS: Dictionary = {
-	"sword": "剑", "cloak": "衣", "talisman": "雷", "trail": "火", "ring": "环", "staff": "灵",
-	"damage": "攻", "armor": "甲", "magnet": "引", "xp": "悟", "maxHp": "生", "moveSpeed": "速",
-}
-const CARD_DESCRIPTIONS: Dictionary = {
-	"sword": "御剑破阵，远程贯穿敌群",
-	"cloak": "烈焰护体，持续灼烧近敌",
-	"talisman": "雷弹索敌，引雷并弹射",
-	"trail": "移动留火，闭环化为丹炉",
-	"ring": "寒玉绕身，触敌造成伤害",
-	"staff": "召来魂仆，追猎并引爆",
-	"damage": "本局伤害提高 15%",
-	"armor": "本局护甲提高 15",
-	"magnet": "拾取范围扩大 50px",
-	"xp": "经验获取提高 15%",
-	"maxHp": "最大生命提高 20",
-	"moveSpeed": "移动速度提高 6%",
-}
-const TYPE_LABELS: Dictionary = {
-	"new": "新武器", "upgrade": "武器升级", "attr": "属性强化",
-	"taskWeapon": "任务武器", "taskStat": "任务强化", "taskBlessing": "任务祝福",
-}
 
 var run = null
+var choice_card_renderer: RefCounted = ChoiceCardRendererScript.new()
 var animation_time: float = 0.0
 # 预分配 StyleBoxFlat 避免每帧新建对象（主要 HUD 元素每帧调用）
 var _sb_shadow: StyleBoxFlat = StyleBoxFlat.new()
 var _sb_inner_border: StyleBoxFlat = StyleBoxFlat.new()
-var _sb_card_shadow: StyleBoxFlat = StyleBoxFlat.new()
-var _sb_card_inner: StyleBoxFlat = StyleBoxFlat.new()
-var _sb_card_glow: StyleBoxFlat = StyleBoxFlat.new()
 var _sb_panel_shadow: StyleBoxFlat = StyleBoxFlat.new()
 var _sb_panel_style: StyleBoxFlat = StyleBoxFlat.new()
 var _sb_panel_highlight: StyleBoxFlat = StyleBoxFlat.new()
@@ -95,10 +68,6 @@ func _ensure_styleboxes() -> void:
 	_sb_shadow.shadow_offset = Vector2(0.0, 4.0)
 	_sb_inner_border.bg_color = Color.TRANSPARENT
 	_sb_inner_border.set_border_width_all(1)
-	_sb_card_shadow.shadow_color = Color(0.08, 0.04, 0.02, 0.68)
-	_sb_card_shadow.shadow_offset = Vector2(0.0, 4.0)
-	_sb_card_inner.bg_color = Color.TRANSPARENT
-	_sb_card_inner.set_border_width_all(1)
 
 
 func bind_run(game_run) -> void:
@@ -122,7 +91,7 @@ func _draw() -> void:
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	var inv_s: float = 1.0 / UI_SCALE
 	if run.state == "opening" or run.state == "choice":
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(inv_s, inv_s))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		_draw_choice(size)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	elif run.state == "extraction":
@@ -469,116 +438,8 @@ func _draw_inventory(size: Vector2) -> void:
 		draw_string(UI_FONT, Vector2(size.x - 368.0, size.y - 24.0), copy, HORIZONTAL_ALIGNMENT_RIGHT, 340.0, 11, PAPER_LIGHT)
 
 func _draw_choice(size: Vector2) -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.045, 0.10, 0.88))
-	var offers: Array = run.currentOffers
-	var rects: Array[Dictionary] = UiLayoutScript.get_card_rects(size.x, size.y, offers.size())
-	var top_y: float = rects[0]['y'] if not rects.is_empty() else size.y * 0.5
-	var title: String = '选择初始武器' if run.state == 'opening' else ('奇遇完成 · 选择奖励' if run.choiceOrigin == 'task' else '境界突破 · 选择一项强化')
-	var compact_grid: bool = offers.size() > 3
-	var title_height: float = 44.0 if compact_grid else 58.0
-	var title_y: float = 3.0 if compact_grid else top_y - 100.0
-	var title_rect := Rect2(size.x * 0.5 - 220.0, title_y, 440.0, title_height)
-	_draw_panel(title_rect, Color('512b23f5'), Color('d49a46'), 3.0, 18.0)
-	draw_line(title_rect.position + Vector2(58.0, 9.0), title_rect.end - Vector2(58.0, title_rect.size.y - 9.0), Color('ffcf70aa'), 1.0)
-	_draw_texture_centered(UI_BLOSSOM_CLUSTER, title_rect.position + Vector2(28.0, 20.0), 54.0)
-	_draw_texture_centered(UI_BLOSSOM_CLUSTER, title_rect.end - Vector2(28.0, 18.0), 54.0, PI)
-	draw_string(UI_FONT, Vector2(title_rect.position.x, title_rect.position.y + (31.0 if compact_grid else 39.0)), title, HORIZONTAL_ALIGNMENT_CENTER, title_rect.size.x, 23 if compact_grid else 26, PAPER_LIGHT)
-	var hint_rect := Rect2(size.x * 0.5 - 180.0, 49.0 if compact_grid else top_y - 38.0, 360.0, 18.0 if compact_grid else 22.0)
-	_draw_panel(hint_rect, Color(TEAL_DEEP, 0.94), Color(SPIRIT_GLOW, 0.68), 1.0, hint_rect.size.y * 0.5)
-	draw_string(UI_FONT, Vector2(hint_rect.position.x, hint_rect.position.y + (14.0 if compact_grid else 17.0)), '点击卡牌或按数字键 1-%d' % offers.size(), HORIZONTAL_ALIGNMENT_CENTER, hint_rect.size.x, 11 if compact_grid else 12, SPIRIT_GLOW)
-	var mouse := Vector2(run.input.mouse_x, run.input.mouse_y)
-	for i in offers.size():
-		_draw_choice_card(offers[i], rects[i], mouse, i)
+	choice_card_renderer.draw(self, run, size, animation_time)
 
-func _draw_choice_card(offer: Dictionary, data: Dictionary, mouse: Vector2, index: int) -> void:
-	_draw_approved_choice_card(offer, data, mouse, index)
-
-
-func _draw_approved_choice_card(offer: Dictionary, data: Dictionary, mouse: Vector2, index: int) -> void:
-	var card: Dictionary = offer['card']
-	var id: String = card.get('id', '')
-	var hit_rect := Rect2(data['x'], data['y'], data['w'], data['h'])
-	var hover: bool = hit_rect.has_point(mouse)
-	var rect := Rect2(hit_rect.position + Vector2(0.0, -9.0 if hover else 0.0), hit_rect.size)
-	var accent: Color = CARD_COLORS.get(id, _type_color(offer.get('type', '')))
-	_ensure_styleboxes()
-	# Warm hover glow
-	if hover:
-		_sb_card_glow.bg_color = Color(GOLD, 0.22)
-		_sb_card_glow.set_corner_radius_all(25)
-		draw_style_box(_sb_card_glow, Rect2(rect.position - Vector2(7.0, 7.0), rect.size + Vector2(14.0, 14.0)))
-	# Shadow (warm tone)
-	_sb_card_shadow.bg_color = Color(0.15, 0.08, 0.04, 0.78)
-	_sb_card_shadow.set_corner_radius_all(20)
-	_sb_card_shadow.shadow_size = 8 if hover else 5
-	draw_style_box(_sb_card_shadow, rect)
-	# Tarot aged paper background
-	draw_texture_rect(TAROT_AGED_PAPER, rect, false, Color.WHITE)
-	# Tarot ornate border overlay
-	draw_texture_rect(TAROT_ORNATE_BORDER, rect, false, Color.WHITE)
-	# Subtle inner frame
-	_sb_card_inner.border_color = Color(ANTIQUE_GOLD, 0.4)
-	_sb_card_inner.set_corner_radius_all(15)
-	draw_style_box(_sb_card_inner, Rect2(rect.position + Vector2(5.0, 5.0), rect.size - Vector2(10.0, 10.0)))
-	# Header (walnut + gold)
-	var header_rect := Rect2(rect.position + Vector2(14.0, 9.0), Vector2(rect.size.x - 28.0, 48.0))
-	_draw_panel(header_rect, Color(WALNUT, 0.92), Color(GOLD, 0.8), 2.0, 13.0)
-	draw_line(header_rect.position + Vector2(48.0, 7.0), header_rect.position + Vector2(header_rect.size.x - 12.0, 7.0), Color(GOLD, 0.6), 1.0)
-	var header_text: String = '初始法器' if run.state == 'opening' else TYPE_LABELS.get(offer.get('type', ''), '奇遇奖励')
-	draw_string(UI_FONT, header_rect.position + Vector2(44.0, 32.0), header_text, HORIZONTAL_ALIGNMENT_CENTER, header_rect.size.x - 88.0, maxi(14, roundi(rect.size.x * 0.062)), PAPER_LIGHT)
-	var number_center := header_rect.position + Vector2(24.0, 24.0)
-	draw_circle(number_center, 17.0, WALNUT)
-	draw_circle(number_center, 13.0, GOLD)
-	draw_arc(number_center, 15.0, 0.0, TAU, 24, Color(GOLD, 0.7), 1.0)
-	draw_string(UI_FONT, number_center + Vector2(-10.0, 5.0), str(index + 1), HORIZONTAL_ALIGNMENT_CENTER, 20.0, 13, PAPER_LIGHT)
-	if hover:
-		_draw_texture_centered(ArtCatalog.UI_TEXTURES['focusCursor'], header_rect.position + Vector2(header_rect.size.x - 21.0, 22.0), 31.0)
-	# Rarity tag (walnut / antique_gold)
-	var tag_rect := Rect2(rect.end.x - 45.0, rect.position.y + 66.0, 31.0, 82.0)
-	var tag_color: Color = Color(WALNUT, 0.95) if offer.get('type', '') in ['upgrade', 'taskWeapon', 'taskBlessing'] else Color(ANTIQUE_GOLD, 0.95)
-	_draw_panel(tag_rect, tag_color, Color(GOLD, 0.7), 2.0, 11.0)
-	draw_circle(tag_rect.position + Vector2(tag_rect.size.x * 0.5, 9.0), 3.0, GOLD)
-	var rarity_text: String = '初\n契' if run.state == 'opening' else ('精\n良' if offer.get('type', '') in ['upgrade', 'taskWeapon', 'taskBlessing'] else '奇\n遇')
-	var rarity_lines: PackedStringArray = rarity_text.replace('\\n', '\n').split('\n')
-	for tag_index in rarity_lines.size():
-		draw_string(UI_FONT, tag_rect.position + Vector2(0.0, 32.0 + tag_index * 24.0), rarity_lines[tag_index], HORIZONTAL_ALIGNMENT_CENTER, tag_rect.size.x, maxi(13, roundi(rect.size.x * 0.057)), PAPER_LIGHT)
-	# Icon area (gold auras)
-	var icon_center := rect.position + Vector2(rect.size.x * 0.50, rect.size.y * 0.30)
-	for aura_index in 3:
-		var aura_radius: float = rect.size.x * (0.18 + aura_index * 0.025)
-		draw_arc(icon_center, aura_radius, PI * 0.10, PI * 1.90, 32, Color(GOLD, 0.3 - aura_index * 0.07), 2.0)
-	_draw_icon_badge(_choice_texture(id, offer.get('type', '')), icon_center, rect.size.x * 0.34, rect.size.x * 0.23, accent, hover)
-	# Card name
-	var name_y: float = rect.position.y + rect.size.y * 0.52
-	draw_string(UI_FONT, Vector2(rect.position.x + 22.0, name_y), card.get('name', '未知奖励'), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 44.0, maxi(19, roundi(rect.size.x * 0.084)), INK)
-	var divider_y: float = rect.position.y + rect.size.y * 0.575
-	draw_line(Vector2(rect.position.x + rect.size.x * 0.18, divider_y), Vector2(rect.end.x - rect.size.x * 0.18, divider_y), Color(WALNUT, 0.52), 1.5)
-	draw_circle(Vector2(rect.get_center().x, divider_y), 3.0, ANTIQUE_GOLD)
-	# Level info (paper_light + antique_gold)
-	var level_rect := Rect2(rect.position + Vector2(rect.size.x * 0.18, rect.size.y * 0.605), Vector2(rect.size.x * 0.64, rect.size.y * 0.088))
-	_draw_panel(level_rect, Color(PAPER_LIGHT, 0.9), Color(ANTIQUE_GOLD, 0.7), 1.0, level_rect.size.y * 0.5)
-	draw_string(UI_FONT, level_rect.position + Vector2(3.0, level_rect.size.y * 0.70), _level_info(offer), HORIZONTAL_ALIGNMENT_CENTER, level_rect.size.x - 6.0, maxi(12, roundi(rect.size.x * 0.052)), TEAL_DEEP)
-	# Description (paper + walnut)
-	var description: String = card.get('desc', CARD_DESCRIPTIONS.get(id, ''))
-	if description == '':
-		description = '本局持续生效'
-	var lines: Array[String] = _wrap_text(description, 13 if rect.size.x < 250.0 else 15)
-	var desc_rect := Rect2(rect.position + Vector2(14.0, rect.size.y * 0.71), Vector2(rect.size.x - 28.0, rect.size.y * 0.13))
-	_draw_panel(desc_rect, Color(PAPER, 0.85), Color(WALNUT, 0.5), 1.0, 8.0)
-	var line_height: float = 19.0
-	var text_height: float = mini(lines.size(), 2) * line_height
-	var desc_y: float = desc_rect.position.y + (desc_rect.size.y - text_height) * 0.5 + 14.0
-	for line_index in mini(lines.size(), 2):
-		draw_string(UI_FONT, Vector2(desc_rect.position.x + 5.0, desc_y + line_index * line_height), lines[line_index], HORIZONTAL_ALIGNMENT_CENTER, desc_rect.size.x - 10.0, maxi(13, roundi(rect.size.x * 0.054)), INK)
-	# Button (walnut + gold)
-	var button_rect := Rect2(rect.position + Vector2(rect.size.x * 0.14, rect.size.y * 0.855), Vector2(rect.size.x * 0.72, rect.size.y * 0.105))
-	_draw_panel(button_rect, Color(WALNUT, 0.95), Color(GOLD, 0.85), 2.0, button_rect.size.y * 0.5)
-	draw_line(button_rect.position + Vector2(13.0, 5.0), button_rect.position + Vector2(button_rect.size.x - 13.0, 5.0), Color(GOLD, 0.55), 1.0)
-	draw_string(UI_FONT, button_rect.position + Vector2(0.0, button_rect.size.y * 0.72), '%d · 点击选择' % (index + 1), HORIZONTAL_ALIGNMENT_CENTER, button_rect.size.x, maxi(12, roundi(rect.size.x * 0.052)), PAPER_LIGHT)
-	# Corner decorations
-	_draw_texture_centered(CARD_CORNER_BLOSSOM, rect.position + Vector2(rect.size.x - 18.0, 18.0), 38.0, PI * 0.25)
-	_draw_texture_centered(CARD_CORNER_BLOSSOM, rect.end - Vector2(17.0, 19.0), 52.0, PI)
-	_draw_texture_centered(CARD_CORNER_BLOSSOM, rect.end - Vector2(17.0, 19.0), 52.0, PI)
 
 func _draw_extraction(size: Vector2) -> void:
 	_draw_modal(size, "首领已伏", "此刻可携战利品安然撤离，亦可继续深入暗夜。", GOLD)
@@ -719,7 +580,7 @@ func _draw_card_corners(rect: Rect2, color: Color) -> void:
 	_draw_texture_centered(texture, rect.position + Vector2(18.0, rect.size.y - 18.0), 46.0, -PI * 0.5, Color(1.0, 1.0, 1.0, alpha))
 
 
-func _draw_icon_badge(texture: Texture2D, center: Vector2, badge_size: float, icon_size: float, accent: Color, emphasized: bool = false) -> void:
+func _draw_icon_badge(texture: Texture2D, center: Vector2, badge_size: float, icon_size: float, _accent: Color, emphasized: bool = false) -> void:
 	var radius: float = badge_size * 0.5
 	var lift: Vector2 = Vector2(0.0, -3.0) if emphasized else Vector2(0.0, -1.0)
 	var badge_center: Vector2 = center + lift
@@ -735,24 +596,14 @@ func _draw_icon_badge(texture: Texture2D, center: Vector2, badge_size: float, ic
 	_draw_texture_centered(texture, badge_center + Vector2(0.0, 1.0), icon_size * 1.08)
 
 
-func _draw_texture_centered(texture: Texture2D, center: Vector2, display_size: float, rotation: float = 0.0, modulate: Color = Color.WHITE) -> void:
+func _draw_texture_centered(texture: Texture2D, center: Vector2, display_size: float, texture_rotation: float = 0.0, tint: Color = Color.WHITE) -> void:
 	if texture == null:
 		return
 	var texture_size: Vector2 = texture.get_size()
 	var factor: float = display_size / maxf(texture_size.x, texture_size.y)
-	draw_set_transform(center, rotation, Vector2.ONE * factor)
-	draw_texture(texture, -texture_size * 0.5, modulate)
+	draw_set_transform(center, texture_rotation, Vector2.ONE * factor)
+	draw_texture(texture, -texture_size * 0.5, tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-
-func _choice_texture(id: String, type: String) -> Texture2D:
-	if ArtCatalog.WEAPON_ICONS.has(id):
-		return ArtCatalog.WEAPON_ICONS[id]
-	match type:
-		'attr', 'taskStat': return ArtCatalog.UI_TEXTURES['sealAttribute']
-		'taskBlessing': return ArtCatalog.UI_TEXTURES['sealBlessing']
-		'taskWeapon': return ArtCatalog.UI_TEXTURES['sealTask']
-		_: return ArtCatalog.UI_TEXTURES['sealAttribute']
 
 
 func _modal_texture(title: String) -> Texture2D:
@@ -774,44 +625,9 @@ func _wave_text() -> String:
 	return "第 %d/%d 波%s · %s" % [director.wave, Config.CONFIG["waves"]["maxWave"], " · 首领" if director.isBossWave else "", _format_time(ceili(director.timeRemaining))]
 
 
-func _level_info(offer: Dictionary) -> String:
-	if offer.has("levelInfo"):
-		return str(offer["levelInfo"])
-	var card: Dictionary = offer["card"]
-	if card.get("kind") == "weapon":
-		if offer.get("type") == "upgrade":
-			for weapon in run.weapons:
-				if weapon.card["id"] == card["id"]:
-					return "Lv %d  →  Lv %d" % [weapon.level, weapon.level + 1]
-		return "获得 Lv 1"
-	var current: int = run.attrStacks.get(card.get("id", ""), 0)
-	return "已叠 %d 层  ·  选后 %d/%d" % [current, current + 1, Config.CONFIG["cards"]["attrMaxStack"]]
-
-
-func _wrap_text(text: String, max_chars: int) -> Array[String]:
-	var result: Array[String] = []
-	var line: String = ""
-	for character in text:
-		line += character
-		if line.length() >= max_chars:
-			result.append(line)
-			line = ""
-	if not line.is_empty():
-		result.append(line)
-	return result
-
-
 func _format_time(value: float) -> String:
 	var seconds: int = maxi(0, floori(value))
-	return "%02d:%02d" % [seconds / 60, seconds % 60]
-
-
-func _type_color(type: String) -> Color:
-	match type:
-		"upgrade", "taskWeapon": return Color("e0a35f")
-		"attr", "taskStat": return Color("67bfd1")
-		"taskBlessing": return Color("ba8bd1")
-		_: return Color("79b879")
+	return "%02d:%02d" % [floori(float(seconds) / 60.0), seconds % 60]
 
 
 func _rare_name(id: String) -> String:

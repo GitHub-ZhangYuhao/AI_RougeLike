@@ -89,7 +89,10 @@ func set_spawn_settings(partial: Dictionary = {}) -> Dictionary:
     spawn_settings["quotaMult"] = _partial_number(partial, "quotaMult", spawn_settings["quotaMult"], 0.0, 1000.0)
     spawn_settings["intervalMult"] = _partial_number(partial, "intervalMult", spawn_settings["intervalMult"], 0.01, 1000.0)
     if partial.has("aliveCap"):
-        spawn_settings["aliveCap"] = null if partial["aliveCap"] == null else clampi(floori(_number(partial["aliveCap"], 0.0)), 0, 10000)
+        if partial["aliveCap"] == null:
+            spawn_settings["aliveCap"] = null
+        else:
+            spawn_settings["aliveCap"] = clampi(floori(_number(partial["aliveCap"], 0.0)), 0, 10000)
     if partial.has("paused"):
         spawn_settings["paused"] = partial["paused"] == true
     _apply_spawn_settings()
@@ -228,12 +231,12 @@ func _apply_weapon_level(id: String, level: int) -> void:
         existing = WeaponFactoryScript.create_weapon(id)
         game.weapons.append(existing)
     existing.level = level
-    var kept: bool = false
+    var kept: Dictionary = {"value": false}
     game.weapons = game.weapons.filter(func(weapon) -> bool:
         if weapon.card["id"] != id:
             return true
-        if not kept:
-            kept = true
+        if not kept["value"]:
+            kept["value"] = true
             return true
         return false
     )

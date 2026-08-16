@@ -70,18 +70,18 @@ func _draw_ambient_motes() -> void:
   var camera_cell := Vector2i(floori(run.camera.x / 180.0), floori(run.camera.y / 180.0))
   for grid_y in range(camera_cell.y - 3, camera_cell.y + 4):
     for grid_x in range(camera_cell.x - 5, camera_cell.x + 6):
-      var seed: int = absi(grid_x * 92821 + grid_y * 68917)
-      if seed % 4 == 0:
+      var mote_seed: int = absi(grid_x * 92821 + grid_y * 68917)
+      if mote_seed % 4 == 0:
         continue
-      var phase: float = animation_time * (0.42 + float(seed % 7) * 0.035) + float(seed % 31)
-      var position := Vector2(
-        grid_x * 180.0 + float(seed % 127) - 63.0 + sin(phase) * 13.0,
-        grid_y * 180.0 + float((seed / 17) % 113) - 56.0 + cos(phase * 0.73) * 8.0
+      var phase: float = animation_time * (0.42 + float(mote_seed % 7) * 0.035) + float(mote_seed % 31)
+      var mote_position := Vector2(
+        grid_x * 180.0 + float(mote_seed % 127) - 63.0 + sin(phase) * 13.0,
+        grid_y * 180.0 + float(floori(float(mote_seed) / 17.0) % 113) - 56.0 + cos(phase * 0.73) * 8.0
       )
-      var mote_alpha: float = 0.07 + float(seed % 5) * 0.012
+      var mote_alpha: float = 0.07 + float(mote_seed % 5) * 0.012
       var mote_color := Color(0.9, 0.84, 0.55, mote_alpha)
-      draw_line(position - Vector2(4.0, 1.5), position + Vector2(4.0, 1.5), mote_color, 1.1, true)
-      draw_circle(position, 1.3 + float(seed % 3) * 0.35, Color(1.0, 0.94, 0.72, mote_alpha * 0.72))
+      draw_line(mote_position - Vector2(4.0, 1.5), mote_position + Vector2(4.0, 1.5), mote_color, 1.1, true)
+      draw_circle(mote_position, 1.3 + float(mote_seed % 3) * 0.35, Color(1.0, 0.94, 0.72, mote_alpha * 0.72))
 
 
 func _draw_tasks() -> void:
@@ -100,13 +100,13 @@ func _draw_tasks() -> void:
     'delivery': _draw_marker(_point(payload['destination']), Config.CONFIG['tasks']['delivery']['destinationRadius'], Color('42a5f5'), texture)
 
 
-func _draw_marker(position: Vector2, radius: float, color: Color, texture: Texture2D) -> void:
+func _draw_marker(marker_position: Vector2, radius: float, color: Color, texture: Texture2D) -> void:
   var pulse: float = 0.5 + sin(animation_time * 3.0) * 0.5
-  draw_circle(position, radius, Color(color, 0.06 + pulse * 0.025))
-  draw_arc(position, radius + pulse * 3.0, 0.0, TAU, 64, Color(color, 0.75), 2.5)
-  draw_arc(position, radius * 0.72, 0.0, TAU, 48, Color(color, 0.28), 1.0)
-  _draw_sprite(ArtCatalog.VFX_TEXTURES['taskBeacon'], position - Vector2(0.0, 24.0), minf(radius * 1.15, 104.0), 0.0, false, Color(1.0, 1.0, 1.0, 0.56 + pulse * 0.24))
-  _draw_sprite(texture, position - Vector2(0.0, radius + 20.0), 42.0 + pulse * 3.0)
+  draw_circle(marker_position, radius, Color(color, 0.06 + pulse * 0.025))
+  draw_arc(marker_position, radius + pulse * 3.0, 0.0, TAU, 64, Color(color, 0.75), 2.5)
+  draw_arc(marker_position, radius * 0.72, 0.0, TAU, 48, Color(color, 0.28), 1.0)
+  _draw_sprite(ArtCatalog.VFX_TEXTURES['taskBeacon'], marker_position - Vector2(0.0, 24.0), minf(radius * 1.15, 104.0), 0.0, false, Color(1.0, 1.0, 1.0, 0.56 + pulse * 0.24))
+  _draw_sprite(texture, marker_position - Vector2(0.0, radius + 20.0), 42.0 + pulse * 3.0)
 
 
 func _draw_weapon_zones() -> void:
@@ -124,8 +124,8 @@ func _draw_weapon_zones() -> void:
       var orbit_radius: float = stats['orbitRadius'] + weapon.expand_factor * stats.get('expandRadius', 0.0)
       for i in stats['count']:
         var angle: float = weapon.angle + i * TAU / stats['count']
-        var position := Vector2(run.player.x + cos(angle) * orbit_radius, run.player.y + sin(angle) * orbit_radius)
-        _draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['ring'], position, 76.0, angle)
+        var ring_position := Vector2(run.player.x + cos(angle) * orbit_radius, run.player.y + sin(angle) * orbit_radius)
+        _draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['ring'], ring_position, 76.0, angle)
     elif id == 'trail':
       for zone: Dictionary in weapon.furnaces:
         _draw_zone(zone, Color(1.0, 0.2, 0.04, 0.1), Color('ff7043'))
@@ -182,18 +182,18 @@ func _draw_sword_rings() -> void:
   if sword_rings.is_empty():
     return
   for ring: Dictionary in sword.rings:
-    var position := Vector2(ring['x'], ring['y'])
+    var ring_position := Vector2(ring['x'], ring['y'])
     var radius: float = ring['r']
     var alpha: float = clampf(ring['ttl'] / 0.28, 0.0, 1.0)
     var progress: float = 1.0 - alpha
     # 外圈扩散光环
-    draw_circle(position, radius * (0.5 + progress * 0.5), Color(1.0, 0.72, 0.25, alpha * 0.08))
-    draw_arc(position, radius * (0.8 + progress * 0.4), 0.0, TAU, 48, Color(1.0, 0.82, 0.35, alpha * 0.55), 2.5)
-    draw_arc(position, radius * (0.6 + progress * 0.3), 0.0, TAU, 36, Color(1.0, 0.92, 0.55, alpha * 0.35), 1.5)
+    draw_circle(ring_position, radius * (0.5 + progress * 0.5), Color(1.0, 0.72, 0.25, alpha * 0.08))
+    draw_arc(ring_position, radius * (0.8 + progress * 0.4), 0.0, TAU, 48, Color(1.0, 0.82, 0.35, alpha * 0.55), 2.5)
+    draw_arc(ring_position, radius * (0.6 + progress * 0.3), 0.0, TAU, 36, Color(1.0, 0.92, 0.55, alpha * 0.35), 1.5)
     # 剑阵符文粒子
     for rune_i in 8:
       var rune_angle: float = float(rune_i) * TAU / 8.0 + animation_time * 1.5
-      var rune_pos := position + Vector2(cos(rune_angle), sin(rune_angle)) * radius * 0.75
+      var rune_pos := ring_position + Vector2(cos(rune_angle), sin(rune_angle)) * radius * 0.75
       var rune_size: float = 3.0 + sin(animation_time * 6.0 + float(rune_i)) * 1.0
       draw_circle(rune_pos, rune_size, Color(1.0, 0.88, 0.45, alpha * 0.6))
 
@@ -219,22 +219,22 @@ func _draw_trails() -> void:
     if trail['dead']:
       continue
     var alpha: float = clampf(trail['life'] / trail['maxLife'], 0.0, 1.0)
-    var position := Vector2(trail['x'], trail['y'])
-    _draw_sprite(ArtCatalog.VFX_TEXTURES['furnaceFlame'], position, trail['radius'] * 2.1, 0.0, false, Color(1.0, 1.0, 1.0, alpha * 0.55))
+    var trail_position := Vector2(trail['x'], trail['y'])
+    _draw_sprite(ArtCatalog.VFX_TEXTURES['furnaceFlame'], trail_position, trail['radius'] * 2.1, 0.0, false, Color(1.0, 1.0, 1.0, alpha * 0.55))
 
 
 func _draw_gems() -> void:
   for gem: Dictionary in run.gems:
     if gem['dead']:
       continue
-    var position := Vector2(gem['x'], gem['y'])
-    if not _is_on_screen(position, 40.0):
+    var gem_position := Vector2(gem['x'], gem['y'])
+    if not _is_on_screen(gem_position, 40.0):
       continue
     var bob := Vector2(0.0, sin(animation_time * 4.0 + gem['x'] * 0.01) * 2.0)
     var gem_color := Color(gem['color'])
-    var display_position: Vector2 = position + bob
+    var display_position: Vector2 = gem_position + bob
     if gem['magnetized']:
-      _draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], position, 34.0, animation_time, false, Color(0.75, 1.0, 1.0, 0.65))
+      _draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], gem_position, 34.0, animation_time, false, Color(0.75, 1.0, 1.0, 0.65))
     draw_circle(display_position, 13.0, Color(gem_color, 0.16))
     _draw_ellipse_shape(display_position + Vector2(0.0, 7.0), Vector2(7.5, 3.0), Color(0.0, 0.0, 0.0, 0.16))
     _draw_sprite(ArtCatalog.PICKUP_TEXTURES['gem'], display_position, 27.0)
@@ -244,16 +244,16 @@ func _draw_pickups() -> void:
   for pickup: Dictionary in run.pickups:
     if pickup.get('dead', false):
       continue
-    var position := Vector2(pickup['x'], pickup['y'])
-    if not _is_on_screen(position, 50.0):
+    var pickup_position := Vector2(pickup['x'], pickup['y'])
+    if not _is_on_screen(pickup_position, 50.0):
       continue
     var bob := Vector2(0.0, sin(animation_time * 3.4 + pickup['x'] * 0.015) * 2.5)
-    _draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], position, 40.0, -animation_time * 0.5, false, Color(1.0, 1.0, 1.0, 0.42))
+    _draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], pickup_position, 40.0, -animation_time * 0.5, false, Color(1.0, 1.0, 1.0, 0.42))
     if pickup.get('kind') == 'rare':
       var texture: Texture2D = ArtCatalog.RARE_TEXTURES.get(pickup.get('itemId', ''), ArtCatalog.RARE_TEXTURES['warRune'])
-      _draw_sprite(texture, position + bob, 31.0)
+      _draw_sprite(texture, pickup_position + bob, 31.0)
     else:
-      _draw_sprite(ArtCatalog.PICKUP_TEXTURES['health'], position + bob, 29.0)
+      _draw_sprite(ArtCatalog.PICKUP_TEXTURES['health'], pickup_position + bob, 29.0)
 
 
 func _draw_enemies() -> void:
@@ -302,12 +302,12 @@ func _draw_enemies() -> void:
     if is_boss and enemy.enraged:
       _draw_sprite(ArtCatalog.VFX_TEXTURES['bossEnraged'], pos, display_size * (1.45 + pulse * 0.08), animation_time * 0.15, false, Color(1.0, 1.0, 1.0, 0.72))
     var hit_ratio: float = clampf(enemy.hitFlash / 0.14, 0.0, 1.0)
-    var modulate := Color.WHITE
+    var enemy_tint := Color.WHITE
     if enemy.frozenTimer > 0.0:
-      modulate = Color(0.65, 0.9, 1.0, 0.94)
+      enemy_tint = Color(0.65, 0.9, 1.0, 0.94)
       _draw_sprite(ArtCatalog.VFX_TEXTURES['freeze'], pos, display_size * 0.85, 0.0, false, Color(1.0, 1.0, 1.0, 0.46))
     elif hit_ratio > 0.0:
-      modulate = Color(1.35, 1.2, 0.95, 1.0)
+      enemy_tint = Color(1.35, 1.2, 0.95, 1.0)
       display_size *= 1.0 + hit_ratio * 0.08
     var flip_h: bool = run.player.x < enemy.x
     # 取精灵纹理（使用缓存的 atlas）
@@ -320,7 +320,7 @@ func _draw_enemies() -> void:
       texture = _get_animated_frame(sheet, enemy_type_key)
     else:
       texture = ArtCatalog.ENEMY_TEXTURES.get(enemy.type, ArtCatalog.ENEMY_TEXTURES['chaser'])
-    _draw_sprite(texture, pos + Vector2(0.0, bob - display_size * 0.31), display_size, 0.0, flip_h, modulate)
+    _draw_sprite(texture, pos + Vector2(0.0, bob - display_size * 0.31), display_size, 0.0, flip_h, enemy_tint)
 
   # --- Pass 4: 叠加效果（受击弧、精英标识、减速、冲锋、dot、任务、血条） ---
   for enemy in visible_enemies:
@@ -366,7 +366,7 @@ func _get_animated_frame(sheet: Texture2D, enemy_key: String) -> AtlasTexture:
   var atlas := AtlasTexture.new()
   atlas.atlas = sheet
   var col: int = frame_index % cols
-  var row: int = frame_index / cols
+  var row: int = floori(float(frame_index) / float(cols))
   var frame_w: float = sheet.get_width() / float(cols)
   var frame_h: float = sheet.get_height() / float(rows)
   atlas.region = Rect2(col * frame_w, row * frame_h, frame_w, frame_h)
@@ -385,10 +385,10 @@ func _is_on_screen(world_pos: Vector2, margin: float = 120.0) -> bool:
   return dx > -half_w and dx < half_w and dy > -half_h and dy < half_h
 
 
-func _draw_health_bar(position: Vector2, radius: float, hp: float, max_hp: float, is_boss: bool) -> void:
+func _draw_health_bar(bar_position: Vector2, radius: float, hp: float, max_hp: float, is_boss: bool) -> void:
   var width: float = maxf(34.0, radius * (2.6 if is_boss else 2.2))
   var ratio: float = clampf(hp / maxf(max_hp, 0.001), 0.0, 1.0)
-  var top_left := position + Vector2(-width * 0.5, -radius - (18.0 if is_boss else 11.0))
+  var top_left := bar_position + Vector2(-width * 0.5, -radius - (18.0 if is_boss else 11.0))
   draw_rect(Rect2(top_left, Vector2(width, 5.0)), Color(0.025, 0.02, 0.03, 0.84))
   draw_rect(Rect2(top_left + Vector2.ONE, Vector2((width - 2.0) * ratio, 3.0)), Color('66bb6a') if ratio > 0.35 else Color('ef5350'))
 
@@ -397,29 +397,29 @@ func _draw_summons() -> void:
   for summon: Dictionary in run.summons:
     if summon.get('dead', false):
       continue
-    var position := Vector2(summon['x'], summon['y'])
-    if not _is_on_screen(position, 120.0):
+    var summon_position := Vector2(summon['x'], summon['y'])
+    if not _is_on_screen(summon_position, 120.0):
       continue
     var radius: float = summon.get('radius', 11.0)
     var is_corpse: bool = summon.get('corpse', false)
     var texture: Texture2D = ArtCatalog.SUMMON_TEXTURES['corpse'] if is_corpse else ArtCatalog.SUMMON_TEXTURES['normal']
-    _draw_ellipse_shape(position + Vector2(0.0, radius * 0.7), Vector2(radius, radius * 0.38), Color(0.03, 0.025, 0.035, 0.28))
+    _draw_ellipse_shape(summon_position + Vector2(0.0, radius * 0.7), Vector2(radius, radius * 0.38), Color(0.03, 0.025, 0.035, 0.28))
     if is_corpse:
-      _draw_sprite(texture, position - Vector2(0.0, radius * 0.18), radius * 4.3)
+      _draw_sprite(texture, summon_position - Vector2(0.0, radius * 0.18), radius * 4.3)
     else:
-      _draw_sprite(texture, position - Vector2(0.0, radius * 1.05), radius * 4.1, 0.0, run.player.x < summon['x'])
+      _draw_sprite(texture, summon_position - Vector2(0.0, radius * 1.05), radius * 4.1, 0.0, run.player.x < summon['x'])
     if summon.get('guardianWardActive', false):
-      _draw_sprite(ArtCatalog.SUMMON_TEXTURES['ward'], position + Vector2(radius * 1.35, -radius * 0.35), radius * 3.4, -0.08, false, Color(1.0, 1.0, 1.0, 0.82))
+      _draw_sprite(ArtCatalog.SUMMON_TEXTURES['ward'], summon_position + Vector2(radius * 1.35, -radius * 0.35), radius * 3.4, -0.08, false, Color(1.0, 1.0, 1.0, 0.82))
     if summon.get('ghostfireActive', false):
-      _draw_sprite(ArtCatalog.SUMMON_TEXTURES['wisp'], position + Vector2(-radius * 1.25, -radius * 1.85), radius * 3.0, sin(animation_time * 2.4) * 0.08)
+      _draw_sprite(ArtCatalog.SUMMON_TEXTURES['wisp'], summon_position + Vector2(-radius * 1.25, -radius * 1.85), radius * 3.0, sin(animation_time * 2.4) * 0.08)
 
 
 func _draw_player_projectiles() -> void:
   for projectile in run.projectiles:
     if projectile.dead:
       continue
-    var position := Vector2(projectile.x, projectile.y)
-    if not _is_on_screen(position, 80.0):
+    var projectile_position := Vector2(projectile.x, projectile.y)
+    if not _is_on_screen(projectile_position, 80.0):
       continue
     var source: String = projectile.damageOptions.get('sourceWeaponId', 'sword')
     var texture: Texture2D = ArtCatalog.PROJECTILE_TEXTURES.get(source, ArtCatalog.PROJECTILE_TEXTURES['sword'])
@@ -432,57 +432,57 @@ func _draw_player_projectiles() -> void:
     if source == 'sword' and projectile.swordQi:
       # Enhanced sword qi rendering — layered xianxia blade effect
       # Outer aura glow
-      draw_circle(position, size * 1.0, Color(color, 0.10))
-      draw_circle(position, size * 0.6, Color(color, 0.18))
+      draw_circle(projectile_position, size * 1.0, Color(color, 0.10))
+      draw_circle(projectile_position, size * 0.6, Color(color, 0.18))
       # Long trailing energy tail (dual color)
-      draw_line(position - direction * tail_length * 1.3, position - direction * tail_length * 0.3, Color(color, 0.15), maxf(2.0, projectile.radius * 1.2), true)
-      draw_line(position - direction * tail_length, position, Color(color, 0.35), maxf(4.0, projectile.radius * 2.8), true)
-      draw_line(position - direction * tail_length * 0.7, position, Color(1.0, 1.0, 1.0, 0.5), maxf(2.0, projectile.radius * 1.0), true)
+      draw_line(projectile_position - direction * tail_length * 1.3, projectile_position - direction * tail_length * 0.3, Color(color, 0.15), maxf(2.0, projectile.radius * 1.2), true)
+      draw_line(projectile_position - direction * tail_length, projectile_position, Color(color, 0.35), maxf(4.0, projectile.radius * 2.8), true)
+      draw_line(projectile_position - direction * tail_length * 0.7, projectile_position, Color(1.0, 1.0, 1.0, 0.5), maxf(2.0, projectile.radius * 1.0), true)
       # Side wisps (仙气)
       var perp := direction.rotated(PI * 0.5)
       for wisp_i in 3:
         var wisp_t: float = 0.3 + float(wisp_i) * 0.25
-        var wisp_pos := position - direction * tail_length * wisp_t
+        var wisp_pos := projectile_position - direction * tail_length * wisp_t
         var wisp_offset := perp * sin(animation_time * 12.0 + float(wisp_i) * 2.0) * size * 0.25
         draw_circle(wisp_pos + wisp_offset, 2.0 + float(wisp_i), Color(color, 0.25 - float(wisp_i) * 0.06))
       # Sword qi sprite (improved texture)
-      _draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['swordQi'], position, size * 1.4, angle, false, color)
+      _draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['swordQi'], projectile_position, size * 1.4, angle, false, color)
       # Inner bright core
-      draw_circle(position, size * 0.22, Color(1.0, 1.0, 1.0, 0.7))
+      draw_circle(projectile_position, size * 0.22, Color(1.0, 1.0, 1.0, 0.7))
     else:
       # Standard projectile rendering
-      draw_circle(position, size * 0.8, Color(color, 0.12))
-      draw_line(position - direction * tail_length, position, Color(color, 0.28), maxf(3.0, projectile.radius * 2.4), true)
-      draw_line(position - direction * tail_length * 0.62, position, Color(1.0, 1.0, 1.0, 0.45), maxf(1.5, projectile.radius * 0.9), true)
+      draw_circle(projectile_position, size * 0.8, Color(color, 0.12))
+      draw_line(projectile_position - direction * tail_length, projectile_position, Color(color, 0.28), maxf(3.0, projectile.radius * 2.4), true)
+      draw_line(projectile_position - direction * tail_length * 0.62, projectile_position, Color(1.0, 1.0, 1.0, 0.45), maxf(1.5, projectile.radius * 0.9), true)
       if source == 'ring':
-        _draw_sprite(ArtCatalog.VFX_TEXTURES['jadeRingTrail'], position - direction * size * 0.45, size * 1.6, angle, false, Color(1.0, 1.0, 1.0, 0.55))
+        _draw_sprite(ArtCatalog.VFX_TEXTURES['jadeRingTrail'], projectile_position - direction * size * 0.45, size * 1.6, angle, false, Color(1.0, 1.0, 1.0, 0.55))
       elif source == 'staff':
-        _draw_sprite(ArtCatalog.VFX_TEXTURES['staffSpiritBolt'], position - direction * size * 0.28, size * 1.7, angle, false, Color(1.0, 1.0, 1.0, 0.5))
-      _draw_sprite(texture, position, size, angle, false, color)
+        _draw_sprite(ArtCatalog.VFX_TEXTURES['staffSpiritBolt'], projectile_position - direction * size * 0.28, size * 1.7, angle, false, Color(1.0, 1.0, 1.0, 0.5))
+      _draw_sprite(texture, projectile_position, size, angle, false, color)
 
 
 func _draw_hostile_projectiles() -> void:
   for projectile in run.hostileProjectiles:
     if projectile.dead:
       continue
-    var position := Vector2(projectile.x, projectile.y)
-    if not _is_on_screen(position, 60.0):
+    var projectile_position := Vector2(projectile.x, projectile.y)
+    if not _is_on_screen(projectile_position, 60.0):
       continue
     var velocity := Vector2(projectile.vx, projectile.vy)
     var direction: Vector2 = velocity.normalized() if velocity.length_squared() > 0.0 else Vector2.RIGHT
     var angle: float = direction.angle()
     var size: float = maxf(26.0, projectile.radius * 5.2)
     # Outer glow (dark energy halo)
-    draw_circle(position, size * 0.85, Color(0.6, 0.08, 0.05, 0.18))
+    draw_circle(projectile_position, size * 0.85, Color(0.6, 0.08, 0.05, 0.18))
     # Trailing energy (darker, thicker)
-    draw_line(position - direction * size * 1.6, position, Color(0.5, 0.05, 0.02, 0.22), maxf(3.0, projectile.radius * 2.0), true)
-    draw_line(position - direction * size * 1.0, position, Color(1.0, 0.35, 0.12, 0.3), maxf(2.0, projectile.radius * 1.2), true)
+    draw_line(projectile_position - direction * size * 1.6, projectile_position, Color(0.5, 0.05, 0.02, 0.22), maxf(3.0, projectile.radius * 2.0), true)
+    draw_line(projectile_position - direction * size * 1.0, projectile_position, Color(1.0, 0.35, 0.12, 0.3), maxf(2.0, projectile.radius * 1.2), true)
     # Core energy lines
-    draw_line(position - direction * size * 0.5, position, Color(1.0, 0.65, 0.3, 0.45), maxf(1.5, projectile.radius * 0.6), true)
+    draw_line(projectile_position - direction * size * 0.5, projectile_position, Color(1.0, 0.65, 0.3, 0.45), maxf(1.5, projectile.radius * 0.6), true)
     # Projectile sprite (improved texture)
-    _draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['hostile'], position, size, angle)
+    _draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['hostile'], projectile_position, size, angle)
     # Inner bright core
-    draw_circle(position, projectile.radius * 0.7, Color(1.0, 0.85, 0.5, 0.3))
+    draw_circle(projectile_position, projectile.radius * 0.7, Color(1.0, 0.85, 0.5, 0.3))
 
 
 func _draw_talisman_effects() -> void:
@@ -495,16 +495,16 @@ func _draw_talisman_effects() -> void:
     return
   # Draw bolt strikes (thunder falling from sky)
   for fx: Dictionary in talisman.bolt_fx:
-    var position := Vector2(fx['x'], fx['y'])
+    var strike_position := Vector2(fx['x'], fx['y'])
     var alpha: float = clampf(fx['ttl'] / 0.22, 0.0, 1.0)
     var is_aoe: bool = fx.get('aoe', false)
     var is_sword: bool = fx.get('swordSynergy', false)
     # Ground impact glow
     var impact_r: float = 45.0 if is_aoe else 28.0
-    draw_circle(position, impact_r * (1.0 + (1.0 - alpha) * 0.5), Color(0.5, 0.7, 1.0, alpha * 0.2))
-    draw_circle(position, impact_r * 0.5, Color(0.8, 0.9, 1.0, alpha * 0.35))
+    draw_circle(strike_position, impact_r * (1.0 + (1.0 - alpha) * 0.5), Color(0.5, 0.7, 1.0, alpha * 0.2))
+    draw_circle(strike_position, impact_r * 0.5, Color(0.8, 0.9, 1.0, alpha * 0.35))
     # Lightning bolt from above
-    var bolt_top := position + Vector2(0.0, -180.0)
+    var bolt_top := strike_position + Vector2(0.0, -180.0)
     var bolt_color := Color(0.6, 0.8, 1.0, alpha * 0.7) if not is_sword else Color(0.9, 0.7, 1.0, alpha * 0.7)
     var core_color := Color(1.0, 1.0, 1.0, alpha * 0.9)
     # Jagged lightning path
@@ -515,7 +515,7 @@ func _draw_talisman_effects() -> void:
     var seg_h: float = 180.0 / float(step_count)
     for seg_i in step_count:
       var jitter_x: float = sin(float(seg_i) * 7.3 + animation_time * 30.0) * 14.0
-      current_pos = Vector2(position.x + jitter_x, bolt_top.y + float(seg_i + 1) * seg_h)
+      current_pos = Vector2(strike_position.x + jitter_x, bolt_top.y + float(seg_i + 1) * seg_h)
       segments.append(current_pos)
     # Draw outer glow line
     for seg_i in range(segments.size() - 1):
@@ -533,9 +533,9 @@ func _draw_talisman_effects() -> void:
       var branch_end := branch_start + Vector2(cos(branch_angle), sin(branch_angle) * 0.5 + 0.5).normalized() * 25.0
       draw_line(branch_start, branch_end, Color(0.6, 0.8, 1.0, alpha * 0.4), 1.5, true)
     # Impact texture
-    _draw_sprite(ArtCatalog.VFX_TEXTURES.get('thunderStrike', ArtCatalog.VFX_TEXTURES['talismanLightning']), position, 70.0 + (1.0 - alpha) * 20.0, 0.0, false, Color(1.0, 1.0, 1.0, alpha * 0.85))
+    _draw_sprite(ArtCatalog.VFX_TEXTURES.get('thunderStrike', ArtCatalog.VFX_TEXTURES['talismanLightning']), strike_position, 70.0 + (1.0 - alpha) * 20.0, 0.0, false, Color(1.0, 1.0, 1.0, alpha * 0.85))
     if is_aoe:
-      draw_arc(position, 95.0 * (1.0 + (1.0 - alpha) * 0.3), 0.0, TAU, 32, Color(0.5, 0.7, 1.0, alpha * 0.4), 2.5)
+      draw_arc(strike_position, 95.0 * (1.0 + (1.0 - alpha) * 0.3), 0.0, TAU, 32, Color(0.5, 0.7, 1.0, alpha * 0.4), 2.5)
   # Draw chain lightning arcs
   for fx: Dictionary in talisman.chain_fx:
     var start := Vector2(fx['x1'], fx['y1'])
@@ -602,7 +602,7 @@ func _draw_effects() -> void:
 
 
 func _draw_weapon_impact(effect: Dictionary, alpha: float) -> void:
-  var position := Vector2(effect['x'], effect['y'])
+  var impact_position := Vector2(effect['x'], effect['y'])
   var source: String = effect.get('sourceWeaponId', 'sword')
   var color: Color = WEAPON_COLORS.get(source, Color.WHITE)
   var progress: float = 1.0 - alpha
@@ -610,34 +610,34 @@ func _draw_weapon_impact(effect: Dictionary, alpha: float) -> void:
   var intensity: float = clampf(effect.get('damage', 1.0) / 80.0, 0.35, 1.0)
   var action: String = effect.get('sourceAction', 'hit')
   # 缩小后的光晕
-  draw_circle(position, radius * (0.9 + progress * 1.2), Color(color, alpha * 0.28 * intensity))
-  draw_circle(position, radius * (0.5 + progress * 0.7), Color(1.0, 1.0, 1.0, alpha * 0.14))
-  draw_arc(position, radius * (0.7 + progress * 1.3), 0.0, TAU, 24, Color(color, alpha * (0.7 + intensity * 0.1)), 2.0 + intensity * 1.2)
+  draw_circle(impact_position, radius * (0.9 + progress * 1.2), Color(color, alpha * 0.28 * intensity))
+  draw_circle(impact_position, radius * (0.5 + progress * 0.7), Color(1.0, 1.0, 1.0, alpha * 0.14))
+  draw_arc(impact_position, radius * (0.7 + progress * 1.3), 0.0, TAU, 24, Color(color, alpha * (0.7 + intensity * 0.1)), 2.0 + intensity * 1.2)
   var texture_key: String = IMPACT_TEXTURE_KEYS.get(source, 'impact')
   # 击中精灵整体缩小到原来的 ~45%
   var impact_size: float = radius * (3.5 + intensity * 2.0) * (0.9 + progress * 0.35)
-  var rotation: float = effect.get('angle', 0.0)
+  var impact_rotation: float = effect.get('angle', 0.0)
   if source == 'sword':
     impact_size *= 1.4
   elif source == 'talisman':
-    rotation += sin(float(effect.get('seed', 0))) * 0.3
+    impact_rotation += sin(float(effect.get('seed', 0))) * 0.3
   elif source == 'cloak' or source == 'trail':
     impact_size *= 1.3
-    rotation = animation_time * 0.8
+    impact_rotation = animation_time * 0.8
   elif source == 'ring':
-    rotation = animation_time * 1.4
+    impact_rotation = animation_time * 1.4
   elif source == 'staff':
-    rotation += PI * 0.5
-  _draw_sprite(ArtCatalog.VFX_TEXTURES[texture_key], position, impact_size, rotation, false, Color(1.0, 1.0, 1.0, alpha))
-  _draw_sprite(ArtCatalog.VFX_TEXTURES['impact'], position, radius * (2.4 + progress * 1.2), rotation * 0.25, false, Color(color, alpha * 0.85))
-  _draw_impact_sparks(position, radius * 0.9, color, alpha, int(effect.get('seed', 0)), action)
-  _draw_damage_number(effect, position, radius, color, alpha, progress, intensity)
+    impact_rotation += PI * 0.5
+  _draw_sprite(ArtCatalog.VFX_TEXTURES[texture_key], impact_position, impact_size, impact_rotation, false, Color(1.0, 1.0, 1.0, alpha))
+  _draw_sprite(ArtCatalog.VFX_TEXTURES['impact'], impact_position, radius * (2.4 + progress * 1.2), impact_rotation * 0.25, false, Color(color, alpha * 0.85))
+  _draw_impact_sparks(impact_position, radius * 0.9, color, alpha, int(effect.get('seed', 0)), action)
+  _draw_damage_number(effect, impact_position, radius, color, alpha, progress, intensity)
 
 
-func _draw_damage_number(effect: Dictionary, position: Vector2, radius: float, color: Color, alpha: float, progress: float, intensity: float) -> void:
+func _draw_damage_number(effect: Dictionary, impact_position: Vector2, radius: float, _color: Color, alpha: float, progress: float, intensity: float) -> void:
   var damage: int = maxi(1, roundi(effect.get('damage', 1.0)))
   var text: String = str(damage)
-  var text_position := position + Vector2(-38.0, -radius * 1.15 - progress * 22.0)
+  var text_position := impact_position + Vector2(-38.0, -radius * 1.15 - progress * 22.0)
   var font_size: int = 22 + roundi(intensity * 10.0)
   # 更深的描边，确保数字清晰可见
   var shadow := Color(0.12, 0.05, 0.02, alpha * 0.98)
@@ -650,9 +650,9 @@ func _draw_damage_number(effect: Dictionary, position: Vector2, radius: float, c
     draw_string(UI_FONT, tag_position, '?!', HORIZONTAL_ALIGNMENT_CENTER, 22.0, 12, Color(1.0, 0.92, 0.68, alpha))
 
 
-func _draw_enemy_dots(position: Vector2, radius: float, dots: Dictionary, pulse: float) -> void:
-  var dot_y: float = position.y - radius - 14.0
-  var dot_position := Vector2(position.x, dot_y)
+func _draw_enemy_dots(enemy_position: Vector2, radius: float, dots: Dictionary, pulse: float) -> void:
+  var dot_y: float = enemy_position.y - radius - 14.0
+  var dot_position := Vector2(enemy_position.x, dot_y)
   var has_burn: bool = dots.has('burn') and dots['burn'].get('timer', 0.0) > 0.0
   var has_poison: bool = dots.has('poison') and dots['poison'].get('timer', 0.0) > 0.0
   var flicker: float = sin(animation_time * 8.0) * 0.5 + 0.5
@@ -673,7 +673,7 @@ func _draw_enemy_dots(position: Vector2, radius: float, dots: Dictionary, pulse:
     _draw_sprite(ArtCatalog.VFX_TEXTURES['dot'], dot_position, 24.0 + pulse * 2.0, 0.0, false, Color(1.0, 1.0, 1.0, 0.7))
 
 
-func _draw_charge_indicator(position: Vector2, radius: float, enemy) -> void:
+func _draw_charge_indicator(enemy_position: Vector2, radius: float, enemy) -> void:
   var dir_x: float = enemy.lockedDirection.get('x', 1.0)
   var dir_y: float = enemy.lockedDirection.get('y', 0.0)
   var dir := Vector2(dir_x, dir_y).normalized()
@@ -682,12 +682,12 @@ func _draw_charge_indicator(position: Vector2, radius: float, enemy) -> void:
   var windup_total: float = maxf(0.001, Config.CONFIG['enemyTypes']['charger'].get('windup', 0.8))
   var windup_progress: float = clampf(1.0 - enemy.stateTimer / windup_total, 0.0, 1.0)
   var pulse: float = sin(animation_time * 14.0) * 0.5 + 0.5
-  draw_arc(position, radius * 1.6 + pulse * 4.0, 0.0, TAU, 32, Color(1.0, 0.35, 0.15, 0.25 + windup_progress * 0.35), 2.5)
-  var tip := position + dir * charge_length
-  var base_left := position + dir * radius * 0.8 + dir.rotated(PI * 0.5) * radius * 0.6
-  var base_right := position + dir * radius * 0.8 - dir.rotated(PI * 0.5) * radius * 0.6
+  draw_arc(enemy_position, radius * 1.6 + pulse * 4.0, 0.0, TAU, 32, Color(1.0, 0.35, 0.15, 0.25 + windup_progress * 0.35), 2.5)
+  var tip := enemy_position + dir * charge_length
+  var base_left := enemy_position + dir * radius * 0.8 + dir.rotated(PI * 0.5) * radius * 0.6
+  var base_right := enemy_position + dir * radius * 0.8 - dir.rotated(PI * 0.5) * radius * 0.6
   var alpha: float = 0.4 + windup_progress * 0.5
-  draw_line(position + dir * radius * 0.5, tip, Color(1.0, 0.45, 0.15, alpha), 3.0 + windup_progress * 2.0, true)
+  draw_line(enemy_position + dir * radius * 0.5, tip, Color(1.0, 0.45, 0.15, alpha), 3.0 + windup_progress * 2.0, true)
   draw_line(tip, base_left, Color(1.0, 0.55, 0.2, alpha * 0.9), 2.5, true)
   draw_line(tip, base_right, Color(1.0, 0.55, 0.2, alpha * 0.9), 2.5, true)
   draw_circle(tip, 5.0 + pulse * 3.0, Color(1.0, 0.7, 0.2, alpha * 0.6))
@@ -695,7 +695,7 @@ func _draw_charge_indicator(position: Vector2, radius: float, enemy) -> void:
 
 
 func _draw_enemy_defeat(effect: Dictionary, alpha: float) -> void:
-  var position := Vector2(effect['x'], effect['y'])
+  var defeat_position := Vector2(effect['x'], effect['y'])
   var progress: float = 1.0 - alpha
   var radius: float = maxf(effect.get('radius', 12.0), 10.0)
   var source: String = effect.get('sourceWeaponId', 'status')
@@ -703,20 +703,20 @@ func _draw_enemy_defeat(effect: Dictionary, alpha: float) -> void:
   var is_boss: bool = effect.get('rank', '') == 'boss'
   var texture: Texture2D = ArtCatalog.ENEMY_TEXTURES.get(effect.get('enemyType', 'chaser'), ArtCatalog.ENEMY_TEXTURES['chaser'])
   var ghost_size: float = radius * (6.6 if is_boss else 6.2) * (1.0 + progress * 0.18)
-  _draw_sprite(texture, position - Vector2(0.0, radius * 1.5 + progress * 18.0), ghost_size, progress * 0.08, effect.get('flipH', false), Color(1.0, 0.72 + progress * 0.2, 0.55 + progress * 0.25, alpha * 0.62))
-  draw_circle(position, radius * (0.8 + progress * 2.8), Color(color, alpha * 0.13))
-  draw_arc(position, radius * (0.65 + progress * 3.2), 0.0, TAU, 36, Color(color, alpha * 0.82), 3.2 if is_boss else 2.1)
-  _draw_sprite(ArtCatalog.VFX_TEXTURES['explosion'], position, radius * (4.2 if is_boss else 3.2) * (0.8 + progress * 0.55), animation_time * 0.5, false, Color(1.0, 1.0, 1.0, alpha * 0.86))
-  _draw_impact_sparks(position, radius * (1.55 if is_boss else 1.0), color, alpha, int(effect.get('seed', 0)) + 17, 'defeat')
+  _draw_sprite(texture, defeat_position - Vector2(0.0, radius * 1.5 + progress * 18.0), ghost_size, progress * 0.08, effect.get('flipH', false), Color(1.0, 0.72 + progress * 0.2, 0.55 + progress * 0.25, alpha * 0.62))
+  draw_circle(defeat_position, radius * (0.8 + progress * 2.8), Color(color, alpha * 0.13))
+  draw_arc(defeat_position, radius * (0.65 + progress * 3.2), 0.0, TAU, 36, Color(color, alpha * 0.82), 3.2 if is_boss else 2.1)
+  _draw_sprite(ArtCatalog.VFX_TEXTURES['explosion'], defeat_position, radius * (4.2 if is_boss else 3.2) * (0.8 + progress * 0.55), animation_time * 0.5, false, Color(1.0, 1.0, 1.0, alpha * 0.86))
+  _draw_impact_sparks(defeat_position, radius * (1.55 if is_boss else 1.0), color, alpha, int(effect.get('seed', 0)) + 17, 'defeat')
 
 
-func _draw_impact_sparks(position: Vector2, radius: float, color: Color, alpha: float, seed: int, action: String) -> void:
+func _draw_impact_sparks(impact_position: Vector2, radius: float, color: Color, alpha: float, spark_seed: int, action: String) -> void:
   var spark_count: int = 9 if action == 'defeat' else 6
   for i in spark_count:
-    var angle: float = float(i) * TAU / float(spark_count) + float(seed % 23) * 0.17
-    var length: float = radius * (0.7 + float((seed + i * 7) % 5) * 0.16)
-    var inner := position + Vector2.RIGHT.rotated(angle) * radius * 0.42
-    var outer := position + Vector2.RIGHT.rotated(angle) * length * (1.0 + (1.0 - alpha) * 0.8)
+    var angle: float = float(i) * TAU / float(spark_count) + float(spark_seed % 23) * 0.17
+    var length: float = radius * (0.7 + float((spark_seed + i * 7) % 5) * 0.16)
+    var inner := impact_position + Vector2.RIGHT.rotated(angle) * radius * 0.42
+    var outer := impact_position + Vector2.RIGHT.rotated(angle) * length * (1.0 + (1.0 - alpha) * 0.8)
     draw_line(inner, outer, Color(color, alpha * 0.78), 1.6, true)
     draw_circle(outer, 1.3 + float(i % 2), Color(1.0, 0.96, 0.78, alpha * 0.75))
 
@@ -727,14 +727,14 @@ func _draw_ellipse_shape(center: Vector2, radii: Vector2, color: Color) -> void:
   draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
-func _draw_sprite(texture: Texture2D, center: Vector2, display_size: float, rotation: float = 0.0, flip_h: bool = false, modulate: Color = Color.WHITE) -> void:
+func _draw_sprite(texture: Texture2D, center: Vector2, display_size: float, texture_rotation: float = 0.0, flip_h: bool = false, tint: Color = Color.WHITE) -> void:
   if texture == null or display_size <= 0.0:
     return
   var texture_size: Vector2 = texture.get_size()
   var factor: float = display_size / maxf(texture_size.x, texture_size.y)
-  var scale := Vector2(-factor if flip_h else factor, factor)
-  draw_set_transform(center, rotation, scale)
-  draw_texture(texture, -texture_size * 0.5, modulate)
+  var texture_scale := Vector2(-factor if flip_h else factor, factor)
+  draw_set_transform(center, texture_rotation, texture_scale)
+  draw_texture(texture, -texture_size * 0.5, tint)
   draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
