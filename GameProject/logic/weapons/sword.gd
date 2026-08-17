@@ -8,10 +8,10 @@ const CARD: Dictionary = {
     "id": "sword", "kind": "weapon", "name": "道剑", "maxLevel": 6,
     "levels": [
         {"damage": 16, "meleeRange": 125, "interval": 1.15, "arc": 120},
-        {"damage": 20, "projectile": true, "projectileRange": 520, "projectileSpeed": 500, "maxHits": 2, "interval": 1.08},
-        {"damage": 26, "projectile": true, "projectileRange": 550, "projectileSpeed": 560, "maxHits": 2, "interval": 1.00},
-        {"damage": 32, "projectile": true, "projectileRange": 570, "projectileSpeed": 580, "maxHits": 2, "interval": 0.94, "drawSlash": true, "ringRadius": 350, "ringBleedDps": 10},
-        {"damage": 40, "projectile": true, "projectileRange": 600, "projectileSpeed": 620, "maxHits": 4, "interval": 0.87, "drawSlash": true, "ringRadius": 380, "ringBleedDps": 11},
+        {"damage": 20, "projectile": true, "projectileRange": 520, "projectileSpeed": 500, "maxHits": INF, "interval": 1.08},
+        {"damage": 26, "projectile": true, "projectileRange": 550, "projectileSpeed": 560, "maxHits": INF, "interval": 1.00},
+        {"damage": 32, "projectile": true, "projectileRange": 570, "projectileSpeed": 580, "maxHits": INF, "interval": 0.94, "drawSlash": true, "ringRadius": 350, "ringBleedDps": 10},
+        {"damage": 40, "projectile": true, "projectileRange": 600, "projectileSpeed": 620, "maxHits": INF, "interval": 0.87, "drawSlash": true, "ringRadius": 380, "ringBleedDps": 11},
         {"damage": 48, "projectile": true, "projectileRange": 640, "projectileSpeed": 660, "maxHits": INF, "interval": 0.80, "drawSlash": true, "ringRadius": 380, "ringBleedDps": 12, "swordIntent": true, "flyMax": 10, "flyInterval": 1.2, "flyRange": 260, "flyChain": 6, "flyChainRange": 240},
     ],
 }

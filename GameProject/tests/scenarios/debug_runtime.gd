@@ -73,6 +73,12 @@ func run(runner) -> void:
     runner.check(restored is Dictionary and restored["wave"] == 8, "[Debug] serialize wave round trip")
     runner.check(restored["settings"]["invincible"] and restored["settings"]["player"]["damageMult"] == 2.25, "[Debug] serialize settings round trip")
     runner.check(restored["weaponLevels"] == serialized["weaponLevels"], "[Debug] serialize weapons round trip")
+    var crystals_before: int = int(game.save.get("darkCrystals", 0))
+    runner.check(debug.grant_dark_crystals(250) == crystals_before + 250 and int(game.save["darkCrystals"]) == crystals_before + 250,
+        "[Debug] dark crystal grant")
+    runner.check(debug.grant_dark_crystals(-50) == crystals_before + 250, "[Debug] dark crystal grant ignores negative")
+    game.save["darkCrystals"] = crystals_before
+    MetaSave.persist_save(game.save)
     var debug_overlay = DebugOverlayScene.instantiate()
     debug_overlay._ready()
     debug_overlay.bind_run(game)

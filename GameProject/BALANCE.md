@@ -7,7 +7,7 @@
 > - RULES.md 只保留规则与公式（§7/§8 等），不再重复数值表；原 RULES.md 附录 A 于 2026-08-15 全量并入本文件。
 > - 表中 `INF` 表示无穷大（js 的 Infinity）。
 
-## 调参历史（2026-08-15 至 2026-08-17，四轮）
+## 调参历史（2026-08-15 至 2026-08-18，五轮）
 
 **第一轮**（手感：人物偏大、镜头偏近、敌人偏小、怪物偏快/偏厚/偏少，裁决见 RULES.md 附录 B #9）：
 `enemy.speed` 85→76、`enemy.hp` 50→45、`spawner.startMaxAlive` 20→30、`spawner.maxAlivePerWave` 8→10、`spawner.maxAliveCap` 140→180、`waves.baseQuota` 16→24、`waves.quantityPerWave` 0.5→0.8。
@@ -20,6 +20,11 @@
 **第三轮后曲线速览（chaser，按波开始时间估算）**：w1 45 HP / 7 伤害 → w5 ~119 HP / ~14 伤害 → w10 ~267 HP / ~27 伤害 → w20 ~705 HP / ~67 伤害 → w25 ~855 HP / ~93 伤害。W25 Boss 普通弹约 161 原始伤害，后续通过实机与受击遥测继续校准。
 
 **第四轮**（拾取可读性与操作容错，2026-08-17）：`gems.magnetRadius` 180→240、`gems.pickupRadius` 22→30、`pickups.pickupRadius` 22→30、`pickups.rarePickupRadius` 30→42；同步放大世界图标并补充靠近说明和拾取结果说明。前三项中普通拾取与宝石拾取同值，差异键按配置路径计为 4 项。
+
+**第五轮**（稀有拾取仍然难捡，2026-08-18）：`pickups.rarePickupRadius` 42→58（js 原值 30）；
+世界表现同步放大——稀有图标 46→68、拾取光晕 62→80，并新增按 `rarePickupRadius` 实际半径绘制的脉动外环，
+让「已进入拾取范围」可见。同轮修正 `logic/weapons/sword.gd` 的道剑 Lv2–5 `maxHits` 2/2/2/4 → 全部 `INF`，
+恢复与原型 `js/weapons/sword.js` 的一致（原型 smoke 一直断言全等级无限贯穿），该项属移植缺陷修复而非平衡调整。
 
 ---
 
@@ -214,7 +219,7 @@
 | corpses | cap | 80 | 尸体上限 |
 | pickups | hpValue | 15 | 血包回复量 |
 | pickups | pickupRadius | 30（js 原值 22） | 普通拾取半径 |
-| pickups | rarePickupRadius | 42（js 原值 30） | 稀有拾取半径 |
+| pickups | rarePickupRadius | 58（js 原值 30） | 稀有拾取半径 |
 | pickups | maxAlive | 5 | 血包场上上限 |
 | hud | font | `16px "Segoe UI", "Microsoft YaHei", sans-serif` | HUD 字体（非数值） |
 

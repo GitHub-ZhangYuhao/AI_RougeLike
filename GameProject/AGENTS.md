@@ -110,3 +110,25 @@
 4. **缺失美术统一走集中式占位渲染**：所有临时世界表现收敛到 `scenes/game/placeholder_world_view.gd`，不得把颜色、形状或动画状态写回 logic；正式资源到位后按对象类型逐项替换。
 5. **双向 RefCounted 引用会泄漏**：`GameRun` 持有 `DebugRuntime` 时，Runtime 必须用 `weakref(game)` 回指宿主；禁止形成 GameRun ↔ Runtime 强引用环，headless 退出前应无 ObjectDB 泄漏。
 6. **动态 Meta UI 只在签名变化时重建**：商城/仓库行项目根据 state、暗晶、等级、库存签名刷新，禁止每个物理帧销毁重建 Control 树。
+
+### 2026-08-18 ｜ M6
+
+1. **`logic/` 的实体是 RefCounted，不是 Dictionary——别用 Dictionary 的取值习惯**：`Object` 没有 `has()`，
+   `Object.get()` **只接受 1 个参数**（2 参形式在静态类型下直接是 Parse Error，在 `Variant` 上是每帧运行时错误）。
+   判断属性存在一律用 `'prop' in obj`。踩坑现场：`world_art_view.gd` 对 enemy 写了 `enemy.has('state')`
+   和 `enemy.get('state','')`，导致 Boss 上屏就打断整个敌人绘制 pass、冲撞兵 windup 打断叠加层 pass
+   （血条/DoT/任务图标一起消失），却被两轮「已修复」记录掩盖。**表现层遍历 logic 实体时，
+   Dictionary（effects/summons/flying_swords 等纯数据）与 Object（enemy/projectile/weapon）要分清。**
+2. **`--script` / `--check-only` 入口拿不到 autoload**：脚本顶层 `preload` + `_init()` 会在 autoload 注册前编译，
+   引用 `Config` / `Rng` / `MetaSave` 一律报 `Identifier not found`。所以
+   ①`--check-only` 不能用来验证任何引用 autoload 的脚本（会假报错，连未改动的 `sword.gd` 也报）；
+   ②入口脚本要像 `tools/run_smoke.gd` 那样在 `_initialize()` 里用运行时 `load()` 取被测脚本。
+   想快速验证编译，用 `--headless --import`（编辑器侧会真正编译且 autoload 已就绪）。
+3. **进度表只写已落库的东西**：`OPTIMIZATION_TRACKER.md` 曾整轮（第五轮 11 项 + 6 张贴图）标 ✅ 而代码与资源
+   都不在仓库里，git 历史也查不到，导致后续按「已完成」继续排期。**标 ✅ 前先 grep 代码 / `git log --all
+   --diff-filter=A` 查资源；跨轮引用某个键名（如 `swordProjectileV3`）前先确认它真的存在。**
+4. **贴图留白直接决定观感大小**：`_draw_sprite` 的 `factor = display_size / max(w, h)`，
+   所以同一 `display_size` 下，留白多的图显示更小。新资源统一裁到 alpha 边界再留 ~4%；
+   会被 `direction.angle()` 旋转的贴图（弹道、预警箭头）一律画成朝右（+X）。
+5. **新贴图必须连 `.import` 一起入库**：只提交 PNG 时 `preload('res://assets/...')` 解析不到；
+   补救是 `Godot --headless --path GameProject --import`，然后把生成的 `.import` 一并提交。

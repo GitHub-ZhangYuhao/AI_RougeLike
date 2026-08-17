@@ -1,6 +1,6 @@
 # Godot 美术资源配置台账
 
-> 最后核对：2026-08-17
+> 最后核对：2026-08-18
 >
 > 适用工程：`GameProject/`（Godot 4.7.1）
 >
@@ -50,9 +50,9 @@ ArtAsset/ 或 Experimental/
 | 玩家 | 已配置（回退保留） | `assets/sprites/player/player_static.png`；旧 `idle/walk_*.png` | `scenes/game/player_view.gd/.tscn` |
 | 七类敌人与 Boss | 已配置 | `assets/sprites/enemies/*.png` | `scenes/art_catalog.gd`、`scenes/game/world_art_view.gd` |
 | 六武器与弹道 | 已配置 | `assets/icons/weapon_*.png`、`projectile_*.png`、`assets/sprites/weapons/jade_ring_world.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
-| 掉落与稀有物 | 待升级 | `assets/icons/pickup_*.png`、`rare_*.png`；世界图标、拾取光效、吸附/拾取范围和功能说明已放大完善，现有血包与稀有物切片仍待无污染重导出 | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
+| 掉落与稀有物 | 待升级 | `assets/icons/pickup_*.png`、`rare_*.png`、`assets/vfx/rare_pickup_glow.png`；稀有拾取半径 58px 并绘制真实半径脉动环，世界图标 68px、专用发光贴图 110px；现有血包与稀有物切片仍待无污染重导出 | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 召唤物与任务 | 已配置 | `assets/sprites/summons/*.png`、`assets/vfx/skeleton_minion*.png`、`assets/icons/task_*.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
-| 战斗 VFX | 已配置 | `assets/vfx/*.png`；16 张第一代单帧 VFX 已替换为 384×384 RGBA 手绘图片 | `art_catalog.gd`、`world_art_view.gd` |
+| 战斗 VFX | 已配置 | `assets/vfx/*.png`（`VFX_TEXTURES` 22 条）；16 张第一代单帧 VFX 已替换为 384×384 RGBA 手绘图片；2026-08-18 补入 `sword_projectile_lv2`、`flying_sword_v2`、`hostile_projectile_v3`、`charge_indicator_v2`、`task_beacon_v2`、`rare_pickup_glow` | `art_catalog.gd`、`world_art_view.gd` |
 | 桃夜巡辅助 UI 图形 | 已配置 | `assets/ui/modern/*.svg`（13 类）作为清晰矢量运行时图标；同名 PNG 保留美术对照 | `art_catalog.gd`、`meta_screens.gd`、`debug_overlay.gd` |
 | 桃夜巡主菜单 | 已配置 | `assets/ui/peach_night/menu_bg_exact.png`、三类按钮切片 | `scenes/ui/peach_night_menu.gd`、`meta_screens.gd` |
 | 桃夜巡局内原子 UI | 已配置 | `assets/ui/peach_night/atomic/` 的背板、边框、头像、状态条、精修矢量状态图标、花饰、法器槽、标签和纸张纹理 | `scenes/game/game_overlay.gd`、`logic/ui_layout.gd` |
@@ -86,7 +86,7 @@ ArtAsset/ 或 Experimental/
 | 经验、血包、五种稀有物 | 待升级 | 灵晶、血包和稀有遗物已放大；灵晶磁吸 240px，普通/稀有拾取 30/42px；最近拾取物显示名称与作用，拾取稀有物后显示具体增益。现有血包与稀有物仍需重导无污染透明单图 |
 | 普通/尸体/护法/鬼火召唤 | 已配置 | 普通骷髅、尸体、玉卫和鬼火均使用独立世界图片，不再复用同一贴图或 UI 图标 |
 | 披风、玉环、丹火、法杖 | 已配置 | 范围、轨迹、爆发、灵弹和命中 VFX |
-| 任务信标与任务区域 | 已配置 | guard/delivery/bounty 正式图标、信标 VFX 与世界提示 |
+| 任务信标与任务区域 | 已配置 | guard/delivery/bounty 正式图标、`task_beacon_v2` 信标 VFX 与世界提示；护送目标另有引导层：地面流动虚线、屏内光柱、屏外边缘箭头（带图标与距离） |
 | 联动与通用战斗效果 | 已配置 | 电弧、焚烧、冻结、毒雾、诅咒、治疗、爆炸、拾取和冲击效果 |
 | 环境 | 已配置 | 桃树、岩石、边界石、石柱、神龛、灯笼、灌木、草丛、野花、落花 |
 
@@ -131,6 +131,8 @@ ArtAsset/ 或 Experimental/
 | --- | --- | --- |
 | 音频 | BGM、武器 SFX、受击、掉落、UI、Boss 音效 | 新增 `assets/audio/` 和独立音频表现层 |
 | 动态 VFX 与可选动画升级 | 闪电链、弹道拖尾、雷符闪电束的动态材质/序列帧；敌人/Boss 攻击、受击和死亡补帧；玩家逐帧连贯性 | 复用现有 PlayerView/WorldArtView 状态映射，本轮静态图片完成后再单独处理 |
+| 序列帧 VFX | `furnace_flame_anim`（火行路径）与 `cloak_fire_burst_anim`（披风 Lv6 爆发）两套 25 帧图集尚未生成——文生图出不了连贯帧网格 | ComfyUI Krea-2 出关键帧 → MiniMax H3 首尾帧生视频 → `.agents/skills/video-to-alpha-flipbook/` 抠像并打 5×5 图集 |
+| 死资源清理 | `hostile_projectile_v2.png`、`task_beacon.png`、`charge_indicator.png` 已被 v2/v3 顶替，`sword_projectile_v2.png` 只剩回退作用，四者均无运行时引用 | 与其他死资源一并评估后统一删除 |
 | 视频资源 | 当前没有正式视频资源或视频播放管线 | 后续按剧情、开场或界面需求单独立项 |
 | 性能表现 | 实体视图对象池、VFX 预算、140 敌人压力下的降级策略 | M6 性能任务 |
 

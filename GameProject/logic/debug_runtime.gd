@@ -67,6 +67,15 @@ func set_weapon_level(id: String, value) -> Variant:
     return requested
 
 
+func grant_dark_crystals(value) -> int:
+    # 暗晶是局外货币，写入后必须落盘，否则回主菜单会被 load_save 覆盖
+    var granted: int = clampi(roundi(_number(value, 0.0)), 0, 1000000000)
+    if granted > 0:
+        game.save["darkCrystals"] = int(game.save.get("darkCrystals", 0)) + granted
+        MetaSave.persist_save(game.save)
+    return int(game.save.get("darkCrystals", 0))
+
+
 func grant_xp(value) -> float:
     var granted: float = clampf(_number(value, 0.0), 0.0, 1000000000.0)
     if granted > 0.0:

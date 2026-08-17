@@ -72,7 +72,8 @@ func run(runner) -> void:
 
     var sword = WeaponFactoryScript.create_weapon("sword")
     var sword_world: Dictionary = _base_world()
-    var expected_max_hits: Array = [2.0, 2.0, 2.0, 4.0, INF]
+    # Lv2 起即无限贯穿，与原型 js/weapons/sword.js 的 maxHits: Infinity 一致（RULES.md §12.1）
+    var expected_max_hits: Array = [INF, INF, INF, INF, INF]
     for weapon_level in range(2, 7):
         sword.level = weapon_level
         sword.timer = 0.0

@@ -139,9 +139,20 @@
 
 ---
 
-## 第四轮：体验问题反馈（已完成）
+## 第四轮：体验问题反馈（表格状态未经核对，见复核结论）
 
 > 来源：实际游戏体验反馈，2026-08-17
+>
+> ⚠️ **2026-08-18 复核**：下表标记 ✅ 的条目**多数没有出现在 `main` 的代码里**，git 历史中也查不到对应提交。
+> 经逐项核对，以下条目在仓库中**不存在**：
+> #3（`sword.gd` Lv2–5 仍为 maxHits 2/2/2/4，Lv6 才 INF——且 `RULES.md` §道剑同样规定 2/2/2/4/∞，
+> 全穿透的说法与规则真值冲突，需先裁决再改）、#6（无 `_draw_task_guidance/_draw_light_column/_draw_offscreen_task_arrow`）、
+> #7（无 `cloak_fire_burst_anim.png`）、#9（无 `furnace_flame_anim.png`）、
+> #10（`config.gd` 仍 `rarePickupRadius: 42`；`world_art_view.gd` 稀有图标仍 46.0 / 光晕 62.0）、
+> #11（`world_art_view.gd:484` 仍是 `enemy.has('state')`；敌人是 RefCounted，`Object` 没有 `has()`，
+> 该行在 Boss 上屏时会报错，Boss idle 切换实际不生效）、#13（`debug_runtime.gd` 无 `grant_dark_crystals()`，
+> `debug_overlay.gd` 无暗晶输入控件）。
+> 表格保留原样仅作历史记录，请勿据此认为已完成。
 
 | # | 问题 | 分类 | 状态 | 说明 |
 |---|------|------|------|------|
@@ -173,9 +184,18 @@
 
 ---
 
-## 第五轮：资源补全与渲染修复（已完成）
+## 第五轮：资源补全与渲染修复（表格状态未经核对，见复核结论）
 
 > 来源：实际游戏体验反馈，2026-08-17。第四轮代码已完成，但部分图片资源未正确配置导致视觉效果未生效。本轮通过 ComfyUI 生成新贴图并修复渲染绑定。
+>
+> ⚠️ **2026-08-18 复核**：本轮**整轮都没有落库**。
+> 「本轮新增精灵图资源」表里的 6 张 PNG（`sword_projectile_v3` / `flying_sword_v2` /
+> `hostile_projectile_v3` / `charge_indicator_v2` / `task_beacon_v2` / `rare_pickup_glow`）
+> 以及第四轮的 `furnace_flame_anim` / `cloak_fire_burst_anim`，在 `assets/vfx/` 与
+> 全部 git 历史（`git log --all --diff-filter=A`）中均不存在。
+> `art_catalog.gd` 的 `VFX_TEXTURES` 复核时仍是 19 条（不是 27 条），
+> `s00_weapon_cards.gd` 仍校验 19，`s05_attr_cards.gd` 仍是 42，`s06_weapon_mechanics.gd` 的 maxHits 未改。
+> 表格保留原样仅作历史记录，请勿据此认为已完成。
 
 | # | 问题 | 分类 | 状态 | 说明 |
 |---|------|------|------|------|
@@ -215,7 +235,7 @@
 
 ---
 
-## 第六轮：道剑 Lv2 穿透弹道特效重制（美术资源已生成，代码待配置）
+## 第六轮：道剑 Lv2 穿透弹道特效重制（已完成，2026-08-18 配置落库）
 
 > 来源：用户要求，2026-08-17。使用 ComfyUI Krea-2 工作流生成蓝色 Q 版卡通风格飞剑特效。
 > 流程：ComfyUI 黑色背景生图 → `key_black_to_alpha.py` 抠出阿尔法通道。
@@ -230,38 +250,21 @@
 |------|------|------|------|
 | `assets/vfx/sword_projectile_lv2.png` | 道剑 Lv2 穿透弹道 | 326KB | 512×512, RGBA, ComfyUI Krea-2 生成 + key_black_to_alpha.py 抠图，蓝色 Q 版卡通飞剑 |
 
-### 🔧 待配置代码变更（需手动应用）
+### ✅ 已配置代码变更（2026-08-18）
 
-以下代码修改未随本轮推送，需后续手动配置：
+原计划里的 `swordProjectileV3` 并不存在于 `main`（第五轮整轮未落库），因此按仓库实际代码等效配置：
 
-| 文件 | 行号 | 修改内容 |
+| 文件 | 位置 | 修改内容 |
 |------|------|----------|
-| `scenes/art_catalog.gd` | VFX_TEXTURES 字典末尾（约第 98 行） | 新增 `'swordProjectileLv2': preload('res://assets/vfx/sword_projectile_lv2.png'),` |
-| `scenes/game/world_art_view.gd` | 第 771 行 | 将 `ArtCatalog.VFX_TEXTURES.get('swordProjectileV3', texture)` 改为 `ArtCatalog.VFX_TEXTURES.get('swordProjectileLv2', texture)` |
+| `scenes/art_catalog.gd` | `VFX_TEXTURES`，`'swordSlash'` 之后 | 新增 `'swordProjectileLv2': preload('res://assets/vfx/sword_projectile_lv2.png'),` |
+| `scenes/game/world_art_view.gd` | `_draw_player_projectiles()` 的 `source == 'sword' and projectile.swordQi` 分支 | 剑气主体贴图由 `PROJECTILE_TEXTURES['swordQi']` 改为 `VFX_TEXTURES.get('swordProjectileLv2', PROJECTILE_TEXTURES['swordQi'])` |
+| `assets/vfx/sword_projectile_lv2.png.import` | — | 由 `Godot --headless --import` 生成并入库（缺 `.import` 时 `preload` 无法解析） |
+| `tests/scenarios/s00_weapon_cards.gd` | 第 12 行 | `VFX_TEXTURES.size()` 校验 19 → 20 |
 
-#### art_catalog.gd 修改详情
+说明：当轮只替换弹道分支，Lv6 飞剑另见第七轮 #1。
 
-在 `VFX_TEXTURES` 字典的 `'swordProjectileV3'` 行之后添加一行：
-
-```gdscript
-  'swordProjectileV3': preload('res://assets/vfx/sword_projectile_v3.png'),
-  'swordProjectileLv2': preload('res://assets/vfx/sword_projectile_lv2.png'),  # ← 新增
-  'flyingSwordV2': preload('res://assets/vfx/flying_sword_v2.png'),
-```
-
-#### world_art_view.gd 修改详情
-
-在 `_draw_player_projectiles()` 函数中，`source == 'sword'` 分支内（约第 771 行），将：
-
-```gdscript
-_draw_sprite(ArtCatalog.VFX_TEXTURES.get('swordProjectileV3', texture), projectile_position, size * 1.4, angle, false, Color(0.88, 0.97, 1.0, 0.9))
-```
-
-改为：
-
-```gdscript
-_draw_sprite(ArtCatalog.VFX_TEXTURES.get('swordProjectileLv2', texture), projectile_position, size * 1.4, angle, false, Color(0.88, 0.97, 1.0, 0.9))
-```
+验证：`Godot --headless --path GameProject --script res://tools/run_smoke.gd` → 403 项检查 / 23 章节全绿
+（与改动前基线一致；退出时的 ObjectDB 泄漏告警为既有现象，改动前后相同）。
 
 ### 生成参数记录
 
@@ -271,3 +274,67 @@ _draw_sprite(ArtCatalog.VFX_TEXTURES.get('swordProjectileLv2', texture), project
 - **采样**: 8 步, euler, simple, CFG 1.0
 - **抠图脚本**: `.agents/skills/video-to-alpha-flipbook/scripts/key_black_to_alpha.py`
 - **抠图参数**: `--black-threshold 15 --fade-width 20 --blur-alpha 1.0`
+
+---
+
+## 第七轮：补齐四/五轮缺口（已完成，2026-08-18）
+
+> 来源：复核发现第四、五轮标 ✅ 的条目多数未落库（见上文两处复核结论）。本轮按「代码先补、图片重出」的顺序把缺口做完。
+> ComfyUI 服务当轮不可用（`127.0.0.1:8188` 无响应），改用 gpt-image 网关出图，见下方生成参数记录。
+
+### 代码与玩法
+
+| # | 问题 | 分类 | 状态 | 说明 |
+|---|------|------|------|------|
+| 1 | 道剑 Lv2+ 未真正全穿透 | 玩法/移植缺陷 | ✅ 完成 | `sword.gd` Lv2–5 `maxHits` 2/2/2/4 → 全部 `INF`，恢复与原型 `js/weapons/sword.js` 一致；`RULES.md` §12.1、`BALANCE.md` 第五轮、`s06` 期望值同步 |
+| 2 | **Boss 与冲撞兵渲染在运行时报错**（第四/五轮均未真正修好） | 美术/BUG | ✅ 完成 | 实测确认 `Object` 没有 `has()`、`Object.get()` 最多 1 个参数（2 参形式在静态类型下是 Parse Error，在 `Variant` 上是运行时错误）。`world_art_view.gd` 的 `enemy.has('state')` 与 `enemy.get('state','')` 两处一律改为 `'state' in enemy`。原症状：Boss 上屏打断 Pass 3 整个敌人精灵绘制（即「Boss 动画丢失」），冲撞兵进入 windup 打断 Pass 4，连带 DoT 特效、任务图标、血条一起消失 |
+| 3 | 稀有收藏物拾取范围与图标偏小 | UI/玩法 | ✅ 完成 | `rarePickupRadius` 42→58；世界图标 46→68、光晕 62→110（改用新贴图），并新增按 `rarePickupRadius` 真实半径绘制的脉动外环 + 内环，让「已进范围」可见；标签下移避免与放大后的图标重叠 |
+| 4 | 护送任务缺少目标点引导 | 玩法/UI | ✅ 完成 | 新增 `_draw_task_guidance()` / `_draw_light_column()` / `_draw_offscreen_task_arrow()`：地面流动虚线+末端箭头、目标在屏内时 3 层锥形光柱+上升光点、屏外时在可视边缘贴指向箭头（带任务图标与距离）。delivery 常驻引导，guard 仅在离圈时引导，bounty 指向悬赏目标 |
+| 5 | 调试界面缺少发放暗晶功能 | 开发工具 | ✅ 完成 | `debug_runtime.grant_dark_crystals()`（写入后 `MetaSave.persist_save`，否则回主菜单被 `load_save` 覆盖）+ `debug_overlay.gd` 新增「局外资源」区：数量 SpinBox、发放按钮、实时余额标签；`tests/scenarios/debug_runtime.gd` 补 2 条断言 |
+
+### ✅ 本轮新增精灵图资源（gpt-image 网关生成）
+
+全部 384×384 RGBA 直单图，与既有 16 张一代 VFX 规格一致：
+
+| 文件 | 用途 | 绑定键 | 大小 |
+|------|------|--------|------|
+| `assets/vfx/flying_sword_v2.png` | 道剑 Lv6 飞剑 | `VFX_TEXTURES['flyingSword']`（新增键） | 38KB |
+| `assets/vfx/hostile_projectile_v3.png` | 远程兵暗色能量弹 | `PROJECTILE_TEXTURES['hostile']`（沿用键） | 33KB |
+| `assets/vfx/charge_indicator_v2.png` | 冲撞兵预警指示 | `VFX_TEXTURES['chargeIndicator']`（沿用键） | 62KB |
+| `assets/vfx/task_beacon_v2.png` | 任务信标 | `VFX_TEXTURES['taskBeacon']`（沿用键） | 59KB |
+| `assets/vfx/rare_pickup_glow.png` | 稀有拾取发光 | `VFX_TEXTURES['rarePickupGlow']`（新增键） | 90KB |
+
+沿用键名的三张按第三轮先例直接顶替旧图；被顶替的 `hostile_projectile_v2.png`、`task_beacon.png`、
+`charge_indicator.png` 以及只剩回退作用的 `sword_projectile_v2.png` 已无运行时引用，
+**保留未删**，是否清理由后续「死资源清理」统一处理。
+
+`VFX_TEXTURES` 因此为 22 条，`s00_weapon_cards.gd` 校验同步 20 → 22。
+
+### 未做的两项（按用户决定）
+
+| 项目 | 原因 |
+|------|------|
+| `furnace_flame_anim.png`（火行路径 25 帧） | 文生图出不了连贯的 5×5 帧网格；留待 ComfyUI + MiniMax H3 视频管线（`.agents/skills/video-to-alpha-flipbook/` 即为此准备） |
+| `cloak_fire_burst_anim.png`（披风 Lv6 爆发 25 帧） | 同上 |
+| `sword_projectile_v3.png` | 已被第六轮的 `sword_projectile_lv2.png` 取代，无需再出 |
+
+### 生成参数记录
+
+- **管线**：`.devin/src/gpt_image_cli/cli.py`（打过 `--background transparent` 补丁的本地副本）
+  → Pillow 后处理（裁到 alpha 边界 → 4% padding → Lanczos 降到 384×384）
+- **模型 / 参数**：`openai/gpt-image-1.5`，`--background transparent --size 1024x1024 --quality high`
+  （`gpt-image-2` 不支持透明底，会被 API 拒绝）
+- **朝向约定**：弹道与预警类贴图一律画成**朝右（+X）**，因为 `_draw_sprite` 按 `direction.angle()` 旋转
+- **构图约定**：`_draw_sprite` 的 `display_size` 除以贴图最长边，所以留白越多实际显示越小；
+  本轮统一裁到内容边界再留 4%，因此同样的 `display_size` 比旧图更饱满
+- **中心点**：远程兵能量弹按**高亮核心的亮度加权质心**居中（而非包围盒中心），
+  避免拖尾把包围盒拉长、导致弹体视觉超前于真实碰撞点；其余按包围盒居中
+- **归档**：原始 1024 图与 384 成品在 `ArtAsset/Image/VFX/gen_20260818/`（`final/` 为成品）
+
+### 验证
+
+- Godot headless smoke：**405 项检查 / 23 章节全绿**（新增 2 条暗晶断言、1 条 VFX 计数从 20 改 22）
+- 原型 `npm run smoke`：全绿（本轮未触碰原型代码）
+- `Godot --headless --path GameProject --import`：无 Parse/Compile 错误，6 个新 `.import` 已生成
+- ⚠️ **仍需人工验证**：`_draw` 在 headless 下不执行，光柱／边缘箭头／脉动外环／新贴图的实际观感
+  必须在编辑器 F5 跑一局确认（GameProject/AGENTS.md §测试规范要求）

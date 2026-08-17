@@ -43,7 +43,7 @@ const PROJECTILE_TEXTURES: Dictionary = {
   'trail': preload('res://assets/icons/projectile_fire.png'),
   'ring': preload('res://assets/sprites/weapons/jade_ring_world.png'),
   'staff': preload('res://assets/vfx/staff_spirit_bolt.png'),
-  'hostile': preload('res://assets/vfx/hostile_projectile_v2.png'),
+  'hostile': preload('res://assets/vfx/hostile_projectile_v3.png'),
 }
 
 const PICKUP_TEXTURES: Dictionary = {
@@ -74,6 +74,7 @@ const TASK_TEXTURES: Dictionary = {
 
 const VFX_TEXTURES: Dictionary = {
   'swordSlash': preload('res://assets/vfx/sword_slash.png'),
+  'swordProjectileLv2': preload('res://assets/vfx/sword_projectile_lv2.png'),
   'talismanLightning': preload('res://assets/vfx/talisman_lightning.png'),
   'cloakFireBurst': preload('res://assets/vfx/cloak_fire_burst.png'),
   'furnaceFlame': preload('res://assets/vfx/furnace_flame.png'),
@@ -86,12 +87,14 @@ const VFX_TEXTURES: Dictionary = {
   'healing': preload('res://assets/vfx/healing_petals.png'),
   'pickup': preload('res://assets/vfx/pickup_glow.png'),
   'bossEnraged': preload('res://assets/vfx/boss_enraged.png'),
-  'taskBeacon': preload('res://assets/vfx/task_beacon.png'),
+  'taskBeacon': preload('res://assets/vfx/task_beacon_v2.png'),
   'synergyArc': preload('res://assets/vfx/synergy_arc.png'),
   'impact': preload('res://assets/vfx/impact_flash.png'),
   'burnDot': preload('res://assets/vfx/burn_dot_effect.png'),
-  'chargeIndicator': preload('res://assets/vfx/charge_indicator.png'),
+  'chargeIndicator': preload('res://assets/vfx/charge_indicator_v2.png'),
   'thunderStrike': preload('res://assets/vfx/thunder_strike.png'),
+  'flyingSword': preload('res://assets/vfx/flying_sword_v2.png'),
+  'rarePickupGlow': preload('res://assets/vfx/rare_pickup_glow.png'),
 }
 
 const ENVIRONMENT_TEXTURES: Dictionary = {

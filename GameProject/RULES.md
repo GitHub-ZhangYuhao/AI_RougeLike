@@ -540,14 +540,16 @@ n = 局内层数 + 局外等级（§4.1），apply 效果：
 | Lv | damage | 其他关键字段 |
 | --- | --- | --- |
 | 1 | 16 | 近战：meleeRange 125，interval 1.15，arc 120° |
-| 2 | 20 | 转弹道：range 520，speed 500，interval 1.08，maxHits 2（命中首目标后再穿透 1 个） |
-| 3 | 26 | range 550，speed 560，interval 1.00，maxHits 2 |
-| 4 | 32 | range 570，speed 580，interval 0.94，maxHits 2；drawSlash，ringRadius 350，ringBleedDps 10 |
-| 5 | 40 | range 600，speed 620，interval 0.87，maxHits 4（命中首目标后再穿透 3 个）；drawSlash，ringRadius 380，ringBleedDps 11 |
+| 2 | 20 | 转弹道：range 520，speed 500，interval 1.08，maxHits ∞ |
+| 3 | 26 | range 550，speed 560，interval 1.00，maxHits ∞ |
+| 4 | 32 | range 570，speed 580，interval 0.94，maxHits ∞；drawSlash，ringRadius 350，ringBleedDps 10 |
+| 5 | 40 | range 600，speed 620，interval 0.87，maxHits ∞；drawSlash，ringRadius 380，ringBleedDps 11 |
 | 6 | 48 | range 640，speed 660，interval 0.80，maxHits ∞；drawSlash，ringRadius 380，ringBleedDps 12；swordIntent，flyMax 10，flyInterval 1.2，flyRange 260，flyChain 6，flyChainRange 240 |
 
 机制：
-- Lv1 近战扇形挥砍；Lv2–4 弹道 maxHits 2，Lv5 maxHits 4，Lv6 才获得 Infinity 无限贯穿。
+- Lv1 近战扇形挥砍；**Lv2 起弹道即 maxHits = Infinity 无限贯穿**（同一敌人只命中一次，命中不消耗上限）。
+  历史差异：移植初期 Godot 侧曾写成 Lv2–4 为 2、Lv5 为 4，与原型 `js/weapons/sword.js` 的 `maxHits: Infinity`
+  不一致（原型 smoke 一直断言 `[6] sword Lv${level} must pierce infinitely`）；2026-08-18 按原型裁决恢复为全等级 ∞。
 - **drawSlash（Lv4+）**：每命中 **3 次命中**（空挥不计，attackCount 只在命中时 +1）→ 下一帧释放环形斩：伤害 ×2.5，半径 ringRadius，附带流血 DoT（dps = ringBleedDps，持续 2.5s）；环形斩不计为普通攻击，也不累积 swordIntent。
 - **swordIntent（Lv6）**：每命中 10 次生成 1 把飞剑；**飞剑自身命中不计数**（countIntent = false）。飞剑：环绕半径 `48 + (n%3) × 12`，存活 15s，出击速度 640，伤害 ×0.3，命中附流血（dps 9，2.5s）；连锁 ≤6 次，优先 240px 内未命中过的目标；飞行总距离 > 1600 或离目标 > 460 时强制返回；返回速度 700。
 - 联动常量：御剑号令标记 3s；焚刃火焰斩 cd 0.4 / 伤害 ×0.4 / 长 145 / 宽 34；剑环折返触发距离 52 / 搜索 360；切炉伤害 ×0.45。

@@ -19,6 +19,8 @@ var _updating: bool = false
 var _refresh_timer: float = 0.0
 var _enemy_type: OptionButton
 var _enemy_count: SpinBox
+var _crystal_amount: SpinBox
+var _crystal_label: Label
 var _launcher: Button
 var _panel: PanelContainer
 var _dimmer: ColorRect
@@ -104,6 +106,7 @@ func refresh() -> void:
   for id: String in weapon_controls:
     var weapon = run.get_weapon(id)
     weapon_controls[id].value = weapon.level if weapon != null else 0
+  _crystal_label.text = '暗晶 %d' % int(run.save.get('darkCrystals', 0))
   _updating = false
 
 
@@ -280,6 +283,30 @@ func _build_panel() -> void:
   _add_section(content, '武器等级（0移除）')
   for card: Dictionary in WeaponFactoryScript.WEAPON_CARDS:
     weapon_controls[card['id']] = _add_number(content, card['name'], 0.0, card['maxLevel'], 1.0, _weapon_level.bind(card['id']))
+  _add_section(content, '局外资源')
+  var crystal_row := HBoxContainer.new()
+  crystal_row.add_theme_constant_override('separation', 6)
+  content.add_child(crystal_row)
+  _crystal_label = Label.new()
+  _crystal_label.text = '暗晶 0'
+  _crystal_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+  _crystal_label.add_theme_color_override('font_color', INK)
+  _crystal_label.add_theme_font_size_override('font_size', 13)
+  crystal_row.add_child(_crystal_label)
+  _crystal_amount = SpinBox.new()
+  _crystal_amount.min_value = 0
+  _crystal_amount.max_value = 1000000
+  _crystal_amount.step = 100
+  _crystal_amount.value = 500
+  _crystal_amount.custom_minimum_size = Vector2(120.0, 38.0)
+  _style_spin_box(_crystal_amount)
+  crystal_row.add_child(_crystal_amount)
+  var grant_button := Button.new()
+  grant_button.text = '发放'
+  _style_button(grant_button)
+  grant_button.pressed.connect(_grant_crystals)
+  crystal_row.add_child(grant_button)
+
   _add_section(content, '配置')
   var buttons := HBoxContainer.new()
   buttons.add_theme_constant_override('separation', 6)
@@ -375,6 +402,13 @@ func _hp_changed(value: float) -> void:
 func _wave_changed(value: float) -> void:
   if not _updating and run != null:
     run.debug.set_wave(value)
+
+
+func _grant_crystals() -> void:
+  if run == null:
+    return
+  run.debug.grant_dark_crystals(_crystal_amount.value)
+  refresh()
 
 
 func _clear_enemies() -> void:

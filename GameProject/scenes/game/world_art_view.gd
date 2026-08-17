@@ -107,8 +107,20 @@ func _draw_tasks() -> void:
 		return
 	var payload: Dictionary = task['payload']
 	match task['type']:
-		'guard': _draw_marker(_point(payload['center']), payload['radius'], Color('66bb6a'), texture)
-		'delivery': _draw_marker(_point(payload['destination']), Config.CONFIG['tasks']['delivery']['destinationRadius'], Color('42a5f5'), texture)
+		'guard':
+			var center := _point(payload['center'])
+			_draw_marker(center, payload['radius'], Color('66bb6a'), texture)
+			# 只在离开守护圈时引导回去，圈内不加视觉噪音
+			if Vector2(run.player.x, run.player.y).distance_to(center) > payload['radius']:
+				_draw_task_guidance(center, Color('66bb6a'), texture)
+		'delivery':
+			var destination := _point(payload['destination'])
+			_draw_marker(destination, Config.CONFIG['tasks']['delivery']['destinationRadius'], Color('42a5f5'), texture)
+			_draw_task_guidance(destination, Color('42a5f5'), texture)
+		'bounty':
+			var target = payload.get('target')
+			if target != null and not target.dead:
+				_draw_task_guidance(Vector2(target.x, target.y), Color('ef5350'), texture)
 
 
 func _draw_marker(marker_position: Vector2, radius: float, color: Color, texture: Texture2D) -> void:
@@ -118,6 +130,84 @@ func _draw_marker(marker_position: Vector2, radius: float, color: Color, texture
 	draw_arc(marker_position, radius * 0.72, 0.0, TAU, 48, Color(color, 0.28), 1.0)
 	_draw_sprite(ArtCatalog.VFX_TEXTURES['taskBeacon'], marker_position - Vector2(0.0, 24.0), minf(radius * 1.15, 104.0), 0.0, false, Color(1.0, 1.0, 1.0, 0.56 + pulse * 0.24))
 	_draw_sprite(texture, marker_position - Vector2(0.0, radius + 20.0), 42.0 + pulse * 3.0)
+
+
+# 任务目标引导：地面导引线 + 目标在屏内时的光柱 / 屏外时的边缘箭头
+func _draw_task_guidance(target_position: Vector2, color: Color, texture: Texture2D) -> void:
+	var player_position := Vector2(run.player.x, run.player.y)
+	var to_target: Vector2 = target_position - player_position
+	var distance: float = to_target.length()
+	if distance < 24.0:
+		return
+	var direction: Vector2 = to_target / distance
+	var pulse: float = 0.5 + sin(animation_time * 3.0) * 0.5
+	# 导引线只画靠玩家的一段，长目标距离下不会糊满屏幕
+	var guide_length: float = minf(distance - 20.0, 176.0)
+	if guide_length > 34.0:
+		var guide_start: Vector2 = player_position + direction * 28.0
+		var guide_end: Vector2 = player_position + direction * guide_length
+		_draw_dashed_line(guide_start, guide_end, Color(color, 0.38), 2.5, 14.0, 10.0)
+		var flow: float = fmod(animation_time * 0.85, 1.0)
+		draw_circle(guide_start.lerp(guide_end, flow), 4.0 + pulse * 1.6, Color(color, 0.34 + pulse * 0.2))
+		# 末端箭头，明确方向而不是只有一条线
+		var perpendicular: Vector2 = direction.rotated(PI * 0.5)
+		draw_line(guide_end, guide_end - direction * 13.0 + perpendicular * 8.0, Color(color, 0.72), 2.5, true)
+		draw_line(guide_end, guide_end - direction * 13.0 - perpendicular * 8.0, Color(color, 0.72), 2.5, true)
+	if _is_on_screen(target_position, 40.0):
+		_draw_light_column(target_position, color, pulse)
+	else:
+		_draw_offscreen_task_arrow(target_position, color, texture, distance, pulse)
+
+
+# 目标点光柱：让护送终点在远处也能被看到
+func _draw_light_column(base_position: Vector2, color: Color, pulse: float) -> void:
+	var height: float = 190.0 + pulse * 26.0
+	var half_width: float = 15.0 + pulse * 2.5
+	for layer in 3:
+		var layer_ratio: float = 1.0 - float(layer) * 0.3
+		var layer_alpha: float = (0.16 - float(layer) * 0.04) + pulse * 0.05
+		var points := PackedVector2Array([
+			base_position + Vector2(-half_width * layer_ratio, 0.0),
+			base_position + Vector2(half_width * layer_ratio, 0.0),
+			base_position + Vector2(half_width * layer_ratio * 0.42, -height * layer_ratio),
+			base_position + Vector2(-half_width * layer_ratio * 0.42, -height * layer_ratio),
+		])
+		draw_colored_polygon(points, Color(color, layer_alpha))
+	draw_line(base_position, base_position - Vector2(0.0, height * 0.94), Color(1.0, 1.0, 1.0, 0.24 + pulse * 0.16), 2.0, true)
+	_draw_ellipse_shape(base_position, Vector2(half_width * 1.7, half_width * 0.62), Color(color, 0.26 + pulse * 0.12))
+	# 上升光点
+	for i in 4:
+		var rise: float = fmod(animation_time * 0.42 + float(i) * 0.25, 1.0)
+		var mote_position: Vector2 = base_position - Vector2(sin(rise * TAU + float(i)) * half_width * 0.5, rise * height)
+		draw_circle(mote_position, 2.6 * (1.0 - rise * 0.6), Color(1.0, 1.0, 1.0, (1.0 - rise) * 0.5))
+
+
+# 目标在屏幕外时，在可视边缘贴一个指向箭头 + 图标 + 距离
+func _draw_offscreen_task_arrow(target_position: Vector2, color: Color, texture: Texture2D, distance: float, pulse: float) -> void:
+	if run.camera == null:
+		return
+	var camera_position := Vector2(run.camera.x, run.camera.y)
+	var edge_direction: Vector2 = target_position - camera_position
+	if edge_direction.length_squared() <= 0.0001:
+		return
+	edge_direction = edge_direction.normalized()
+	# 与 _is_on_screen 用同一套半屏尺寸（含 0.82 相机缩放），再向内收 66px 放图标
+	var half_width: float = maxf(run.viewport_size.x * 0.5 / 0.82 - 66.0, 48.0)
+	var half_height: float = maxf(run.viewport_size.y * 0.5 / 0.82 - 66.0, 48.0)
+	var reach: float = minf(half_width / maxf(absf(edge_direction.x), 0.0001), half_height / maxf(absf(edge_direction.y), 0.0001))
+	var arrow_position: Vector2 = camera_position + edge_direction * reach
+	var perpendicular: Vector2 = edge_direction.rotated(PI * 0.5)
+	var tip: Vector2 = arrow_position + edge_direction * (20.0 + pulse * 4.0)
+	draw_circle(arrow_position, 26.0, Color(color, 0.16 + pulse * 0.08))
+	draw_colored_polygon(PackedVector2Array([
+		tip,
+		arrow_position - edge_direction * 8.0 + perpendicular * 13.0,
+		arrow_position - edge_direction * 8.0 - perpendicular * 13.0,
+	]), Color(color, 0.78 + pulse * 0.18))
+	_draw_sprite(texture, arrow_position - edge_direction * 30.0, 38.0, 0.0, false, Color(1.0, 1.0, 1.0, 0.9))
+	var label: String = '%d m' % roundi(distance / 10.0)
+	draw_string(UI_FONT, arrow_position - edge_direction * 30.0 + Vector2(-24.0, 32.0), label,
+		HORIZONTAL_ALIGNMENT_CENTER, 48.0, 12, Color(1.0, 0.96, 0.86, 0.92))
 
 
 func _draw_weapon_zones() -> void:
@@ -306,15 +396,18 @@ func _draw_flying_swords() -> void:
 			direction = Vector2.RIGHT
 		direction = direction.normalized()
 		var alpha: float = clampf(flying.get('ttl', 1.0), 0.0, 1.0)
-		var blade_size: float = 54.0 if state == 'strike' else 46.0
-		var tail_length: float = 74.0 if state == 'strike' else 42.0
-		draw_circle(sword_position, blade_size * 0.58, Color(0.6, 0.9, 1.0, alpha * 0.11))
-		draw_line(sword_position - direction * tail_length, sword_position, Color(0.45, 0.86, 1.0, alpha * 0.34), 9.0, true)
-		draw_line(sword_position - direction * tail_length * 0.76, sword_position, Color(0.88, 0.97, 1.0, alpha * 0.76), 2.5, true)
-		draw_line(sword_position - direction * tail_length * 0.5, sword_position, Color(0.9, 0.12, 0.2, alpha * 0.44), 1.5, true)
-		_draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['swordQi'], sword_position, blade_size, direction.angle(), false,
-			Color(0.88, 0.97, 1.0, alpha))
-		draw_circle(sword_position + direction * blade_size * 0.2, 3.0, Color(1.0, 0.92, 0.92, alpha))
+		var strike_pulse: float = 0.5 + sin(animation_time * 10.0) * 0.5
+		var blade_size: float = 96.0 if state == 'strike' else 80.0
+		var tail_length: float = 104.0 if state == 'strike' else 62.0
+		# 外层灵光：出击时更亮，让 10 把飞剑在混战里也能一眼看到
+		draw_circle(sword_position, blade_size * 0.5, Color(0.55, 0.9, 1.0, alpha * (0.16 + strike_pulse * 0.07)))
+		draw_circle(sword_position, blade_size * 0.3, Color(0.85, 0.98, 1.0, alpha * 0.14))
+		draw_line(sword_position - direction * tail_length, sword_position, Color(0.45, 0.86, 1.0, alpha * 0.42), 13.0, true)
+		draw_line(sword_position - direction * tail_length * 0.76, sword_position, Color(0.88, 0.97, 1.0, alpha * 0.85), 4.5, true)
+		draw_line(sword_position - direction * tail_length * 0.5, sword_position, Color(0.9, 0.12, 0.2, alpha * 0.5), 2.0, true)
+		_draw_sprite(ArtCatalog.VFX_TEXTURES['flyingSword'], sword_position, blade_size, direction.angle(), false,
+			Color(1.0, 1.0, 1.0, alpha))
+		draw_circle(sword_position + direction * blade_size * 0.22, 4.5 + strike_pulse * 1.5, Color(1.0, 0.96, 0.94, alpha))
 
 
 func _draw_zone(zone: Dictionary, fill: Color, outline: Color) -> void:
@@ -403,15 +496,22 @@ func _draw_pickups() -> void:
 			continue
 		var bob := Vector2(0.0, sin(animation_time * 3.4 + pickup['x'] * 0.015) * 3.2)
 		var is_rare: bool = pickup.get('kind') == 'rare'
-		_draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], pickup_position, 62.0 if is_rare else 56.0, -animation_time * 0.5, false, Color(1.0, 1.0, 1.0, 0.52))
+		var rare_pulse: float = 0.5 + sin(animation_time * 3.2 + pickup['x'] * 0.02) * 0.5
 		if is_rare:
+			_draw_sprite(ArtCatalog.VFX_TEXTURES['rarePickupGlow'], pickup_position, 110.0 + rare_pulse * 8.0, -animation_time * 0.35, false, Color(1.0, 1.0, 1.0, 0.6 + rare_pulse * 0.16))
 			var item_id: String = pickup.get('itemId', '')
+			var accent := Color(RareItemsScript.RARE_ITEM_BY_ID.get(item_id, {}).get('color', '#e8b34c'))
+			# 脉动外环：把放大的拾取半径直接画出来，避免玩家靠近了却不知道已进范围
+			var rare_radius: float = Config.CONFIG['pickups']['rarePickupRadius']
+			draw_arc(pickup_position, rare_radius, 0.0, TAU, 40, Color(accent, 0.18 + rare_pulse * 0.16), 2.0)
+			draw_arc(pickup_position, 44.0 + rare_pulse * 6.0, 0.0, TAU, 36, Color(accent, 0.34 + rare_pulse * 0.24), 2.5)
 			var texture: Texture2D = ArtCatalog.RARE_TEXTURES.get(item_id, ArtCatalog.RARE_TEXTURES['warRune'])
-			_draw_sprite(texture, pickup_position + bob, 46.0)
+			_draw_sprite(texture, pickup_position + bob, 68.0)
 			if pickup == nearest:
 				var item: Dictionary = RareItemsScript.RARE_ITEM_BY_ID.get(item_id, {})
-				_draw_pickup_label(pickup_position + Vector2(0.0, 38.0), item.get('name', '稀有遗物'), item.get('description', '拾取后强化本局'), Color(item.get('color', '#e8b34c')))
+				_draw_pickup_label(pickup_position + Vector2(0.0, 52.0), item.get('name', '稀有遗物'), item.get('description', '拾取后强化本局'), accent)
 		else:
+			_draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], pickup_position, 56.0, -animation_time * 0.5, false, Color(1.0, 1.0, 1.0, 0.52))
 			_draw_sprite(ArtCatalog.PICKUP_TEXTURES['health'], pickup_position + bob, 42.0)
 			if pickup == nearest:
 				_draw_pickup_label(pickup_position + Vector2(0.0, 36.0), '生命精华', '拾取后回复 %d 生命' % Config.CONFIG['pickups']['hpValue'], Color('ef624f'))
@@ -481,7 +581,8 @@ func _draw_enemies() -> void:
 		var flip_h: bool = run.player.x < enemy.x
 		# 取精灵纹理（使用缓存的 atlas）
 		var enemy_type_key: String = enemy.type if enemy.type != 'enhanced_chaser' else 'enhancedChaser'
-		if enemy_type_key == 'boss' and enemy.has('state') and enemy.state == 'windup':
+		# 敌人是 RefCounted：Object 没有 has()，get() 也只接受 1 个参数；属性存在性一律用 in 判断
+		if enemy_type_key == 'boss' and 'state' in enemy and enemy.state == 'windup':
 			enemy_type_key = 'bossIdle'
 		var sheet: Texture2D = ArtCatalog.ENEMY_SPRITE_SHEETS.get(enemy_type_key)
 		var texture: Texture2D
@@ -516,7 +617,7 @@ func _draw_enemies() -> void:
 			_draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], pos, r * (3.4 + pulse * 0.18), animation_time * 0.3, false, Color(1.0, 0.86, 0.38, 0.24 + pulse * 0.1))
 		if enemy.slowTimer > 0.0:
 			draw_arc(pos, r + 9.0, 0.0, TAU, 24, Color('80cbc4'), 2.0)
-		if enemy.type == 'charger' and enemy.get('state', '') == 'windup':
+		if enemy.type == 'charger' and 'state' in enemy and (enemy.state == 'windup' or enemy.state == 'dash'):
 			_draw_charge_indicator(pos, r, enemy)
 		if _has_active_enemy_dot(enemy.dots):
 			var detailed_dot: bool = is_budget_sample(dot_enemy_index, dot_enemy_total, DETAILED_DOT_BUDGET)
@@ -692,7 +793,8 @@ func _draw_player_projectiles() -> void:
 				var wisp_offset := perp * sin(animation_time * 12.0 + float(wisp_i) * 2.0) * size * 0.25
 				draw_circle(wisp_pos + wisp_offset, 2.0 + float(wisp_i), Color(color, 0.25 - float(wisp_i) * 0.06))
 			# Sword qi sprite (improved texture)
-			_draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['swordQi'], projectile_position, size * 1.4, angle, false, color)
+			# 贴图刀尖朝右上（约 -45°），补 +45° 顺时针偏移才能对准飞行方向
+			_draw_sprite(ArtCatalog.VFX_TEXTURES['swordProjectileLv2'], projectile_position, size * 1.4, angle + PI * 0.25, false, color)
 			# Inner bright core
 			draw_circle(projectile_position, size * 0.22, Color(1.0, 1.0, 1.0, 0.7))
 		else:
@@ -717,9 +819,8 @@ func _draw_hostile_projectiles() -> void:
 		var velocity := Vector2(projectile.vx, projectile.vy)
 		var direction: Vector2 = velocity.normalized() if velocity.length_squared() > 0.0 else Vector2.RIGHT
 		var angle: float = direction.angle()
-		var size: float = maxf(26.0, projectile.radius * 5.2)
-		# Outer glow (dark energy halo)
-		draw_circle(projectile_position, size * 0.85, Color(0.6, 0.08, 0.05, 0.18))
+		var size: float = maxf(46.0, projectile.radius * 8.4)
+		# 不再画程序化圆形光晕：新贴图自带暗紫外圈，叠圆圈会在弹头前方露出一圈多余的盘子
 		# Trailing energy (darker, thicker)
 		draw_line(projectile_position - direction * size * 1.6, projectile_position, Color(0.5, 0.05, 0.02, 0.22), maxf(3.0, projectile.radius * 2.0), true)
 		draw_line(projectile_position - direction * size * 1.0, projectile_position, Color(1.0, 0.35, 0.12, 0.3), maxf(2.0, projectile.radius * 1.2), true)
@@ -727,8 +828,6 @@ func _draw_hostile_projectiles() -> void:
 		draw_line(projectile_position - direction * size * 0.5, projectile_position, Color(1.0, 0.65, 0.3, 0.45), maxf(1.5, projectile.radius * 0.6), true)
 		# Projectile sprite (improved texture)
 		_draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['hostile'], projectile_position, size, angle)
-		# Inner bright core
-		draw_circle(projectile_position, projectile.radius * 0.7, Color(1.0, 0.85, 0.5, 0.3))
 
 
 func _draw_talisman_effects() -> void:
@@ -1039,25 +1138,65 @@ func _draw_enemy_dots(enemy_position: Vector2, radius: float, dots: Dictionary, 
 		_draw_sprite(ArtCatalog.VFX_TEXTURES['poison'], poison_position, poison_size, animation_time * 0.25, false, Color(0.7, 1.0, 0.6, 0.65 + flicker * 0.15))
 
 
+# 冲撞预警：把锁定方向、真实冲撞覆盖距离和剩余蓄力时间全部画出来。
+# windup（0.65s）里危险区按进度充能，dash（0.55s）里保留并淡出，避免"一闪就没了看不见"。
 func _draw_charge_indicator(enemy_position: Vector2, radius: float, enemy) -> void:
-	var dir_x: float = enemy.lockedDirection.get('x', 1.0)
-	var dir_y: float = enemy.lockedDirection.get('y', 0.0)
-	var dir := Vector2(dir_x, dir_y).normalized()
+	var config: Dictionary = Config.CONFIG['enemyTypes']['charger']
+	var dir := Vector2(enemy.lockedDirection.get('x', 1.0), enemy.lockedDirection.get('y', 0.0))
+	if dir.length_squared() <= 0.0001:
+		dir = Vector2.RIGHT
+	dir = dir.normalized()
 	var angle: float = dir.angle()
-	var charge_length: float = radius * 3.5
-	var windup_total: float = maxf(0.001, Config.CONFIG['enemyTypes']['charger'].get('windup', 0.8))
-	var windup_progress: float = clampf(1.0 - enemy.stateTimer / windup_total, 0.0, 1.0)
-	var pulse: float = sin(animation_time * 14.0) * 0.5 + 0.5
-	draw_arc(enemy_position, radius * 1.6 + pulse * 4.0, 0.0, TAU, 32, Color(1.0, 0.35, 0.15, 0.25 + windup_progress * 0.35), 2.5)
-	var tip := enemy_position + dir * charge_length
-	var base_left := enemy_position + dir * radius * 0.8 + dir.rotated(PI * 0.5) * radius * 0.6
-	var base_right := enemy_position + dir * radius * 0.8 - dir.rotated(PI * 0.5) * radius * 0.6
-	var alpha: float = 0.4 + windup_progress * 0.5
-	draw_line(enemy_position + dir * radius * 0.5, tip, Color(1.0, 0.45, 0.15, alpha), 3.0 + windup_progress * 2.0, true)
-	draw_line(tip, base_left, Color(1.0, 0.55, 0.2, alpha * 0.9), 2.5, true)
-	draw_line(tip, base_right, Color(1.0, 0.55, 0.2, alpha * 0.9), 2.5, true)
-	draw_circle(tip, 5.0 + pulse * 3.0, Color(1.0, 0.7, 0.2, alpha * 0.6))
-	_draw_sprite(ArtCatalog.VFX_TEXTURES.get('chargeIndicator', ArtCatalog.VFX_TEXTURES['impact']), tip, 36.0 + windup_progress * 16.0, angle, false, Color(1.0, 0.8, 0.4, alpha * 0.8))
+	var perpendicular: Vector2 = dir.rotated(PI * 0.5)
+	var dashing: bool = enemy.state == 'dash'
+	var dash_duration: float = maxf(0.001, float(config.get('dashDuration', 0.55)))
+	var windup_total: float = maxf(0.001, float(config.get('windup', 0.65)))
+	# 危险区长度取配置真值：dashSpeed × 剩余冲刺时间，就是它还能撞到的范围
+	# （蓄力中按整段 dashDuration 预告，冲刺中随剩余时间收缩，终点始终落在真实撞击点）
+	var remaining: float = enemy.stateTimer if dashing else dash_duration
+	var lane_length: float = float(config.get('dashSpeed', 400.0)) * clampf(remaining, 0.0, dash_duration)
+	var half_width: float = radius * 1.2
+	var progress: float = 1.0 if dashing else clampf(1.0 - enemy.stateTimer / windup_total, 0.0, 1.0)
+	var fade: float = clampf(enemy.stateTimer / dash_duration, 0.0, 1.0) if dashing else 1.0
+	var pulse: float = 0.5 + sin(animation_time * 16.0) * 0.5
+	var lane_start: Vector2 = enemy_position + dir * radius * 0.5
+	var lane_end: Vector2 = lane_start + dir * lane_length
+	var charged_end: Vector2 = lane_start.lerp(lane_end, progress)
+	# 1) 整条危险区底色
+	draw_colored_polygon(_lane_quad(lane_start, lane_end, perpendicular, half_width), Color(1.0, 0.24, 0.10, 0.10 * fade))
+	# 2) 蓄力充能部分：越接近发动越亮，直观读出"还有多久撞过来"
+	if progress > 0.01:
+		draw_colored_polygon(_lane_quad(lane_start, charged_end, perpendicular, half_width),
+			Color(1.0, 0.42, 0.12, (0.20 + progress * 0.26) * fade))
+		draw_line(charged_end + perpendicular * half_width, charged_end - perpendicular * half_width,
+			Color(1.0, 0.95, 0.7, (0.55 + pulse * 0.35) * fade), 3.0, true)
+	# 3) 两侧护栏
+	var rail_color := Color(1.0, 0.5 + pulse * 0.2, 0.15, (0.5 + progress * 0.4) * fade)
+	draw_line(lane_start + perpendicular * half_width, lane_end + perpendicular * half_width, rail_color, 2.5, true)
+	draw_line(lane_start - perpendicular * half_width, lane_end - perpendicular * half_width, rail_color, 2.5, true)
+	# 4) 落点箭头
+	var arrow_size: float = half_width * (1.1 + progress * 0.5)
+	draw_colored_polygon(PackedVector2Array([
+		lane_end + dir * arrow_size,
+		lane_end + perpendicular * arrow_size,
+		lane_end - perpendicular * arrow_size,
+	]), Color(1.0, 0.62, 0.18, (0.62 + progress * 0.3) * fade))
+	# 5) 倒计时环：随蓄力合拢，撞出瞬间刚好闭合
+	draw_arc(enemy_position, radius * 1.9 + pulse * 3.0, -PI * 0.5, -PI * 0.5 + TAU * progress, 40,
+		Color(1.0, 0.85, 0.4, (0.5 + pulse * 0.3) * fade), 4.0)
+	draw_arc(enemy_position, radius * 1.9, 0.0, TAU, 32, Color(1.0, 0.3, 0.12, 0.3 * fade), 1.5)
+	# 6) 预警图标贴在危险区中段，跟着锁定方向转
+	_draw_sprite(ArtCatalog.VFX_TEXTURES['chargeIndicator'], lane_start.lerp(lane_end, 0.55),
+		68.0 + progress * 26.0, angle, false, Color(1.0, 0.92, 0.7, (0.7 + progress * 0.3) * fade))
+
+
+static func _lane_quad(start: Vector2, finish: Vector2, perpendicular: Vector2, half_width: float) -> PackedVector2Array:
+	return PackedVector2Array([
+		start + perpendicular * half_width,
+		finish + perpendicular * half_width,
+		finish - perpendicular * half_width,
+		start - perpendicular * half_width,
+	])
 
 
 func _draw_enemy_defeat(effect: Dictionary, alpha: float) -> void:
