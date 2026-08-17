@@ -1,10 +1,9 @@
 extends Node
 ## 全局平衡数值配置（autoload 名：Config）。
 ## 原型 js/config.js 的 Dictionary 镜像（与 BALANCE.md 逐键一致）；
-## 2026-08-15 两轮手感调参后与 js/config.js 存在 16 处有意差异（enemy.speed/hp/hpPerMin/
-## speedPerMin/hpPerWave/hpPerWaveMid/hpPerWaveLate/hpWaveCap/baseSpeedMult/speedWaveCap、
-## spawner.startMaxAlive/maxAlivePerWave/maxAliveCap、waves.baseQuota/quantityPerWave/
-## quantityWaveCap，裁决见 RULES.md 附录 B #9/#10）：
+## Godot 侧三轮手感调参后与 js/config.js 存在 21 处有意差异（详见 BALANCE.md）：
+## enemy 13 项、spawner 3 项、waves 4 项，以及 Godot 新增 meta.deathRewardMult。
+## 裁决见 RULES.md 附录 B #9/#10/#11。
 ## - 键名保留 JS camelCase，便于与 BALANCE.md / js/config.js 逐键对照；
 ##   这是本仓库唯一允许出现 camelCase 的地方（见 GameProject/AGENTS.md）。
 ## - JS 的 Infinity 一律写作 INF。
@@ -42,16 +41,16 @@ const CONFIG: Dictionary = {
         "hp": 45,
         "damage": 7,
         "hpPerMin": 10,
-        "damagePerMin": 2.2,
+        "damagePerMin": 1.0,
         "speedPerMin": 0.015,
         "hpPerWave": 0.10,
         "damagePerWave": 0.06,
         "midWaveStart": 7,
         "hpPerWaveMid": 0.12,
-        "damagePerWaveMid": 0.14,
+        "damagePerWaveMid": 0.09,
         "lateWaveStart": 12,
         "hpPerWaveLate": 0.10,
-        "damagePerWaveLate": 0.18,
+        "damagePerWaveLate": 0.09,
         "hpWaveCap": 3,
         "speedWaveCap": 1.6,
         "speedCapStartWave": 20,
@@ -104,10 +103,10 @@ const CONFIG: Dictionary = {
         },
     },
 
-    # Timed waves: each wave lasts 90 seconds; quota controls spawn density only.（原型注释）
+    # Timed waves: each wave lasts 60 seconds; quota controls spawn density only.
     "waves": {
         "maxWave": 25,
-        "duration": 90,
+        "duration": 60,
         "baseQuota": 30,
         "quantityPerWave": 1.2,
         "quantityWaveCap": 14,
@@ -156,11 +155,11 @@ const CONFIG: Dictionary = {
     },
 
     "gems": {
-        "magnetRadius": 180,
+        "magnetRadius": 240,
         "magnetStartSpeed": 300,
         "magnetAcceleration": 900,
         "magnetMaxSpeed": 680,
-        "pickupRadius": 22,
+        "pickupRadius": 30,
         "cap": 300,
         "tiers": [
             {"until": 90, "value": 1, "color": "#5ac8fa"},
@@ -175,8 +174,8 @@ const CONFIG: Dictionary = {
     "corpses": {"stainTtl": 3, "cap": 80},
     "pickups": {
         "hpValue": 15,
-        "pickupRadius": 22,
-        "rarePickupRadius": 30,
+        "pickupRadius": 30,
+        "rarePickupRadius": 42,
         "maxAlive": 5,
     },
     "hud": {"font": "16px \"Segoe UI\", \"Microsoft YaHei\", sans-serif"},
@@ -189,6 +188,7 @@ const CONFIG: Dictionary = {
         # Boss 阶位 → 保底最低材料阶（取 ≤bossTier 的最大键；1~2 阶无保底即 1）（原型注释）
         "guaranteedMinTier": {"3": 2, "5": 3},
         "waveRewardMult": 1.5,
+        "deathRewardMult": 0.35,
         "shopMaxLevel": 10,
         "shopPrice": {"base": 20, "growth": 1.6},
         "saveKey": "ai-roguelike-meta-save-v1",

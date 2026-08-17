@@ -32,6 +32,8 @@ func run(runner) -> void:
     runner.check(not game.synergies.is_active("sword-staff-command"), "[18] synergy must stay inactive below level 4")
     game._apply_offer({"card": Factory.card_by_id("staff"), "type": "upgrade"})
     runner.check(game.synergies.is_active("sword-staff-command"), "[18] normal upgrade should auto-activate synergy")
+    runner.check(game.synergies.last_activated_id == "sword-staff-command" and game.synergies.activation_flash_ttl == 1.8
+        and game.synergies.activation_serial == 1, "[18] Build activation should expose climax feedback state")
     var ttl: float = game.synergies.announcement["ttl"]
     game.synergies.update(0.1)
     runner.check(game.synergies.announcement["ttl"] < ttl, "[18] game should advance synergy announcements")
@@ -63,12 +65,13 @@ func run(runner) -> void:
     runner.check(target.hp == hp - 15.0, "[18] inner/outer fire domain controlled burst")
     runner.check(target.x < 77.5, "[18] inner/outer fire domain strengthens pull")
     runner.check(game.synergies.get_runtime("cloak-trail-core")["triggerCount"] == 1, "[18] inner/outer fire records trigger")
+    runner.check(game.effects.any(func(fx: Dictionary) -> bool: return fx.get("type") == "synergyTrigger" and fx.get("synergyId") == "cloak-trail-core"), "[18] synergy trigger emits unified feedback")
 
     game.release_runtime_refs()
     game.weapons = [_weapon("talisman"), _weapon("trail"), _weapon("ring")]
     game.synergies = Synergies.new()
     game.synergies.refresh(game.weapons, game.elapsed)
-    runner.check(game.synergies.is_active("talisman-fire-alchemy") and game.synergies.is_active("talisman-ring-relay"), "[18] automatic mode activates eligible Builds")
+    runner.check(game.synergies.active_definitions().size() == 1 and game.synergies.primary_definition()["id"] == "talisman-ring-relay", "[18] automatic mode selects one stable primary Build")
     game.synergies.toggle_build_weapon("talisman", game.weapons, game.elapsed)
     game.synergies.toggle_build_weapon("trail", game.weapons, game.elapsed)
     runner.check(game.synergies.selected_definition()["id"] == "talisman-fire-alchemy", "[18] manual Build resolves pair")

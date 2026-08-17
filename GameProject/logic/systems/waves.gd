@@ -3,7 +3,7 @@ extends RefCounted
 
 var wave: int = 1
 var phase: String = "wave"
-var waveTimer: float = 90.0
+var waveTimer: float = 60.0
 var spawned: int = 0
 var baseQuota: int = 16
 var quota: int = 16

@@ -1,12 +1,17 @@
 extends RefCounted
 ## ← js/systems/status.js：共享状态效果。
 
-const DOT_TYPES: Array[String] = ["burn", "blaze", "bleed", "poison"]
+const DOT_TYPES: Array[String] = ["burn", "bleed", "poison"]
+
+
+static func _normalize_dot_type(type: String) -> String:
+    return "burn" if type == "blaze" else type
 
 
 static func apply_dot(enemy, type: String, dps: float, duration: float) -> void:
-    var old: Dictionary = enemy.dots.get(type, {"dps": 0.0, "timer": 0.0})
-    enemy.dots[type] = {"dps": maxf(old["dps"], dps), "timer": maxf(old["timer"], duration)}
+    var normalized_type: String = _normalize_dot_type(type)
+    var old: Dictionary = enemy.dots.get(normalized_type, {"dps": 0.0, "timer": 0.0})
+    enemy.dots[normalized_type] = {"dps": maxf(old["dps"], dps), "timer": duration}
 
 
 static func apply_slow(enemy, factor: float, duration: float) -> void:
@@ -19,7 +24,8 @@ static func apply_freeze(enemy, duration: float) -> void:
 
 
 static func has_dot(enemy, type: String) -> bool:
-    return enemy.dots.has(type) and enemy.dots[type]["timer"] > 0.0
+    var normalized_type: String = _normalize_dot_type(type)
+    return enemy.dots.has(normalized_type) and enemy.dots[normalized_type]["timer"] > 0.0
 
 
 static func tick_status(enemy, dt: float) -> float:

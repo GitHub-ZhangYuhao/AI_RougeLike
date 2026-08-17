@@ -156,13 +156,13 @@ func _draw_full_content(canvas: CanvasItem, run, offer: Dictionary, rect: Rect2,
 	else:
 		canvas.draw_string(UI_FONT, Vector2(rect.position.x + 30.0, level_y), level_text, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 60.0, 17, INK)
 
-	var description: String = card.get("desc", CARD_DESCRIPTIONS.get(id, "本局持续生效"))
+	var description: String = offer.get("benefit", card.get("desc", CARD_DESCRIPTIONS.get(id, "本局持续生效")))
 	if description.is_empty():
 		description = CARD_DESCRIPTIONS.get(id, "本局持续生效")
-	var desc_lines: Array[String] = _wrap_text(description, 16)
-	var desc_y: float = rect.position.y + rect.size.y * 0.825
-	for line_index in mini(2, desc_lines.size()):
-		canvas.draw_string(UI_FONT, Vector2(rect.position.x + 24.0, desc_y + line_index * 20.0), desc_lines[line_index], HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 48.0, 14, INK_SOFT)
+	var desc_lines: Array[String] = _wrap_text(description, 18)
+	var desc_y: float = rect.position.y + rect.size.y * 0.785
+	for line_index in mini(3, desc_lines.size()):
+		canvas.draw_string(UI_FONT, Vector2(rect.position.x + 20.0, desc_y + line_index * 17.0), desc_lines[line_index], HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 40.0, 12, INK_SOFT)
 
 	var button_rect := Rect2(rect.get_center().x - rect.size.x * 0.31, rect.end.y - rect.size.y * 0.12, rect.size.x * 0.62, rect.size.y * 0.085)
 	_draw_panel(canvas, button_rect, CINNABAR if hovered else HEADER_GREEN, Color(GOLD, 0.92), 2.0 if hovered else 1.0, button_rect.size.y * 0.5)
@@ -179,6 +179,9 @@ func _draw_dense_content(canvas: CanvasItem, run, offer: Dictionary, rect: Rect2
 	var name_y: float = stage_rect.end.y + 25.0
 	canvas.draw_string(UI_FONT, Vector2(rect.position.x + 20.0, name_y), card.get("name", "未知灵签"), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 40.0, 18, INK)
 	canvas.draw_string(UI_FONT, Vector2(rect.position.x + 20.0, name_y + 23.0), _level_info(run, offer), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 40.0, 11, INK_SOFT)
+	var benefit_lines: Array[String] = _wrap_text(offer.get("benefit", ""), 18)
+	for line_index in mini(2, benefit_lines.size()):
+		canvas.draw_string(UI_FONT, Vector2(rect.position.x + 14.0, name_y + 41.0 + line_index * 13.0), benefit_lines[line_index], HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 28.0, 9, INK_SOFT)
 	var button_rect := Rect2(rect.position.x + 34.0, rect.end.y - 38.0, rect.size.x - 68.0, 28.0)
 	_draw_panel(canvas, button_rect, CINNABAR if hovered else HEADER_GREEN, Color(GOLD, 0.92), 1.0, 14.0)
 	canvas.draw_string(UI_FONT, button_rect.position + Vector2(0.0, 20.0), "[%d] 选择" % (index + 1), HORIZONTAL_ALIGNMENT_CENTER, button_rect.size.x, 12, PAPER_LIGHT)

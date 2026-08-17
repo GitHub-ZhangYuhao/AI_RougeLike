@@ -28,7 +28,7 @@ func update(dt: float, current_world) -> void:
                 continue
             current_world.damage_enemy.call(enemy, damage, {"sourceWeaponId": "cloak", "sourceAction": "aura"})
             if s.get("burn", false) and not enemy.dead:
-                current_world.apply_dot.call(enemy, "burn", s["burnDps"], 2.0)
+                current_world.apply_dot.call(enemy, "burn", s["burnDps"] * current_world.mods["damageMult"], 2.0)
 
     if s.get("shock", false):
         if s.get("enhancedKillShock", false) and last_kills >= 0:
@@ -61,7 +61,7 @@ func fire_shock(current_world, enhanced: bool = false) -> void:
         current_world.damage_enemy.call(enemy, damage, {"sourceWeaponId": "cloak", "sourceAction": "enhanced-shock" if enhanced else "shock"})
         if enemy.dead:
             continue
-        current_world.apply_dot.call(enemy, "burn", s.get("burnDps", 12), 2.0)
+        current_world.apply_dot.call(enemy, "burn", s.get("burnDps", 12) * current_world.mods["damageMult"], 2.0)
         if slow_duration > 0.0:
             current_world.apply_slow.call(enemy, 0.3, slow_duration)
     shocks.append({"x": current_world.player.x, "y": current_world.player.y, "max_r": radius,

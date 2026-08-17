@@ -5,7 +5,7 @@ extends "res://logic/weapons/weapon_base.gd"
 const RING_HIT_COOLDOWN: float = 0.34
 const RING_RADIUS: float = 42.0
 const CHARGED_BURST_RADIUS: float = 55.0
-const FRENZY_KILL_STEP: int = 50
+const FRENZY_KILL_STEP: int = 80
 
 const CARD: Dictionary = {"id": "ring", "kind": "weapon", "name": "玉环", "maxLevel": 6, "levels": [
     {"damage": 12, "count": 2, "orbitRadius": 56, "orbitSpeed": 2.6},
@@ -13,7 +13,7 @@ const CARD: Dictionary = {"id": "ring", "kind": "weapon", "name": "玉环", "max
     {"damage": 20, "count": 3, "orbitRadius": 78, "orbitSpeed": 3.0, "coldJade": true},
     {"damage": 26, "count": 4, "orbitRadius": 92, "orbitSpeed": 3.3, "coldJade": true, "bloodDrop": true, "expandRadius": 80},
     {"damage": 32, "count": 5, "orbitRadius": 106, "orbitSpeed": 3.6, "coldJade": true, "bloodDrop": true, "expandRadius": 95},
-    {"damage": 40, "count": 6, "orbitRadius": 120, "orbitSpeed": 4.0, "coldJade": true, "bloodDrop": true, "expandRadius": 110, "ultimate": true, "counterDamage": 200, "counterRadius": 300, "counterCd": 16},
+    {"damage": 40, "count": 6, "orbitRadius": 120, "orbitSpeed": 4.0, "coldJade": true, "bloodDrop": true, "expandRadius": 110, "ultimate": true, "counterDamage": 200, "counterRadius": 300, "counterCd": 20},
 ]}
 
 var angle: float = 0.0
@@ -49,7 +49,7 @@ func update(dt: float, current_world) -> void:
         counter_cd = maxf(0.0, counter_cd - dt)
         while current_world.kills >= next_frenzy_kills:
             next_frenzy_kills += FRENZY_KILL_STEP
-            frenzy_timer = 4.0
+            frenzy_timer = 3.0
             drop_t = 0.0
         var hurt_at: float = current_world.player.lastHurtAt
         if hurt_at != last_hurt_seen:
@@ -73,10 +73,11 @@ func update(dt: float, current_world) -> void:
     else:
         expand_factor = 0.0
 
-    var damage: float = s["damage"] * current_world.mods["damageMult"] * (2.0 if frenzy else 1.0) * (2.0 if expanding else 1.0)
+    var damage_mult: float = 2.0 if frenzy else (1.5 if expanding else 1.0)
+    var damage: float = s["damage"] * current_world.mods["damageMult"] * damage_mult
     var positions: Array = ring_positions(current_world)
     var cloak = _sync_ring_synergies(current_world, positions)
-    var burn_dps: float = cloak.stats.get("burnDps", 12.0) if cloak != null else 12.0
+    var burn_dps: float = (cloak.stats.get("burnDps", 12.0) if cloak != null else 12.0) * current_world.mods["damageMult"]
     for enemy in current_world.enemies:
         if enemy.dead or enemy.ringCd > 0.0:
             continue
@@ -89,7 +90,7 @@ func update(dt: float, current_world) -> void:
                     current_world.apply_dot.call(enemy, "burn", burn_dps, 2.0)
                     current_world.record_synergy_trigger.call("ring-cloak-burning", 1)
                 if s.get("coldJade", false) and not enemy.dead:
-                    current_world.apply_slow.call(enemy, 0.35, 1.6)
+                    current_world.apply_slow.call(enemy, 0.25, 1.2)
                 _release_furnace_charge(ring_index, position, damage, current_world)
                 break
     for fx: Dictionary in counter_fx:
@@ -133,15 +134,16 @@ func _release_furnace_charge(index: int, position: Dictionary, damage: float, cu
 
 
 func _counter_nova(current_world, s: Dictionary) -> void:
-    counter_cd = s.get("counterCd", 16.0)
+    counter_cd = s.get("counterCd", 20.0)
     var radius: float = s.get("counterRadius", 240.0)
     var damage: float = s.get("counterDamage", 130.0) * current_world.mods["damageMult"]
     for enemy in current_world.enemies:
         if enemy.dead or UtilsScript.dist2(current_world.player.x, current_world.player.y, enemy.x, enemy.y) > pow(radius + enemy.radius, 2):
             continue
-        current_world.apply_freeze.call(enemy, 2.0)
+        current_world.apply_freeze.call(enemy, 1.5)
         current_world.damage_enemy.call(enemy, damage, {"sourceWeaponId": "ring", "sourceAction": "counter-nova"})
-    counter_fx.append({"t": 0.0, "dur": 0.6, "r": radius})
+    counter_fx.append({"x": current_world.player.x, "y": current_world.player.y,
+        "t": 0.0, "dur": 0.6, "r": radius})
 
 
 # M4 丹炉联动稳定 hook：没有联动调用时完全无副作用。

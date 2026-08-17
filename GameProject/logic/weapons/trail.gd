@@ -17,9 +17,9 @@ const CARD: Dictionary = {"id": "trail", "kind": "weapon", "name": "丹火", "ma
     {"damage": 7, "radius": 40, "life": 3.5, "dropInterval": 0.22},
     {"damage": 10, "radius": 44, "life": 4.5, "dropInterval": 0.22, "burn": true, "burnDps": 12},
     {"damage": 14, "radius": 48, "life": 5.5, "dropInterval": 0.18, "burn": true, "burnDps": 14},
-    {"damage": 16, "radius": 52, "life": 7.0, "dropInterval": 0.18, "burn": true, "burnDps": 14, "furnace": true, "furnaceLife": 6},
-    {"damage": 21, "radius": 57, "life": 8.5, "dropInterval": 0.18, "burn": true, "burnDps": 14, "furnace": true, "enhancedFurnace": true, "furnaceLife": 7.5},
-    {"damage": 26, "radius": 62, "life": 10.0, "dropInterval": 0.18, "burn": true, "burnDps": 14, "furnace": true, "enhancedFurnace": true, "nineTurn": true, "furnaceLife": 9, "hotZoneLife": 5},
+    {"damage": 16, "radius": 52, "life": 7.0, "dropInterval": 0.18, "burn": true, "burnDps": 14, "furnace": true, "furnaceLife": 6, "furnaceAreaScale": 1.0, "furnacePull": 25.0, "furnaceTickMult": 1.25, "furnaceOpenMult": 6.0},
+    {"damage": 21, "radius": 57, "life": 8.5, "dropInterval": 0.18, "burn": true, "burnDps": 14, "furnace": true, "enhancedFurnace": true, "furnaceLife": 7.5, "furnaceAreaScale": 1.15, "furnacePull": 35.0, "furnaceTickMult": 1.5, "furnaceOpenMult": 7.0},
+    {"damage": 26, "radius": 62, "life": 10.0, "dropInterval": 0.18, "burn": true, "burnDps": 14, "furnace": true, "enhancedFurnace": true, "nineTurn": true, "furnaceLife": 9, "hotZoneLife": 5, "furnaceAreaScale": 1.15, "furnacePull": 35.0, "furnaceTickMult": 1.5, "furnaceOpenMult": 7.0},
 ]}
 
 var path_points: Array = []
@@ -49,7 +49,7 @@ func update(dt: float, current_world) -> void:
     var trail: Dictionary = {
         "x": current_world.player.x, "y": current_world.player.y, "radius": s["radius"],
         "damage": s["damage"] * current_world.mods["damageMult"], "life": s["life"], "maxLife": s["life"],
-        "tickTimer": 0.0, "tick": 0.4, "burnDps": s.get("burnDps", 0.0), "dead": false,
+        "tickTimer": 0.0, "tick": 0.4, "burnDps": s.get("burnDps", 0.0) * current_world.mods["damageMult"], "dead": false,
         "damageOptions": {"sourceWeaponId": "trail", "sourceAction": "trail"},
     }
     current_world.trails.append(trail)
@@ -82,19 +82,24 @@ func _try_create_furnace(current_world, s: Dictionary) -> void:
             continue
         for j in range(i, path_points.size()):
             path_points[j]["trail"]["dead"] = true
-        path_points.clear()
+        path_points.resize(i)
         loop_cooldown = LOOP_COOLDOWN
         _create_furnace(points, area, current_world, s)
         return
 
 
-func _create_furnace(points: Array, area: float, current_world, s: Dictionary) -> void:
+func _create_furnace(points: Array, _area: float, current_world, s: Dictionary) -> void:
     var life: float = s.get("furnaceLife", 4.5)
+    var center: Dictionary = _polygon_center(points)
+    var zone_points: Array = _scaled_polygon(points, center, s.get("furnaceAreaScale", 1.0))
     var zone: Dictionary = {
-        "points": points, "center": _polygon_center(points), "area": area, "life": life, "maxLife": life,
+        "points": zone_points, "center": center, "area": _polygon_area(zone_points), "life": life, "maxLife": life,
         "tickTimer": FURNACE_TICK, "damage": s["damage"] * current_world.mods["damageMult"],
-        "pullSpeed": 25.0, "fuel": 0.0, "opens": 0, "maxOpens": 2 if s.get("enhancedFurnace", false) else 1,
-        "openCooldown": 0.0, "eliteFuelAt": {}, "dead": false,
+        "pullSpeed": s.get("furnacePull", 25.0), "tickDamageMult": s.get("furnaceTickMult", 1.25),
+        "openDamageMult": s.get("furnaceOpenMult", 6.0), "fuel": 0.0, "opens": 0,
+        "maxOpens": 2 if s.get("enhancedFurnace", false) else 1,
+        "openCooldown": 0.0, "openFx": 0.0, "openFxMax": 0.45, "openNineTurn": false,
+        "eliteFuelAt": {}, "dead": false,
     }
     furnaces.append(zone)
     while furnaces.size() > FURNACE_CAP:
@@ -107,6 +112,7 @@ func _update_furnaces(dt: float, current_world, s: Dictionary) -> void:
     for zone: Dictionary in furnaces:
         zone["life"] -= dt
         zone["openCooldown"] = maxf(0.0, zone["openCooldown"] - dt)
+        zone["openFx"] = maxf(0.0, zone.get("openFx", 0.0) - dt)
         if zone["life"] <= 0.0:
             zone["dead"] = true
             continue
@@ -142,7 +148,7 @@ func _update_furnaces(dt: float, current_world, s: Dictionary) -> void:
         zone["tickTimer"] -= dt
         if zone["tickTimer"] <= 0.0:
             zone["tickTimer"] += FURNACE_TICK
-            _damage_zone(zone, current_world, zone["damage"] * 1.25, true, "furnace-tick")
+            _damage_zone(zone, current_world, zone["damage"] * zone.get("tickDamageMult", 1.25), true, "furnace-tick")
             _try_open(zone, current_world, s)
     furnaces = furnaces.filter(func(zone: Dictionary) -> bool: return not zone["dead"])
 
@@ -170,8 +176,10 @@ func _try_open(zone: Dictionary, current_world, s: Dictionary) -> void:
     zone["fuel"] -= FURNACE_FUEL
     zone["opens"] += 1
     zone["openCooldown"] = 0.75
-    _damage_zone(zone, current_world, zone["damage"] * 6.0, false, "furnace-open")
-    zone["life"] = minf(8.0, zone["life"] + 2.0)
+    zone["openFx"] = zone.get("openFxMax", 0.45)
+    zone["openNineTurn"] = s.get("nineTurn", false)
+    _damage_zone(zone, current_world, zone["damage"] * zone.get("openDamageMult", 6.0), false, "furnace-open")
+    zone["life"] += 2.0
     zone["maxLife"] = maxf(zone["maxLife"], zone["life"])
     if s.get("nineTurn", false):
         hot_zones.append({
@@ -316,10 +324,20 @@ static func update_trail(trail: Dictionary, current_world, dt: float) -> void:
         for enemy in current_world.enemies:
             if enemy.dead or UtilsScript.dist2(trail["x"], trail["y"], enemy.x, enemy.y) > pow(trail["radius"] + enemy.radius, 2):
                 continue
-            # JS 真值：丹火只挂 blaze；不额外叠加 cloak 的 burn。
+            # 丹火与披风共用 burn，同类 DoT 只刷新持续时间。
             if trail["burnDps"] > 0.0:
-                current_world.apply_dot.call(enemy, "blaze", trail["burnDps"], 2.0)
+                current_world.apply_dot.call(enemy, "burn", trail["burnDps"], 2.0)
             current_world.damage_enemy.call(enemy, trail["damage"], trail["damageOptions"])
+
+
+static func _scaled_polygon(points: Array, center: Dictionary, scale: float) -> Array:
+    if is_equal_approx(scale, 1.0):
+        return points.duplicate(true)
+    var scaled: Array = []
+    for point: Dictionary in points:
+        scaled.append({"x": center["x"] + (point["x"] - center["x"]) * scale,
+            "y": center["y"] + (point["y"] - center["y"]) * scale})
+    return scaled
 
 
 static func _polygon_area(points: Array) -> float:

@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
- <path d="M33 7 C36 18 50 22 50 38 C50 50 42 57 31 57 C19 57 11 49 12 38 C13 29 20 24 22 15 C27 18 30 22 31 27 C35 22 36 15 33 7Z" fill="#43c59f" stroke="#173c3d" stroke-width="5" stroke-linejoin="round"/>
- <path d="M31 31 C36 36 38 40 36 45 C34 49 28 50 25 46 C22 42 24 37 31 31Z" fill="#baf4ce"/>
- <path d="M23 27 C25 23 27 21 28 17" fill="none" stroke="#d7ffe8" stroke-width="3" stroke-linecap="round" opacity=".75"/>
+ <path d="M34 7C36 18 51 23 50 39 49 51 41 58 30 57 18 56 11 48 13 37 14 28 21 24 23 15 28 18 31 22 31 28 36 23 38 15 34 7Z" fill="#071521" opacity=".58" transform="translate(0 2)"/>
+ <path d="M34 5C36 16 51 21 50 37 49 49 41 56 30 55 18 54 11 46 13 35 14 26 21 22 23 13 28 16 31 20 31 26 36 21 38 13 34 5Z" fill="#2a9079" stroke="#4b2b24" stroke-width="2.8" stroke-linejoin="round"/>
+ <path d="M32 18C32 27 42 31 41 40 40 48 34 51 28 49 21 47 20 40 24 34 27 30 29 25 32 18Z" fill="#79d9b7" stroke="#155a52" stroke-width="1.8"/>
+ <path d="M30 32C35 35 36 40 33 44 30 47 26 44 26 41 26 38 28 35 30 32Z" fill="#fff0c4"/>
+ <path d="M21 29C23 24 26 22 27 18" fill="none" stroke="#e5fff0" stroke-width="2.2" stroke-linecap="round" opacity=".86"/>
 </svg>

@@ -4,6 +4,9 @@ extends "res://logic/weapons/weapon_base.gd"
 const ProjectileScript: GDScript = preload("res://logic/projectile.gd")
 const BaseScript: GDScript = preload("res://logic/weapons/weapon_base.gd")
 
+const CHAIN_RADIUS: float = 160.0
+const THUNDER_AOE_RADIUS: float = 80.0
+
 const CARD: Dictionary = {"id": "talisman", "kind": "weapon", "name": "雷符咒", "maxLevel": 6, "levels": [
     {"damage": 12, "interval": 1.0, "speed": 460, "range": 520},
     {"damage": 15, "interval": 0.95, "speed": 460, "range": 520, "thunder": true},
@@ -83,11 +86,13 @@ func _on_projectile_hit(target, projectile) -> void:
 
 func _strike_thunder(target, damage: float, current_world) -> void:
     if stats.get("thunderAoE", false):
-        BaseScript.hit_enemies_in_radius(current_world, target.x, target.y, 95.0, damage, Callable(),
+        BaseScript.hit_enemies_in_radius(current_world, target.x, target.y, THUNDER_AOE_RADIUS, damage, Callable(),
             {"sourceWeaponId": "talisman", "sourceAction": "thunder", "sourceTags": ["lightning", "thunder", "area"]})
     elif not target.dead:
         current_world.damage_enemy.call(target, damage, {"sourceWeaponId": "talisman", "sourceAction": "thunder", "sourceTags": ["lightning", "thunder"]})
-    bolt_fx.append({"x": target.x, "y": target.y, "ttl": 0.18, "aoe": stats.get("thunderAoE", false)})
+    var aoe: bool = stats.get("thunderAoE", false)
+    bolt_fx.append({"x": target.x, "y": target.y, "ttl": 0.18, "aoe": aoe,
+        "radius": THUNDER_AOE_RADIUS if aoe else 0.0})
 
 
 func _chain_lightning(origin, damage: float, current_world) -> void:
@@ -130,7 +135,7 @@ func _nearest_chain_enemy(current, enemies: Array, hit_set: Dictionary):
     var cx: float = current["x"] if current is Dictionary else current.x
     var cy: float = current["y"] if current is Dictionary else current.y
     var best = null
-    var best_d2: float = 180.0 * 180.0
+    var best_d2: float = CHAIN_RADIUS * CHAIN_RADIUS
     for enemy in enemies:
         if enemy.dead or hit_set.has(enemy.get_instance_id()):
             continue
@@ -151,13 +156,13 @@ func _best_relay(current, enemies: Array, hit_set: Dictionary, rings: Array, cor
             var px: float = position["x"] if position is Dictionary else position.x
             var py: float = position["y"] if position is Dictionary else position.y
             var entry: float = UtilsScript.dist2(cx, cy, px, py)
-            if entry > 180.0 * 180.0:
+            if entry > CHAIN_RADIUS * CHAIN_RADIUS:
                 continue
             for enemy in enemies:
                 if enemy.dead or hit_set.has(enemy.get_instance_id()):
                     continue
                 var exit: float = UtilsScript.dist2(px, py, enemy.x, enemy.y)
-                if exit <= 180.0 * 180.0 and sqrt(entry) + sqrt(exit) < best_score:
+                if exit <= CHAIN_RADIUS * CHAIN_RADIUS and sqrt(entry) + sqrt(exit) < best_score:
                     best_score = sqrt(entry) + sqrt(exit)
                     result = {"type": group["type"], "position": {"x": px, "y": py}}
     return result

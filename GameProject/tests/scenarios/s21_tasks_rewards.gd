@@ -28,10 +28,10 @@ func _guard_and_scheduling(runner) -> void:
     director.update(0.1, game)
     runner.check(director.current == null, "[21] non-task waves do not schedule")
     game.waveDirector.wave = 3
-    game.waveDirector.waveTimer = 56.0
+    game.waveDirector.waveTimer = 26.0
     director.update(0.1, game)
     runner.check(director.current == null, "[21] task waits for trigger")
-    game.waveDirector.waveTimer = 55.0
+    game.waveDirector.waveTimer = 25.0
     director.update(0.1, game)
     runner.check(director.current != null and director.current["state"] == "offered" and director.current["type"] == "guard", "[21] wave three triggers guard at 35 seconds")
     var beacon: Dictionary = director.current["beacon"]
@@ -50,7 +50,7 @@ func _guard_and_scheduling(runner) -> void:
 
     var expired_game = _new_task_game(3)
     var expired = TasksScript.new({"rng": func(): return 0.0})
-    expired_game.waveDirector.waveTimer = 55.0
+    expired_game.waveDirector.waveTimer = 25.0
     expired.update(0.1, expired_game)
     expired.update(Config.CONFIG["tasks"]["offerDuration"] + 0.1, expired_game)
     runner.check(expired.current["outcome"] == "expired", "[21] ignored beacon expires")
@@ -58,7 +58,7 @@ func _guard_and_scheduling(runner) -> void:
     director.update(0.1, game)
     runner.check(director.current == null, "[21] completed wave creates one offer")
     game.waveDirector.wave = 8
-    game.waveDirector.waveTimer = 55.0
+    game.waveDirector.waveTimer = 25.0
     director.update(0.1, game)
     runner.check(director.current != null and director.current["type"] == "delivery", "[21] task type does not repeat")
     game.release_runtime_refs(); expired_game.release_runtime_refs()
@@ -68,7 +68,7 @@ func _delivery_and_bounty(runner) -> void:
     var delivery_game = _new_task_game(3)
     var delivery_source := Sequence.new([0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     var delivery = TasksScript.new({"rng": Callable(delivery_source, "next_value")})
-    delivery_game.waveDirector.waveTimer = 55.0
+    delivery_game.waveDirector.waveTimer = 25.0
     delivery.update(0.1, delivery_game)
     var beacon: Dictionary = delivery.current["beacon"]
     delivery_game.player.x = beacon["x"]; delivery_game.player.y = beacon["y"]
@@ -89,7 +89,7 @@ func _delivery_and_bounty(runner) -> void:
     var bounty_game = _new_task_game(3)
     var bounty_source := Sequence.new([0.0, 0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     var bounty = TasksScript.new({"rng": Callable(bounty_source, "next_value")})
-    bounty_game.waveDirector.waveTimer = 55.0
+    bounty_game.waveDirector.waveTimer = 25.0
     bounty.update(0.1, bounty_game)
     beacon = bounty.current["beacon"]
     bounty_game.player.x = beacon["x"]; bounty_game.player.y = beacon["y"]

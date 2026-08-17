@@ -23,6 +23,10 @@ const ShopScript: GDScript = preload("res://logic/meta/shop.gd")
 const MetaItemsScript: GDScript = preload("res://logic/meta/items.gd")
 const LevelGeometryScript: GDScript = preload("res://logic/level_geometry.gd")
 const DebugRuntimeScript: GDScript = preload("res://logic/debug_runtime.gd")
+const WEAPON_EVOLUTION_COLORS: Dictionary = {
+    "sword": "#9fe8ff", "cloak": "#ff6b32", "talisman": "#ffe45c",
+    "trail": "#ff8a32", "ring": "#8fffd0", "staff": "#d89cff",
+}
 
 var state: String
 var debug
@@ -65,11 +69,13 @@ var save: Dictionary
 var bossesDefeated: int
 var lastRunSummary = null
 var lastDeathLoss = null
+var lastDeathReward: int = 0
 var choiceOrigin: String = "opening"
 var hitShake: float = 0.0
 var _next_kill_id: int = 1
 var _final_settled: bool = false
 var _death_settled: bool = false
+var _synergy_activation_serial_seen: int = 0
 
 
 func _init() -> void:
@@ -100,8 +106,10 @@ func reset() -> void:
     rareMessage = null
     lastRunSummary = null
     lastDeathLoss = null
+    lastDeathReward = 0
     _final_settled = false
     _death_settled = false
+    _synergy_activation_serial_seen = 0
     player = PlayerScript.new(0.0, 0.0)
     camera = CameraScript.new(0.0, 0.0)
     enemies = []
@@ -177,6 +185,9 @@ func step(dt: float, view_w: float = 1280.0, view_h: float = 720.0) -> void:
     _handle_weapon_build_click()
     elapsed += dt
     synergies.update(dt)
+    if synergies.activation_serial > _synergy_activation_serial_seen:
+        _synergy_activation_serial_seen = synergies.activation_serial
+        hitShake = maxf(hitShake, 0.45)
     var temporary_speed_mult: float = 1.0
     for source in moveSpeedBonuses.keys():
         if moveSpeedBonuses[source]["until"] <= elapsed:
@@ -280,7 +291,9 @@ func _apply_offer(offer: Dictionary) -> void:
     elif offer["type"] == "upgrade":
         for weapon in weapons:
             if weapon.card["id"] == card["id"]:
+                var previous_level: int = weapon.level
                 weapon.level = mini(weapon.level + 1, weapon.card["maxLevel"])
+                on_weapon_level_changed(weapon, previous_level)
                 break
         synergies.refresh(weapons, elapsed)
     else:
@@ -394,7 +407,7 @@ func _kill_enemy(enemy, options: Dictionary = {}) -> void:
         pickups.append(RareItemsScript.create_rare_pickup(enemy.x - 14.0, enemy.y))
         pickups.append(RareItemsScript.create_rare_pickup(enemy.x + 14.0, enemy.y))
     killLog.append({"id": _next_kill_id, "x": enemy.x, "y": enemy.y,
-        "burned": StatusScript.has_dot(enemy, "burn"), "blazed": StatusScript.has_dot(enemy, "blaze"),
+        "burned": StatusScript.has_dot(enemy, "burn"),
         "noSummon": options.get("noSummon", false), "noSynergy": options.get("noSynergy", false),
         "sourceWeaponId": options.get("sourceWeaponId"), "sourceAction": options.get("sourceAction"),
         "sourceTags": options.get("sourceTags", []), "synergyId": options.get("synergyId")})
@@ -480,7 +493,7 @@ func _update_pickups(_dt: float) -> void:
         if pickup.get("kind") == "rare":
             var item: Dictionary = RareItemsScript.apply_rare_item(self, pickup)
             if not item.is_empty():
-                rareMessage = {"item": item, "text": item["name"], "ttl": 3.5}
+                rareMessage = {"item": item, "text": item["name"], "detail": item["description"], "color": item["color"], "ttl": 3.5}
         elif pickup.get("type") == "hp" or pickup.get("kind") == "hp":
             heal_player(Config.CONFIG["pickups"]["hpValue"] * pickup.get("amount", 1))
 
@@ -543,13 +556,15 @@ func _world() -> Dictionary:
 
 
 func _handle_weapon_build_click() -> bool:
-    if not input.mouse_clicked():
-        return false
-    var rects: Array[Dictionary] = UiLayoutScript.get_weapon_slot_rects(viewport_size.x, viewport_size.y)
-    for i in mini(rects.size(), weapons.size()):
-        var rect: Dictionary = rects[i]
-        if input.mouse_x >= rect["x"] and input.mouse_x <= rect["x"] + rect["w"] and input.mouse_y >= rect["y"] and input.mouse_y <= rect["y"] + rect["h"]:
+    for i in mini(6, weapons.size()):
+        if input.was_pressed("Digit%d" % (i + 1)):
             return synergies.toggle_build_weapon(weapons[i].card["id"], weapons, elapsed)
+    if input.mouse_clicked():
+        var rects: Array[Dictionary] = UiLayoutScript.get_weapon_slot_rects(viewport_size.x, viewport_size.y)
+        for i in mini(rects.size(), weapons.size()):
+            var rect: Dictionary = rects[i]
+            if input.mouse_x >= rect["x"] and input.mouse_x <= rect["x"] + rect["w"] and input.mouse_y >= rect["y"] and input.mouse_y <= rect["y"] + rect["h"]:
+                return synergies.toggle_build_weapon(weapons[i].card["id"], weapons, elapsed)
     return false
 
 
@@ -701,8 +716,27 @@ func _apply_death_loss() -> void:
         return
     _death_settled = true
     lastDeathLoss = tempBackpack.duplicate(true)
+    lastDeathReward = roundi(waveDirector.wave * Config.CONFIG["meta"]["waveRewardMult"] * Config.CONFIG["meta"]["deathRewardMult"])
+    save["darkCrystals"] += lastDeathReward
     tempBackpack = {"shard": 0, "essence": 0, "soulCrystal": 0}
     MetaSave.persist_save(save)
+
+
+func on_weapon_level_changed(weapon, previous_level: int) -> void:
+    var evolution_level: int = 6 if previous_level < 6 and weapon.level >= 6 else (4 if previous_level < 4 and weapon.level >= 4 else 0)
+    if evolution_level == 0:
+        return
+    var id: String = weapon.card["id"]
+    var color: String = WEAPON_EVOLUTION_COLORS.get(id, "#fff176")
+    var ultimate: bool = evolution_level == 6
+    var duration: float = 1.8 if ultimate else 1.25
+    effects.append({"type": "weaponEvolution", "weaponId": id, "evolutionLevel": evolution_level,
+        "x": player.x, "y": player.y, "radius": 280.0 if ultimate else 190.0,
+        "color": color, "ttl": duration, "maxTtl": duration})
+    hitShake = maxf(hitShake, 0.48 if ultimate else 0.32)
+    rareMessage = {"text": ("终极蜕变" if ultimate else "法器觉醒") + " · " + weapon.card["name"],
+        "detail": CardsScript.weapon_level_benefit(id, evolution_level), "color": color,
+        "ttl": 3.8 if ultimate else 3.0}
 
 
 func has_synergy(id: String) -> bool:
@@ -717,4 +751,6 @@ func get_weapon(id: String):
 
 
 func record_synergy_trigger(id: String, amount: float = 1.0) -> void:
-    synergies.record_trigger(id, amount)
+    if synergies.record_trigger(id, amount):
+        effects.append({"type": "synergyTrigger", "synergyId": id, "x": player.x, "y": player.y,
+            "radius": 82.0, "ttl": 0.5, "maxTtl": 0.5})

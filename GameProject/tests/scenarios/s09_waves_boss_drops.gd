@@ -11,6 +11,8 @@ func run(runner) -> void:
     var elite = Factory.create_enemy_by_type("shield", 0, 0, 0, 1)
     run.enemies.append(elite); run.damage_enemy(elite, elite.maxHp * 10.0)
     runner.check(run.pickups.size() == 1 and run.pickups[0]["kind"] == "rare", "[9] elite rare drop")
+    run._update_pickups(0.0)
+    runner.check(run.pickups[0]["dead"] and run.rareMessage != null and not run.rareMessage.get("detail", "").is_empty(), "[9] rare pickup explains its effect")
     var boss = Factory.create_enemy_by_type("boss", 60, 0, 0, 5)
     run.enemies.append(boss); boss.attackCooldown = 0; boss.update(run.player, 0.01, run._world()); boss.update(run.player, 0.86, run._world())
     runner.check(run.hostileProjectiles.size() == 12, "[9] boss radial burst")

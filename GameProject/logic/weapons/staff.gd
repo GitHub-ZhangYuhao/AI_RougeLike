@@ -19,9 +19,9 @@ const CARD: Dictionary = {"id": "staff", "kind": "weapon", "name": "死灵法杖
     {"damage": 7, "count": 1, "life": 6, "cd": 4, "speed": 170, "leash": 260},
     {"damage": 9, "count": 2, "life": 6.8, "cd": 3.6, "speed": 180, "leash": 260, "poison": true},
     {"damage": 12, "count": 2, "life": 7.5, "cd": 3.2, "speed": 190, "leash": 260, "poison": true},
-    {"damage": 14, "count": 2, "life": 8.2, "cd": 2.8, "speed": 200, "leash": 260, "poison": true, "blast": true, "blastRadius": 85},
-    {"damage": 17, "count": 3, "life": 9, "cd": 2.5, "speed": 210, "leash": 260, "poison": true, "blast": true, "blastRadius": 125},
-    {"damage": 20, "count": 3, "life": 9.8, "cd": 2.2, "speed": 220, "leash": 280, "poison": true, "blast": true, "blastRadius": 125, "nightParade": true},
+    {"damage": 14, "count": 2, "life": 8.2, "cd": 2.8, "speed": 200, "leash": 260, "poison": true, "blast": true, "blastRadius": 70},
+    {"damage": 17, "count": 3, "life": 9, "cd": 2.5, "speed": 210, "leash": 260, "poison": true, "blast": true, "blastRadius": 105},
+    {"damage": 20, "count": 3, "life": 9.8, "cd": 2.2, "speed": 220, "leash": 280, "poison": true, "blast": true, "blastRadius": 105, "nightParade": true},
 ]}
 
 var slots: Array = []
@@ -177,10 +177,10 @@ func _update_summon(summon: Dictionary, current_world, s: Dictionary, dt: float)
         _share_guardian_slow(summon, target, current_world)
         if s.get("poison", false):
             if not target.dead:
-                current_world.apply_dot.call(target, "poison", POISON_DPS, POISON_DURATION)
+                current_world.apply_dot.call(target, "poison", POISON_DPS * current_world.mods["damageMult"], POISON_DURATION)
             for enemy in current_world.enemies:
                 if enemy != target and not enemy.dead and UtilsScript.dist2(target.x, target.y, enemy.x, enemy.y) <= pow(POISON_RADIUS + enemy.radius, 2):
-                    current_world.apply_dot.call(enemy, "poison", POISON_DPS, POISON_DURATION)
+                    current_world.apply_dot.call(enemy, "poison", POISON_DPS * current_world.mods["damageMult"], POISON_DURATION)
 
 
 func _retire_summon(summon: Dictionary, s: Dictionary, current_world, should_detonate: bool) -> bool:
@@ -199,7 +199,7 @@ func detonate(summon: Dictionary, s: Dictionary, current_world) -> void:
     var radius: float = s.get("blastRadius", 70.0)
     BaseScript.hit_enemies_in_radius(current_world, summon["x"], summon["y"], radius,
         summon["damage"] * 2.0, Callable(), {"sourceWeaponId": "staff", "sourceAction": "summon", "noSummon": true})
-    blasts.append({"x": summon["x"], "y": summon["y"], "maxR": radius, "t": 0.35})
+    blasts.append({"x": summon["x"], "y": summon["y"], "maxR": radius, "t": 0.35, "maxT": 0.35})
 
 
 func spawn_corpse(x: float, y: float, s: Dictionary, current_world) -> void:
@@ -278,7 +278,7 @@ func _share_guardian_slow(summon: Dictionary, target, current_world) -> void:
     var ring = current_world.get_weapon.call("ring")
     if ring == null or not ring.stats.get("coldJade", false) or target.dead:
         return
-    current_world.apply_slow.call(target, 0.35, 1.6)
+    current_world.apply_slow.call(target, 0.25, 1.2)
     summon["guardianPulseTimer"] = 0.24
     current_world.record_synergy_trigger.call("ring-staff-guardian", 1)
 

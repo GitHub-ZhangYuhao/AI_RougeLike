@@ -76,8 +76,9 @@
 
 **`_onDeath()`**：
 1. `lastDeathLoss = {...tempBackpack}`（记录本局损失，用于死亡界面展示）。
-2. `tempBackpack` 清零（死亡 = 临时背包全损；仓库不受影响）。
-3. 更新 `bestWave`；`persistSave()`；`state = 'dead'`。
+2. 按 `round(wave × waveRewardMult × deathRewardMult)` 结算死亡保底暗晶，当前 `deathRewardMult = 0.35`。
+3. `tempBackpack` 清零（死亡 = 临时背包全损；仓库不受影响）。
+4. 更新 `bestWave`；`persistSave()`；`state = 'dead'`。
 
 **`reset()`**：清空一局内的全部运行时状态（玩家、敌人、武器、attrStacks、宝石、拾取、任务、联动等）；`metaStacks = {...save.metaLevels}`（局外属性每级等效 1 层属性卡）。DebugRuntime 独立于 reset 存活，并在 `onGameReset` 时重新应用其设置。
 
@@ -211,10 +212,10 @@ player.speed = 230 × mods.moveSpeedMult × playerMoveSpeedBonusMult()
 ### 4.3 宝石磁吸半径
 
 ```
-gemMagnetRadius = (180 + mods.magnetRadiusBonus + rareBonuses.magnetRadiusBonus) × debug.player.pickupRangeMult
+gemMagnetRadius = (240 + mods.magnetRadiusBonus + rareBonuses.magnetRadiusBonus) × debug.player.pickupRangeMult
 ```
 
-（180 = `CONFIG.gems.magnetRadius`；注意 rareBonuses.magnetRadiusBonus 不并入 mods，而是在此式直接相加。）
+（240 = `CONFIG.gems.magnetRadius`；注意 rareBonuses.magnetRadiusBonus 不并入 mods，而是在此式直接相加。）
 
 ---
 ## 5. 伤害管线与碰撞
@@ -237,7 +238,7 @@ opts 字段：`sourceWeaponId, sourceAction, sourceTags, synergyId, noSynergy, n
 2. 掉落 1 颗宝石（`_dropGem`，见 §9）。
 3. 精英（rank 'elite'）→ 掉 1 个稀有拾取物（除非敌人带 `suppressRareDrop` 标记，如悬赏目标）。
 4. Boss（rank 'boss'）→ `bossesDefeated++`；`stats.totalBossKills++`；`persistSave()`；在 (x−14, y) 与 (x+14, y) 各掉 1 个稀有拾取物。
-5. killLog 追加一条：`{id, x, y, burned: hasDot(e,'burn'), blazed: hasDot(e,'blaze'), sourceWeaponId, sourceAction, synergyId, noSynergy, noSummon}`；上限 256，超出移除最旧。
+5. killLog 追加一条：`{id, x, y, burned: hasDot(e,'burn'), sourceWeaponId, sourceAction, synergyId, noSynergy, noSummon}`；上限 256，超出移除最旧。
 6. `taskDirector.onEnemyKilled(e)`（悬赏判定）。
 7. 尸体污渍：ttl 3 秒；上限 80，超出移除最旧。
 
@@ -257,8 +258,8 @@ opts 字段：`sourceWeaponId, sourceAction, sourceTags, synergyId, noSynergy, n
 
 ### 6.1 DoT
 
-- 类型集合 `DOT_TYPES = ['burn', 'blaze', 'bleed', 'poison']`，**互相独立**（burn 与 blaze 是两种不同效果，killLog 分别记录 burned/blazed）。
-- `applyDot(e, type, dps, duration)`：**不叠层** —— `dps = max(现有, 新值)`，`timer = max(现有, 新值)`。
+- 类型集合 `DOT_TYPES = ['burn', 'bleed', 'poison']`，分别表示火系灼烧、流血与尸毒；披风和丹火共用 `burn`。兼容旧调用时，`blaze` 会先规范化为 `burn`。
+- `applyDot(e, type, dps, duration)`：**不叠层** —— `dps = max(现有, 新值)`，持续时间直接刷新为本次 `duration`。
 - `hasDot(e, type)`：`timer > 0`。
 
 ### 6.2 减速与冻结
@@ -393,7 +394,7 @@ elite/boss 档享受任务增伤（§5.1 步骤 2）；elite 死亡掉稀有拾�
 
 ### 8.2 WaveDirector（systems/waves.js）
 
-初始：`wave = 1, phase = 'wave', waveTimer = 90, bannerTimer = 2.4`。
+初始：`wave = 1, phase = 'wave', waveTimer = 60, bannerTimer = 2.4`。
 
 **配额（quota）**：`quota = round(30 × quotaMult)`
 - 普通波：`quotaMult = min(14, 1 + (wave − 1) × 1.2)`。
@@ -429,7 +430,7 @@ elite/boss 档享受任务增伤（§5.1 步骤 2）；elite 死亡掉稀有拾�
 - 生成：散射角 `rand × 2π`，初速 `20 + rand × 35`。
 - **磁吸为锁定式**：`dist² ≤ magnetRadius²`（§4.3）时置 `magnetized = true`，并记录 `magnetSpeed = max(300, 当前速度)`；之后 `speed = min(680, speed + 900 × dt)`，速度方向持续指向玩家。
 - 未磁吸时摩擦：`speed ×= max(0, 1 − 5 × dt)`。
-- 拾取：`dist² ≤ 22²`（pickupRadius，× debug.player.pickupRangeMult）→ `gainXp(value)`。
+- 拾取：`dist² ≤ 30²`（pickupRadius，× debug.player.pickupRangeMult）→ `gainXp(value)`。
 - 总数上限 300：超出时**自动收取最旧的一颗**（走 gainXp）。
 
 ### 9.2 经验与升级
@@ -451,11 +452,11 @@ gainXp(v):
 
 ### 10.1 生命拾取
 
-- 恢复 15（hpValue）；拾取半径 22；hp 类拾取同屏上限 5（maxAlive）。
+- 恢复 15（hpValue）；拾取半径 30；hp 类拾取同屏上限 5（maxAlive）。
 
 ### 10.2 稀有拾取物（rare-items.js）
 
-- 拾取半径 30；拾取 → `applyRareItem` + 中央提示 rareMessage（ttl 3.5s）。
+- 拾取半径 42；靠近时显示名称与效果；拾取 → `applyRareItem` + 中央名称/效果提示 rareMessage（ttl 3.5s）。
 - 5 种，**等概率**（`floor(rand × 5)`）：
 
 | id | 效果 |
@@ -506,9 +507,10 @@ gainXp(v):
 
 - 键盘：Digit1–9 / Numpad1–9 优先于鼠标。
 - 卡牌矩形 `getCardRects(viewW, viewH, count)`：
-  - ≤3 张：210 × 292，间距 24，`y = (viewH − 292)/2 + 8`，整行水平居中。
-  - >3 张：两行 200 × 252，间距 24，第二行水平居中。
-- 武器槽矩形 `getWeaponSlotRects`：pad 14，槽 46 × 52，间距 8，`y = 8 + 30 + 14 + 32 = 84`；点击切换联动作战选择（`toggleBuildWeapon`，见 §13.3）。
+  - ≤3 张：290 × 430，间距 45，`y = max(176, (viewH − 430)/2 + 35)`，整行水平居中。
+  - >3 张：两行 205 × 285，横向间距 24、纵向间距 12，第二行水平居中。
+- 武器升级与任务武器强化 offer 必须携带 `benefit`，显示当前等级提升后的具体数值变化与新机制；开局武器卡显示 Lv1 核心效果。
+- 武器槽矩形 `getWeaponSlotRects`：槽 70 × 62，间距 10，底部居中；鼠标点击或数字键切换主联动作战选择（`toggleBuildWeapon`，见 §13.3）。
 
 ### 11.7 属性卡（6 张，叠层 ≤5）
 
@@ -531,22 +533,22 @@ n = 局内层数 + 局外等级（§4.1），apply 效果：
 - 每把武器状态 `{id, level}`；每帧 `w.update(dt, world)`（update 第 18 步）。
 - 注入的 `world` 上下文（game._world()）字段：
   `player, enemies, projectiles, hostileProjectiles, trails, summons, effects, weapons, synergies, mods, elapsed, kills, killLog, hasSynergy(id), getWeapon(id), recordSynergyTrigger, damageEnemy, hurtPlayer, spawnHostileProjectile, spawnEnemyBlast, healPlayer, setPlayerMoveSpeedBonus, dropPickup, applyDot, applySlow, applyFreeze, hasDot`。
-- 所有武器 maxLevel = 6；等级数值以 CARD.levels 为唯一真值（下表逐字抄录）。
+- 所有武器 maxLevel = 6；等级数值以 CARD.levels 为唯一真值（下表逐字抄录）。`mods.damageMult` 作用于直接伤害及武器施加的 burn / bleed / poison DoT。
 
 ### 12.1 sword 道剑
 
 | Lv | damage | 其他关键字段 |
 | --- | --- | --- |
 | 1 | 16 | 近战：meleeRange 125，interval 1.15，arc 120° |
-| 2 | 20 | 转弹道：range 520，speed 500，interval 1.08，穿透 ∞ |
-| 3 | 26 | range 550，speed 560，interval 1.00 |
-| 4 | 32 | range 570，speed 580，interval 0.94；drawSlash，ringRadius 350，ringBleedDps 10 |
-| 5 | 40 | range 600，speed 620，interval 0.87；drawSlash，ringRadius 380，ringBleedDps 11 |
-| 6 | 48 | range 640，speed 660，interval 0.80；drawSlash，ringRadius 344，ringBleedDps 12；swordIntent，flyMax 10，flyInterval 1.2，flyRange 260，flyChain 6，flyChainRange 240 |
+| 2 | 20 | 转弹道：range 520，speed 500，interval 1.08，maxHits 2（命中首目标后再穿透 1 个） |
+| 3 | 26 | range 550，speed 560，interval 1.00，maxHits 2 |
+| 4 | 32 | range 570，speed 580，interval 0.94，maxHits 2；drawSlash，ringRadius 350，ringBleedDps 10 |
+| 5 | 40 | range 600，speed 620，interval 0.87，maxHits 4（命中首目标后再穿透 3 个）；drawSlash，ringRadius 380，ringBleedDps 11 |
+| 6 | 48 | range 640，speed 660，interval 0.80，maxHits ∞；drawSlash，ringRadius 380，ringBleedDps 12；swordIntent，flyMax 10，flyInterval 1.2，flyRange 260，flyChain 6，flyChainRange 240 |
 
 机制：
-- Lv1 近战扇形挥砍；Lv2+ 发射弹道（弹半径 11，maxHits = Infinity 无限穿透）。
-- **drawSlash（Lv4+）**：每命中 **3 次命中**（空挥不计，attackCount 只在命中时 +1）→ 下一帧释放环形斩：伤害 ×2.5，半径 ringRadius，附带流血 DoT（dps = ringBleedDps，持续 2.5s）。
+- Lv1 近战扇形挥砍；Lv2–4 弹道 maxHits 2，Lv5 maxHits 4，Lv6 才获得 Infinity 无限贯穿。
+- **drawSlash（Lv4+）**：每命中 **3 次命中**（空挥不计，attackCount 只在命中时 +1）→ 下一帧释放环形斩：伤害 ×2.5，半径 ringRadius，附带流血 DoT（dps = ringBleedDps，持续 2.5s）；环形斩不计为普通攻击，也不累积 swordIntent。
 - **swordIntent（Lv6）**：每命中 10 次生成 1 把飞剑；**飞剑自身命中不计数**（countIntent = false）。飞剑：环绕半径 `48 + (n%3) × 12`，存活 15s，出击速度 640，伤害 ×0.3，命中附流血（dps 9，2.5s）；连锁 ≤6 次，优先 240px 内未命中过的目标；飞行总距离 > 1600 或离目标 > 460 时强制返回；返回速度 700。
 - 联动常量：御剑号令标记 3s；焚刃火焰斩 cd 0.4 / 伤害 ×0.4 / 长 145 / 宽 34；剑环折返触发距离 52 / 搜索 360；切炉伤害 ×0.45。
 
@@ -582,8 +584,8 @@ n = 局内层数 + 局外等级（§4.1），apply 效果：
 机制：
 - 弹道半径 5；`lifetime = range / speed + 0.3`。
 - **thunder**：落雷伤害 = damage × 1.5；每目标 2 次命中计数器（WeakMap 实现，目标死亡/离场即失效，不得跨目标泄漏）。
-- **thunderFirst（Lv6）**：每波第一击必定落雷。**thunderAoE（Lv6）**：落雷附带半径 95 的范围伤害。
-- **chain（Lv4+）**：弹命中后跳跃，链伤 ×0.5；搜索半径 **180px**（代码 `R2 = 180×180`；注释中的 160 为过时值，见附录 B）；最多 bounces 次命中；玉环环体/尸体可作为中继点（各计一次，**不消耗跳跃次数**）。
+- **thunderFirst（Lv6）**：每波第一击必定落雷。**thunderAoE（Lv6）**：落雷附带半径 80 的范围伤害。
+- **chain（Lv4+）**：弹命中后跳跃，链伤 ×0.5；普通目标及玉环/尸体中继的入口、出口搜索半径均为 **160px**；最多 bounces 次命中，同一条链不重复命中；玉环环体/尸体可作为中继点（各计一次，**不消耗跳跃次数**）。
 - `triggerSwordThunder`（联动用）：伤害 ×0.6，携带 noSynergy / noSummon。
 
 ### 12.4 trail 丹火
@@ -593,15 +595,15 @@ n = 局内层数 + 局外等级（§4.1），apply 效果：
 | 1 | 7 | 40 | 3.5 | 0.22 | — |
 | 2 | 10 | 44 | 4.5 | 0.22 | burn 12 |
 | 3 | 14 | 48 | 5.5 | 0.18 | burn 14 |
-| 4 | 16 | 52 | 7.0 | 0.18 | furnace，furnaceLife 6 |
-| 5 | 21 | 57 | 8.5 | 0.18 | enhancedFurnace，furnaceLife 7.5 |
-| 6 | 26 | 62 | 10.0 | 0.18 | nineTurn，furnaceLife 9，hotZoneLife 5 |
+| 4 | 16 | 52 | 7.0 | 0.18 | furnace，life 6，areaScale 1.0，pull 25，tick ×1.25，open ×6 |
+| 5 | 21 | 57 | 8.5 | 0.18 | enhancedFurnace，life 7.5，areaScale 1.15，pull 35，tick ×1.5，open ×7 |
+| 6 | 26 | 62 | 10.0 | 0.18 | nineTurn，life 9，hotZoneLife 5；沿用 Lv5 炉火强化 |
 
 机制：
-- 火径每 **0.4s** tick 一次，对半径内敌人造成 damage 并施加 **blaze** DoT（dps = burnDps，2s）；Lv2+ 另附 burn。
+- 火径每 **0.4s** tick 一次，对半径内敌人造成 damage 并施加共享火系 **burn** DoT（dps = burnDps × damageMult，2s）。
 - 滴落条件：玩家必须在移动；两次滴落间隔 > 0.7s 则重置路径；路径点上限 PATH_POINT_CAP = 180。
-- **闭环成炉判定**：首尾闭合 ≤ 55px、路径年龄 ≥ 1.2s、点数 ≥ 4、周长 ≥ 260、面积 ≥ 9000、成炉冷却 1.5s。
-- **furnace（Lv4+）**：持续 furnaceLife（6 / 7.5 / 9；常量 FURNACE_DURATION = 4.5 仅作兜底）；tick 0.4s，伤害 ×1.25；点火延长 ×4；吸引强度 25（核心 +65）；燃料：击杀 +1，精英/Boss 每 1s +1；燃料达 9 **开炉**：伤害 ×6、life = min(8, life+2)、openCd 0.75、maxOpens 1（Lv5 enhanced 为 2）。
+- **闭环成炉判定**：首尾闭合 ≤ 55px、路径年龄 ≥ 1.2s、点数 ≥ 4、周长 ≥ 260、面积 ≥ 9000、成炉冷却 1.5s；触发后只消耗构成该闭环的路径段，保留更早的路径前缀。
+- **furnace（Lv4+）**：持续 furnaceLife（6 / 7.5 / 9）；Lv4 面积线性倍率 1.0、牵引 25、持续伤害 ×1.25、开炉爆发 ×6；Lv5/Lv6 强化为面积线性倍率 1.15、牵引 35、持续伤害 ×1.5、开炉爆发 ×7。点火爆发 ×4；燃料：击杀 +1，精英/Boss 每 1s +1；燃料达 9 **开炉**：`life += 2`（不会反向缩短）、openCd 0.75、maxOpens 1（Lv5 enhanced 为 2）。
 - **nineTurn（Lv6）**：九转热域伤害 = damage ×1.25 ×1.5，持续 hotZoneLife 5s；玩家在域内每 0.5s 回复 1 hp，移速 ×1.12（0.12s 刷新）。
 - 对象上限：trails 80、furnaces 6、热域 8、切炉区 8（life 2.2，tick 0.35，半宽 24）、effects 16。
 
@@ -615,15 +617,15 @@ n = 局内层数 + 局外等级（§4.1），apply 效果：
 | 3 | 20 | 3 | 78 | 3.0 | — |
 | 4 | 26 | 4 | 92 | 3.3 | bloodDrop，expand 80 |
 | 5 | 32 | 5 | 106 | 3.6 | expand 95 |
-| 6 | 40 | 6 | 120 | 4.0 | expand 110，ultimate，counterDamage 200，counterRadius 300，counterCd 16 |
+| 6 | 40 | 6 | 120 | 4.0 | expand 110，ultimate，counterDamage 200，counterRadius 300，counterCd 20 |
 
 机制：
 - 环体接触判定半径 RING_RADIUS = 42；每敌人共享命中冷却 RING_HIT_COOLDOWN = 0.34s；同一帧一个环只命中一个敌人一次。
-- 伤害倍率：狂暴 ×2、扩张 ×2（可叠乘至 ×4）。
-- **coldJade（Lv2+）**：命中施加 applySlow(0.35, 1.6)。
+- 伤害倍率：普通扩张阶段 ×1.5；狂暴期间总伤害固定 ×2，不再与扩张倍率叠乘。
+- **coldJade（Lv2+）**：命中施加 applySlow(0.25, 1.2)。
 - **bloodDrop（Lv4+）**：呼吸周期 3.2s，扩张/收缩各 1s（扩张量 expand），狂暴时呼吸速度 ×2。
-- **Lv6 狂暴**：每 50 次击杀（FRENZY_KILL_STEP = 50）触发 4s 狂暴（dropT 重置）。
-- **Lv6 反制**：监听 `lastHurtAt` 变化且 cd 就绪 → 冻结攻击者 2s + 以 counterRadius 300 范围造成 counterDamage 200 × damageMult 伤害；cd = counterCd 16（字段缺省回退：damage 130 / radius 240 / cd 16）。
+- **Lv6 狂暴**：每 80 次击杀（FRENZY_KILL_STEP = 80）触发 3s 狂暴（dropT 重置）；扩张速度 ×2。
+- **Lv6 反制**：监听 `lastHurtAt` 变化且 cd 就绪 → 冻结大范围敌人 1.5s + 以 counterRadius 300 范围造成 counterDamage 200 × damageMult 伤害；cd = counterCd 20（字段缺省回退：damage 130 / radius 240 / cd 20）。
 - 丹炉充能爆发：CHARGED_BURST_RADIUS = 55，伤害 ×0.75。
 
 ### 12.6 staff 死灵法杖
@@ -633,19 +635,19 @@ n = 局内层数 + 局外等级（§4.1），apply 效果：
 | 1 | 7 | 1 | 6 | 4 | 170 | 260 | — |
 | 2 | 9 | 2 | 6.8 | 3.6 | 180 | 260 | poison |
 | 3 | 12 | 2 | 7.5 | 3.2 | 190 | 260 | — |
-| 4 | 14 | 2 | 8.2 | 2.8 | 200 | 260 | blast，blastRadius 85 |
-| 5 | 17 | 3 | 9 | 2.5 | 210 | 260 | blastRadius 125 |
-| 6 | 20 | 3 | 9.8 | 2.2 | 220 | 280 | nightParade，blastRadius 125 |
+| 4 | 14 | 2 | 8.2 | 2.8 | 200 | 260 | blast，blastRadius 70 |
+| 5 | 17 | 3 | 9 | 2.5 | 210 | 260 | blastRadius 105 |
+| 6 | 20 | 3 | 9.8 | 2.2 | 220 | 280 | nightParade，blastRadius 105 |
 
 机制：
 - 召唤槽状态机：`cd → ready（需要 leash 内有敌人）→ active`；首个槽初始 cd 0.5。
 - 召唤体半径：night 17 / corpse 12 / normal 11；接触距离：night 22 / normal 14 + 目标半径；hitTimer 0.5s；night 形态伤害 ×1.5。
 - **poison（Lv2+）**：POISON_DPS 8，POISON_DUR 3s，溅射半径 50。
-- **blast（Lv4+）**：伤害 ×2，半径 blastRadius（CARD 数值 85 / 125 为准；Lv4 卡面注释"半径 70"过时，见附录 B），携带 noSummon。
+- **blast（Lv4+）**：伤害 ×2，半径 blastRadius（Lv4 70；Lv5/Lv6 105，即增加 50%），携带 noSummon。
 - **nightParade（Lv6）**：从 killLog 转化亡灵 —— CONVERT_CHANCE 0.2，保底 PITY_KILLS 10，尸体形态存活 CORPSE_LIFE 10s；上限 REGULAR_CAP 3 / CORPSE_CAP 5 / TOTAL_CAP 8（超限替换最旧）。
 - **连接回复**：`min(2, 1 + 0.5 × (存活召唤数 − 1))` HP/s（封顶 2，见附录 B）。
 - night 增益：NIGHT_DMG_MULT 1.5，NIGHT_SPD_MULT 1.3。
-- 联动常量：鬼火半径 55、tick 0.5、伤害 ×0.35、残留 0.5s；尸火燃料 1.5；护法玉守卫上限 min(2, 玉环数量, 存活召唤数)、轮换 2.4s、接触减速 0.35/1.6s、环绕半径 25 / 光环 34。
+- 联动常量：鬼火半径 55、tick 0.5、伤害 ×0.35、残留 0.5s；尸火燃料 1.5；护法玉守卫上限 min(2, 玉环数量, 存活召唤数)、轮换 2.4s、接触减速 0.25/1.2s、环绕半径 25 / 光环 34。
 
 ---
 ## 13. 联动（Synergy）系统
@@ -675,14 +677,15 @@ pairKey = 两个武器 id 排序后以 `+` 连接。
 ### 13.2 激活判定 refresh(weapons, elapsed)
 
 - 签名 = 各武器按 id 排序的 `${id}:${level}` 拼接 + `#${selectedPairKey}`；与上次相同 → 返回 false（不重算）。
-- 激活条件：pair 中两把武器都持有且等级 ≥ 4（minLevel）。
-- `selectedPairKey`（玩家手动指定的作战）非空时，**只保留该组**激活。
-- 新激活 → 公告 `{text: '联动激活·' + name, ttl: 3}`。
+- 激活条件：pair 中两把武器都持有且等级 ≥ 4（minLevel）；任一时刻最多激活 1 个主联动。
+- 手动选择 2 把时只激活指定组合；只选择 1 把时，只从包含该武器的合格组合中自动选择。
+- 自动选择按两把武器的最低等级降序、等级和降序排列，仍相同时按 DEFINITIONS 顺序稳定裁决。
+- 新激活 → 公告 `{text: '联动激活·' + name, detail: effectText, ttl: 3}`。
 
 ### 13.3 作战选择 toggleBuildWeapon(id)
 
 - 选中列表最多 2 把；超过 2 把移除最旧；每次切换强制 refresh；公告 ttl 2.5。
-- 入口：武器槽点击（§11.6），在 update 第 6 步处理（调试暂停时也可用）。
+- 入口：武器槽点击或游玩状态数字键 1~6（§11.6），在 update 第 6 步处理（调试暂停时也可用）。
 
 ### 13.4 onDamage(event, world)
 
@@ -693,7 +696,7 @@ pairKey = 两个武器 id 排序后以 `+` 连接。
 
 ### 13.5 运行时查询
 
-`synergies.getRuntime(pairKey)` 提供 `active / triggerCount` 等（smoke 用）；`recordSynergyTrigger` 由武器侧调用累计。
+`synergies.getRuntime(pairKey)` 提供 `triggerCount / contribution / pulseCooldown`；`primaryDefinition()` 与 `activationMode()` 供 HUD 常驻显示。`recordSynergyTrigger` 由武器侧调用累计，并以 0.24s 同联动节流生成统一触发灵光。
 
 ---
 
@@ -836,13 +839,26 @@ pairKey = 两个武器 id 排序后以 `+` 连接。
 - hitShake：屏幕抖动计时器（受击置 0.25）。
 - 尸体污渍、特效（effects）按 ttl 淡出。
 
+#### 17.1.1 Godot 武器表现数据契约
+
+- 道剑剑意飞剑读取 `sword.flying_swords` 的 `x/y/state/dir_x/dir_y/ttl`；飞剑必须独立于普通弹道绘制。
+- 玉环反制读取 `ring.counter_fx` 的 `x/y/t/dur/r`，触发位置固定，不随玩家后续移动；`frenzy_timer > 0` 时必须表现狂暴状态。
+- 雷符引雷读取 `talisman.bolt_fx.radius`，最终质变的视觉半径必须与 80px 玩法半径一致。
+- 丹火炉火场读取 `openFx/openFxMax/openNineTurn` 表现全场开炉爆炸，并用 `openNineTurn` 区分九转强化。
+- 死灵法杖自爆读取 `staff.blasts` 的 `x/y/maxR/t/maxT`；百鬼夜行时，260px 内仆从与玩家显示虚线回复连接。
+- 灼烧 `burn`、流血 `bleed`、尸毒 `poison` 必须具有互相独立且可同时显示的状态视觉。
+- 六武器从 Lv3→Lv4 时播放对应法器身份的“觉醒”演出，从 Lv5→Lv6 时播放更大范围、更长持续时间的“终极蜕变”演出；演出仅写入 `weaponEvolution` 视觉数据，不产生伤害、状态或召唤。
+- Lv4+ 世界法器图标获得强化光环，Lv6 获得更大的图标、双层旋转光环与四枚灵光；主 Build 的两把法器在玩家周围保持青金能量连接。
+- 主 Build 变化时播放 1.8s 联动成型演出和专属横幅；实际触发继续使用节流后的 `synergyTrigger` 灵光。
+
 ### 17.2 HUD（hud.js）
 
 | 元素 | 规格 |
 | --- | --- |
 | 经验条 | 顶部整屏宽，高 8px；左侧 Lv 数字 |
 | 生命条 | 220 × 14 |
-| 武器槽 | 左上，矩形见 §11.6；被选中的联动作战高亮；作战连线 |
+| 武器槽 | 底部居中，矩形见 §11.6；6 格等级；主联动武器青色高亮，手动选择朱红高亮 |
+| 主联动条 | 常驻显示自动/锁定状态、联动名称、效果说明和触发次数；触发时短暂高亮 |
 | 稀有物品栏 | 拾取过的稀有物品计数 |
 | 时间 | 顶部居中（elapsed） |
 | 波次状态 | rest / overtime / boss / normal 文案 |
@@ -863,7 +879,7 @@ pairKey = 两个武器 id 排序后以 `+` 连接。
 - storage：每项一行（数量、卖价、卖出按钮）+ 全部卖出；Escape 返回。
 - extraction：撤离（KeyE）/ 继续深入（KeyC）+ 点击。
 - summary：本局结算（lastRunSummary 各字段）+ 返回主菜单（Enter / 点击）。
-- dead：损失展示（lastDeathLoss）+ KeyR 返回主菜单。
+- dead：损失展示（lastDeathLoss）+ 死亡保底暗晶（lastDeathReward）+ KeyR 返回主菜单。
 
 ---
 
@@ -871,28 +887,30 @@ pairKey = 两个武器 id 排序后以 `+` 连接。
 
 > **本附录已重定向**：全量数值配置表于 2026-08-15 全量并入 `BALANCE.md`（Godot 侧真值），此处不再重复数值表。
 >
-> - 数值文档真值：`BALANCE.md`（分系统表格 + 16 处差异键的 js 原值标注 + 两轮调参历史）
+> - 数值文档真值：`BALANCE.md`（分系统表格 + 25 处 Godot 差异项 + 四轮调参历史）
 > - 代码真值：`autoload/config.gd`（CONFIG 字典与 BALANCE.md 逐键一致）
-> - 差异裁决过程：RULES.md 附录 B #9 / #10
+> - 差异裁决过程：RULES.md 附录 B #9 / #10 / #11 / #12
 
 ---
 
 ## 附录 B：矛盾裁决表
 
-以下条目中文档（主要是 `Docs/weapon-upgrade-guide.md`）与 `js/` 代码不一致，以及 Godot 侧与 `js/` 的有意差异。**裁决一律以代码为准**，移植按本表右列实现：
+以下条目记录旧设计文档、HTML 原型与本轮正式策划确认之间的差异。**2026-08-17 起，用户确认的武器 Build 规则优先于旧 `js/` 实现，Godot 侧按本表右列裁决**：
 
 | # | 主题 | Docs 说法 | js/ 代码实际 | 裁决依据 |
 | --- | --- | --- | --- | --- |
-| 1 | 玉环寒玉减速 | applySlow(e, 0.25, 1.2) | applySlow(e, 0.35, 1.6) | ring.js + CARD L2 注释 |
+| 1 | 玉环寒玉减速 | applySlow(e, 0.25, 1.2) | 旧 js 为 0.35 / 1.6 | 按 2026-08-17 策划确认：0.25 / 1.2 |
 | 2 | 死灵连接回血封顶 | 3 HP/s | min(2, 1 + 0.5×(存活−1))，封顶 2 | staff.js:234 |
 | 3 | 丹炉火域持续 | 4.5s | CARD furnaceLife 6 / 7.5 / 9（4.5 仅兜底） | trail.js CARD |
 | 4 | 道剑 Lv6 飞剑充能 | 每击杀 10 个敌人 | 每命中 10 次（飞剑命中不计，countIntent=false） | sword.js |
-| 5 | 雷符闪电链搜索半径 | ≤160px（代码注释同） | R2 = 180×180 → 180px | talisman.js:120 |
-| 6 | 玉环 Lv6 狂暴/反制 | 每 100 杀狂暴 3s；冻结 1.5s；CD ≥ 20s | 每 50 杀狂暴 4s；冻结 2s；counterCd 16 | ring.js FRENZY_KILL_STEP=50 + CARD |
+| 5 | 雷符闪电链搜索半径 | ≤160px | 旧 js 为 180px | 按 2026-08-17 策划确认：普通链及中继入口/出口统一 160px |
+| 6 | 玉环 Lv6 狂暴/反制 | 每 80 杀狂暴 3s；冻结 1.5s；CD ≥ 20s | 旧 js 为 50 杀 / 4s / 冻结 2s / CD16 | 按 2026-08-17 策划确认：80 杀 / 3s / 冻结 1.5s / CD20 |
 | 7 | 披风 Lv6 击杀特效 | 每 100 杀重置震荡 CD | 每 100 杀追加强化冲击（半径 ×1.8 / 8 ticks / 减速 3s），不重置普通 CD | cloak.js + DESIGN.md |
-| 8 | 法杖 Lv4 爆炸半径 | 卡面注释"半径 70" | CARD blastRadius = 85（Lv5/Lv6 = 125） | staff.js CARD |
+| 8 | 法杖自爆半径 | Lv4 约 70，Lv5 增加 50% | 旧 js 为 85 / 125 / 125 | 按 2026-08-17 策划确认：70 / 105 / 105 |
 | 9 | Godot 侧手感调参（2026-08-15） | js/config.js 原值：enemy.speed 85 / enemy.hp 50 / 存活上限 min(140, 20+8×(wave−1)) / quota round(16×mult)、增长 0.5 | Godot CONFIG：speed 76 / hp 45 / min(180, 30+10×(wave−1)) / quota round(24×mult)、增长 0.8 | 按实机反馈调参，Godot 侧为准；js 原型不回改，BALANCE.md（原附录 A）已同步为 Godot 真值 |
 | 10 | Godot 侧第二轮数值调参（2026-08-15） | 第一轮后 Godot CONFIG：hpPerMin 54 / speedPerMin 0.08 / hpPerWave 三段 0.16/0.30/0.28 / hpWaveCap 7 / baseSpeedMult 1.5 / speedWaveCap 2 / startMaxAlive 30 / maxAlivePerWave 10 / baseQuota 24 / quantityPerWave 0.8 / quantityWaveCap 11.25 | hpPerMin 10 / speedPerMin 0.015 / hpPerWave 三段 0.10/0.12/0.10 / hpWaveCap 3 / baseSpeedMult 1.35 / speedWaveCap 1.6 / startMaxAlive 40 / maxAlivePerWave 12 / baseQuota 30 / quantityPerWave 1.2 / quantityWaveCap 14；maxAliveCap 保持 180；apply_wave_scaling 由硬编码改为 Config 驱动 | 按实机反馈"血太厚/移速涨太快/怪太少"调参，Godot 侧为准；js 原型不回改，BALANCE.md（原附录 A）已同步为 Godot 真值 |
+| 11 | Godot 侧第三轮节奏与容错（2026-08-17） | js：每波 90 秒；damagePerMin 2.2 / 中后期 damagePerWave 0.14/0.18；死亡无暗晶；自动模式可同时激活全部合格联动 | Godot：每波 60 秒；damagePerMin 1.0 / 中后期 damagePerWave 0.09/0.09；死亡保留 35%波数暗晶；任一时刻只有一个主联动，并常驻显示名称、效果与触发反馈 | 按 2026-08-17 策划确认：完整局压缩为 25 分钟，提高后期容错与失败成长，修复自动多联动严格优于手动选择的问题 |
+| 12 | Godot 侧第四轮拾取可读性（2026-08-17） | js：灵晶磁吸 180 / 拾取 22；生命拾取 22；稀有拾取 30 | Godot：灵晶磁吸 240 / 拾取 30；生命拾取 30；稀有拾取 42，并补充图标放大、靠近效果说明与拾取结果说明 | 按本轮 UX 反馈提高战斗中拾取物辨识度与操作容错；js 原型不回改，Godot 侧为准 |
 
 ---
 
@@ -905,7 +923,7 @@ pairKey = 两个武器 id 排序后以 `+` 连接。
 | [0] | Weapon card structure（6 武器均 6 级、每级 damage>0） | M1 |
 | [1] | 主菜单 → 开局：全部武器卡任选一 | M1 |
 | [2] | 移动（按住 D 一秒位移 >100px） | M1 |
-| [3] | 站桩 60 秒：定时波不会提前推进 | M1 |
+| [3] | 站桩超过 60 秒：首波结束并强制进入第 2 波 | M1 |
 | [4] | 强制升级：鼠标点击选卡 | M1 |
 | [5] | 基础属性 / 护甲减伤 / 生命上限卡 | M1 |
 | [6] | Weapon mechanic changes（六武器机制与上限） | M2 |
@@ -917,7 +935,7 @@ pairKey = 两个武器 id 排序后以 `+` 连接。
 | [11] | Boss 掉落概率边界与保底品阶 | M3 |
 | [12] | 撤离流程：Boss 波清空 → 撤离 → 结算 → 存档 | M3 |
 | [13] | 继续深入：背包保留，下个 Boss 波再次抉择 | M3 |
-| [14] | 死亡损失：临时背包全损、仓库不受影响 | M3 |
+| [14] | 死亡损失：临时背包全损、仓库不受影响、保留 35%波数暗晶 | M3 |
 | [15] | 商城：价格曲线 / 购买 / 余额不足 / 满级 | M5 |
 | [16] | 仓库卖出与局外属性生效 | M5 |
 | [17] | 25 波上限与最终通关结算 | M3 |

@@ -8,11 +8,11 @@ const CARD: Dictionary = {
     "id": "sword", "kind": "weapon", "name": "道剑", "maxLevel": 6,
     "levels": [
         {"damage": 16, "meleeRange": 125, "interval": 1.15, "arc": 120},
-        {"damage": 20, "projectile": true, "projectileRange": 520, "projectileSpeed": 500, "maxHits": INF, "interval": 1.08},
-        {"damage": 26, "projectile": true, "projectileRange": 550, "projectileSpeed": 560, "maxHits": INF, "interval": 1.00},
-        {"damage": 32, "projectile": true, "projectileRange": 570, "projectileSpeed": 580, "maxHits": INF, "interval": 0.94, "drawSlash": true, "ringRadius": 350, "ringBleedDps": 10},
-        {"damage": 40, "projectile": true, "projectileRange": 600, "projectileSpeed": 620, "maxHits": INF, "interval": 0.87, "drawSlash": true, "ringRadius": 380, "ringBleedDps": 11},
-        {"damage": 48, "projectile": true, "projectileRange": 640, "projectileSpeed": 660, "maxHits": INF, "interval": 0.80, "drawSlash": true, "ringRadius": 344, "ringBleedDps": 12, "swordIntent": true, "flyMax": 10, "flyInterval": 1.2, "flyRange": 260, "flyChain": 6, "flyChainRange": 240},
+        {"damage": 20, "projectile": true, "projectileRange": 520, "projectileSpeed": 500, "maxHits": 2, "interval": 1.08},
+        {"damage": 26, "projectile": true, "projectileRange": 550, "projectileSpeed": 560, "maxHits": 2, "interval": 1.00},
+        {"damage": 32, "projectile": true, "projectileRange": 570, "projectileSpeed": 580, "maxHits": 2, "interval": 0.94, "drawSlash": true, "ringRadius": 350, "ringBleedDps": 10},
+        {"damage": 40, "projectile": true, "projectileRange": 600, "projectileSpeed": 620, "maxHits": 4, "interval": 0.87, "drawSlash": true, "ringRadius": 380, "ringBleedDps": 11},
+        {"damage": 48, "projectile": true, "projectileRange": 640, "projectileSpeed": 660, "maxHits": INF, "interval": 0.80, "drawSlash": true, "ringRadius": 380, "ringBleedDps": 12, "swordIntent": true, "flyMax": 10, "flyInterval": 1.2, "flyRange": 260, "flyChain": 6, "flyChainRange": 240},
     ],
 }
 
@@ -101,8 +101,8 @@ func _count_main_hit(s: Dictionary) -> void:
 func _fire_ring(current_world, s: Dictionary) -> void:
     var on_hit := func(enemy) -> void:
         if not enemy.dead:
-            current_world.apply_dot.call(enemy, "bleed", s.get("ringBleedDps", 10), 2.5)
-        _on_damage_hit(enemy, current_world, s, true, "ring")
+            current_world.apply_dot.call(enemy, "bleed", s.get("ringBleedDps", 10) * current_world.mods["damageMult"], 2.5)
+        _on_damage_hit(enemy, current_world, s, false, "ring")
     BaseScript.hit_enemies_in_radius(current_world, current_world.player.x, current_world.player.y,
         s["ringRadius"], s["damage"] * current_world.mods["damageMult"] * 2.5, on_hit,
         {"sourceWeaponId": "sword", "sourceAction": "ring"})
@@ -112,6 +112,7 @@ func _fire_ring(current_world, s: Dictionary) -> void:
 func _on_damage_hit(enemy, current_world, s: Dictionary, count_intent: bool, action: String = "projectile") -> void:
     if _has_synergy(current_world, "sword-staff-command") and ["projectile", "flyingSword"].has(action):
         enemy.synergyMarks["swordCommandUntil"] = current_world.elapsed + 3.0
+        current_world.record_synergy_trigger.call("sword-staff-command", 1)
         current_world.effects.append({"type": "synergyCommandMark", "x": enemy.x, "y": enemy.y, "ttl": 0.32, "maxTtl": 0.32})
     if _has_synergy(current_world, "sword-talisman-mark"):
         var talisman = current_world.get_weapon.call("talisman")
@@ -272,7 +273,7 @@ func _update_flying_swords(dt: float, current_world, s: Dictionary) -> void:
                     current_world.damage_enemy.call(enemy, fly_damage, {"sourceWeaponId": "sword", "sourceAction": "flying-sword"})
                     _on_damage_hit(enemy, current_world, s, false, "flyingSword")
                     if not enemy.dead:
-                        current_world.apply_dot.call(enemy, "bleed", 9.0, 2.5)
+                        current_world.apply_dot.call(enemy, "bleed", 9.0 * current_world.mods["damageMult"], 2.5)
             if flying["leg_travel"] >= flying["leg_length"] + 16.0:
                 var next = _next_flying_target(flying, current_world, s)
                 if next == null:

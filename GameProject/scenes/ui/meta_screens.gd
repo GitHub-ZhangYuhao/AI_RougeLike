@@ -5,6 +5,7 @@ const ShopScript: GDScript = preload("res://logic/meta/shop.gd")
 const ItemsScript: GDScript = preload("res://logic/meta/items.gd")
 const ArtCatalog: GDScript = preload("res://scenes/art_catalog.gd")
 const UI_FONT: Font = preload("res://assets/fonts/ui_font_round.tres")
+const UI_ICON_CRYSTAL: Texture2D = preload("res://assets/ui/peach_night/atomic/clean/icon_crystal.svg")
 
 const ATTR_NAMES: Dictionary = {
 	"damage": "强攻",
@@ -110,7 +111,7 @@ func refresh(force: bool = false) -> void:
 		return
 	_last_signature = signature
 	_clear_rows()
-	currency_icon.texture = ArtCatalog.PICKUP_TEXTURES["gem"]
+	currency_icon.texture = UI_ICON_CRYSTAL
 	currency_amount.text = "%d" % run.save.get("darkCrystals", 0)
 	if _reference_menu != null:
 		_reference_menu.set_currency(int(run.save.get("darkCrystals", 0)))
@@ -326,7 +327,7 @@ func _stats_pill_style() -> StyleBoxFlat:
 
 func _make_row(feature_name: String, detail: String, action_text: String, enabled: bool, action: Callable, icon: Texture2D = null) -> PanelContainer:
 	var row := PanelContainer.new()
-	row.custom_minimum_size = Vector2(0.0, 58.0)
+	row.custom_minimum_size = Vector2(0.0, 50.0)
 	row.add_theme_stylebox_override("panel", _row_style())
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 16)
@@ -339,7 +340,7 @@ func _make_row(feature_name: String, detail: String, action_text: String, enable
 	margin.add_child(line)
 	if icon != null:
 		var icon_rect := TextureRect.new()
-		icon_rect.custom_minimum_size = Vector2(38.0, 38.0)
+		icon_rect.custom_minimum_size = Vector2(34.0, 34.0)
 		icon_rect.texture = icon
 		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -419,9 +420,9 @@ func _apply_theme() -> void:
 	divider.modulate = Color(0.92, 0.66, 0.42, 0.90)
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color(NIGHT, 0.98)
-	panel_style.border_color = WALNUT
-	panel_style.set_border_width_all(5)
-	panel_style.set_corner_radius_all(32)
+	panel_style.border_color = ANTIQUE_GOLD
+	panel_style.set_border_width_all(3)
+	panel_style.set_corner_radius_all(24)
 	panel_style.shadow_color = Color(0.0, 0.02, 0.07, 0.78)
 	panel_style.shadow_size = 24
 	panel_style.shadow_offset = Vector2(0.0, 12.0)
@@ -429,8 +430,8 @@ func _apply_theme() -> void:
 	var header_style := StyleBoxFlat.new()
 	header_style.bg_color = NIGHT_SOFT
 	header_style.border_color = ANTIQUE_GOLD
-	header_style.set_border_width_all(3)
-	header_style.set_corner_radius_all(24)
+	header_style.set_border_width_all(2)
+	header_style.set_corner_radius_all(18)
 	header_style.shadow_color = Color(0.0, 0.02, 0.07, 0.62)
 	header_style.shadow_size = 9
 	header_style.shadow_offset = Vector2(0.0, 5.0)
@@ -438,8 +439,8 @@ func _apply_theme() -> void:
 	var currency_style := StyleBoxFlat.new()
 	currency_style.bg_color = Color('f8ead0')
 	currency_style.border_color = JADE_DEEP
-	currency_style.set_border_width_all(3)
-	currency_style.set_corner_radius_all(22)
+	currency_style.set_border_width_all(2)
+	currency_style.set_corner_radius_all(16)
 	currency_style.shadow_color = Color(SPIRIT_GLOW, 0.18)
 	currency_style.shadow_size = 8
 	currency_style.shadow_offset = Vector2(0.0, 4.0)
@@ -447,11 +448,11 @@ func _apply_theme() -> void:
 	%StartButton.icon = ArtCatalog.UI_TEXTURES["buttonCrest"]
 	%ShopButton.icon = ArtCatalog.UI_TEXTURES["shop"]
 	%StorageButton.icon = ArtCatalog.UI_TEXTURES["warehouse"]
-	%SellAllButton.icon = ArtCatalog.PICKUP_TEXTURES["gem"]
+	%SellAllButton.icon = UI_ICON_CRYSTAL
 	%BackButton.icon = ArtCatalog.UI_TEXTURES["buttonCrest"]
 	for button: Button in [%StartButton, %ShopButton, %StorageButton, %SellAllButton, %BackButton]:
 		button.expand_icon = true
-		button.add_theme_constant_override("icon_max_width", 32)
+		button.add_theme_constant_override("icon_max_width", 28)
 	_apply_button_style(%StartButton, "cinnabar")
 	_apply_button_style(%ShopButton, "jade")
 	_apply_button_style(%StorageButton, "paper")
@@ -460,7 +461,7 @@ func _apply_theme() -> void:
 	kicker_label.add_theme_color_override("font_color", CORAL)
 	title_label.add_theme_color_override("font_color", CREAM)
 	title_label.add_theme_color_override("font_outline_color", Color(WALNUT, 0.98))
-	title_label.add_theme_constant_override("outline_size", 5)
+	title_label.add_theme_constant_override("outline_size", 3)
 	subtitle_label.add_theme_color_override("font_color", Color('d8c7a9'))
 	currency_amount.add_theme_color_override("font_color", JADE_DEEP)
 	footer_label.add_theme_color_override("font_color", Color('c9b99f'))
@@ -512,8 +513,8 @@ func _button_style_box(fill: Color, border: Color, shadow_size: int, shadow_offs
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill
 	style.border_color = border
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(20)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(16)
 	style.shadow_color = Color(0.0, 0.02, 0.06, 0.46)
 	style.shadow_size = shadow_size
 	style.shadow_offset = shadow_offset
@@ -523,9 +524,9 @@ func _button_style_box(fill: Color, border: Color, shadow_size: int, shadow_offs
 func _row_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color('f7e7c8')
-	style.border_color = WALNUT
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(18)
+	style.border_color = Color(ANTIQUE_GOLD, 0.86)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(14)
 	style.shadow_color = Color(0.0, 0.02, 0.07, 0.42)
 	style.shadow_size = 7
 	style.shadow_offset = Vector2(0.0, 4.0)

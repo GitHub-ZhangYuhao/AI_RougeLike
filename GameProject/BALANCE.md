@@ -2,12 +2,12 @@
 
 > **文档定位（先读）**
 > - 本文件是游戏数值配置的**唯一文档真值**。`autoload/config.gd` 的 `CONFIG` 字典与本表逐键一致（键名保留 JS camelCase，见 AGENTS.md 的 CONFIG 例外条款）。
-> - 原型 `js/config.js` 为基线、**不回改**。下表仅在 Godot 有意差异的 16 个键上标注「js 原值」；裁决过程见 RULES.md 附录 B #9/#10。
+> - 原型 `js/config.js` 为基线、**不回改**。下表在 Godot 有意差异的 25 个键上标注「js 原值」或「Godot 新增」；裁决过程见 RULES.md 附录 B #9/#10/#11/#12。
 > - 改数流程：先改 `autoload/config.gd` → 同步本表 → 跑 `GameEngine\Godot.exe --headless --path GameProject --script res://tools/run_smoke.gd` 验证。
 > - RULES.md 只保留规则与公式（§7/§8 等），不再重复数值表；原 RULES.md 附录 A 于 2026-08-15 全量并入本文件。
 > - 表中 `INF` 表示无穷大（js 的 Infinity）。
 
-## 调参历史（2026-08-15，两轮）
+## 调参历史（2026-08-15 至 2026-08-17，四轮）
 
 **第一轮**（手感：人物偏大、镜头偏近、敌人偏小、怪物偏快/偏厚/偏少，裁决见 RULES.md 附录 B #9）：
 `enemy.speed` 85→76、`enemy.hp` 50→45、`spawner.startMaxAlive` 20→30、`spawner.maxAlivePerWave` 8→10、`spawner.maxAliveCap` 140→180、`waves.baseQuota` 16→24、`waves.quantityPerWave` 0.5→0.8。
@@ -15,7 +15,11 @@
 **第二轮**（血太厚 / 移速增长过快 / 数量太少，裁决见 RULES.md 附录 B #10）：
 `enemy.hpPerMin` 54→10、`enemy.speedPerMin` 0.08→0.015、`enemy.hpPerWave` 0.16→0.10、`enemy.hpPerWaveMid` 0.30→0.12、`enemy.hpPerWaveLate` 0.28→0.10、`enemy.hpWaveCap` 7→3、`enemy.baseSpeedMult` 1.5→1.35、`enemy.speedWaveCap` 2→1.6、`spawner.startMaxAlive` 30→40、`spawner.maxAlivePerWave` 10→12、`waves.baseQuota` 24→30、`waves.quantityPerWave` 0.8→1.2、`waves.quantityWaveCap` 11.25→14。`maxAliveCap` 保持 180（M6 性能焦点 #1 的压测指标，分离算法 O(n²)，对象池优化落地后再议上调）。同轮将 `logic/enemies/base.gd` 的 `apply_wave_scaling` 由硬编码改为 Config 驱动（对齐 js/enemies/base.js）。
 
-**第二轮后曲线速览（chaser，含时间项）**：w1 45 HP / 速度 102.6 → w10 ~356 HP / ~122 → w20 ~990 HP / ~174 → w25 ~1215 HP / ~187；移速全程低于玩家 230，HP 膨胀 ~27×（改前 ~309×）。伤害曲线（damage/damagePerMin/三段 damagePerWave）有意保留，作为观察项。
+**第三轮**（单局时长与后期容错，2026-08-17）：每波 90→60 秒，25 波基础战斗时长压缩为 25 分钟；`enemy.damagePerMin` 2.2→1.0、`damagePerWaveMid` 0.14→0.09、`damagePerWaveLate` 0.18→0.09；死亡按所在波正常暗晶的 35%保底结算。
+
+**第三轮后曲线速览（chaser，按波开始时间估算）**：w1 45 HP / 7 伤害 → w5 ~119 HP / ~14 伤害 → w10 ~267 HP / ~27 伤害 → w20 ~705 HP / ~67 伤害 → w25 ~855 HP / ~93 伤害。W25 Boss 普通弹约 161 原始伤害，后续通过实机与受击遥测继续校准。
+
+**第四轮**（拾取可读性与操作容错，2026-08-17）：`gems.magnetRadius` 180→240、`gems.pickupRadius` 22→30、`pickups.pickupRadius` 22→30、`pickups.rarePickupRadius` 30→42；同步放大世界图标并补充靠近说明和拾取结果说明。前三项中普通拾取与宝石拾取同值，差异键按配置路径计为 4 项。
 
 ---
 
@@ -67,16 +71,16 @@
 | hp | **45** | 50 | 基础 HP |
 | damage | 7 | | 基础接触伤害 |
 | hpPerMin | **10** | 54 | 每分钟 HP 成长（时间项） |
-| damagePerMin | 2.2 | | 每分钟伤害成长 |
+| damagePerMin | **1.0** | 2.2 | 每分钟伤害成长 |
 | speedPerMin | **0.015** | 0.08 | 每分钟移速成长 |
 | hpPerWave | **0.10** | 0.16 | 前期每波 HP 成长（1~6 波段） |
 | damagePerWave | 0.06 | | 前期每波伤害成长 |
 | midWaveStart | 7 | | 中期段起始波 |
 | hpPerWaveMid | **0.12** | 0.30 | 中期每波 HP 成长（7~11 波段） |
-| damagePerWaveMid | 0.14 | | 中期每波伤害成长 |
+| damagePerWaveMid | **0.09** | 0.14 | 中期每波伤害成长 |
 | lateWaveStart | 12 | | 后期段起始波 |
 | hpPerWaveLate | **0.10** | 0.28 | 后期每波 HP 成长（12+ 波段） |
-| damagePerWaveLate | 0.18 | | 后期每波伤害成长 |
+| damagePerWaveLate | **0.09** | 0.18 | 后期每波伤害成长 |
 | hpWaveCap | **3** | 7 | 波次 HP 倍率封顶 |
 | speedWaveCap | **1.6** | 2 | 波次移速倍率封顶 |
 | speedCapStartWave | 20 | | 移速倍率到达封顶的波次 |
@@ -139,7 +143,7 @@
 | 键 | 值 | js 原值 | 说明 |
 | --- | --- | --- | --- |
 | maxWave | 25 | | 最大波次 |
-| duration | 90 | | 每波时长（秒） |
+| duration | **60** | 90 | 每波时长（秒） |
 | baseQuota | **30** | 16 | 配额基数 |
 | quantityPerWave | **1.2** | 0.5 | 每波配额增长 |
 | quantityWaveCap | **14** | 11.25 | 普通波配额倍率封顶 |
@@ -184,11 +188,11 @@
 
 | 键 | 值 | 说明 |
 | --- | --- | --- |
-| magnetRadius | 180 | 磁吸半径 |
+| magnetRadius | 240（js 原值 180） | 磁吸半径 |
 | magnetStartSpeed | 300 | 磁吸初速 |
 | magnetAcceleration | 900 | 磁吸加速度 |
 | magnetMaxSpeed | 680 | 磁吸最大速度 |
-| pickupRadius | 22 | 拾取半径 |
+| pickupRadius | 30（js 原值 22） | 拾取半径 |
 | cap | 300 | 场上宝石上限 |
 
 **档位 tiers**：
@@ -209,8 +213,8 @@
 | corpses | stainTtl | 3 | 尸体残留时长（秒） |
 | corpses | cap | 80 | 尸体上限 |
 | pickups | hpValue | 15 | 血包回复量 |
-| pickups | pickupRadius | 22 | 普通拾取半径 |
-| pickups | rarePickupRadius | 30 | 稀有拾取半径 |
+| pickups | pickupRadius | 30（js 原值 22） | 普通拾取半径 |
+| pickups | rarePickupRadius | 42（js 原值 30） | 稀有拾取半径 |
 | pickups | maxAlive | 5 | 血包场上上限 |
 | hud | font | `16px "Segoe UI", "Microsoft YaHei", sans-serif` | HUD 字体（非数值） |
 
@@ -223,6 +227,7 @@
 | dropCount | 见下表 | 掉落数量 [min,max] |
 | guaranteedMinTier | 3阶Boss→2、5阶Boss→3 | 保底最低材料阶（取 ≤bossTier 的最大键；1~2 阶无保底即 1） |
 | waveRewardMult | 1.5 | 波次奖励倍率 |
+| deathRewardMult | 0.35 | 死亡时保留正常波数暗晶的比例 |
 | shopMaxLevel | 10 | 商城等级上限 |
 | shopPrice | base 20 / growth 1.6 | 商城价格曲线 |
 | saveKey | `ai-roguelike-meta-save-v1` | 存档键（非数值） |
@@ -246,4 +251,4 @@
 - 各类型行为：§7.6
 - Spawner 刷怪节奏与存活上限：§8.1
 - WaveDirector 配额与波流程：§8.2
-- 数值矛盾裁决（含两轮调参记录）：附录 B #9 / #10
+- 数值矛盾裁决（含三轮调参记录）：附录 B #9 / #10 / #11

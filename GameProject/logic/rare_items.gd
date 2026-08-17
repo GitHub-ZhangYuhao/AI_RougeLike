@@ -2,11 +2,11 @@ extends RefCounted
 ## ← js/rare-items.js
 
 const RARE_ITEMS: Array[Dictionary] = [
-    {"id": "warRune", "name": "战意符石", "color": "#ffca28"},
-    {"id": "bloodJade", "name": "血玉", "color": "#ef5350"},
-    {"id": "magnetCore", "name": "聚灵核心", "color": "#40c4ff"},
-    {"id": "spiritBook", "name": "悟道残卷", "color": "#b388ff"},
-    {"id": "windFeather", "name": "疾风羽", "color": "#69f0ae"},
+    {"id": "warRune", "name": "战意符石", "description": "本局伤害提高 20%", "color": "#ffca28"},
+    {"id": "bloodJade", "name": "血玉", "description": "最大生命 +25，并回复 25", "color": "#ef5350"},
+    {"id": "magnetCore", "name": "聚灵核心", "description": "灵晶吸附范围 +80", "color": "#40c4ff"},
+    {"id": "spiritBook", "name": "悟道残卷", "description": "本局经验获取提高 25%", "color": "#b388ff"},
+    {"id": "windFeather", "name": "疾风羽", "description": "本局移动速度提高 10%", "color": "#69f0ae"},
 ]
 const RARE_ITEM_BY_ID: Dictionary = {
     "warRune": RARE_ITEMS[0], "bloodJade": RARE_ITEMS[1], "magnetCore": RARE_ITEMS[2],

@@ -1,6 +1,6 @@
 # Godot 美术资源配置台账
 
-> 最后核对：2026-08-16
+> 最后核对：2026-08-17
 >
 > 适用工程：`GameProject/`（Godot 4.7.1）
 >
@@ -22,7 +22,7 @@
 - 正式关卡：4096×4096 草甸地形、确定性地图边界和环境装饰均已挂入主场景。
 - 正式世界表现：`WorldArtView` 已取代 `PlaceholderWorld`，接管敌人、Boss、弹道、掉落、召唤物、任务信标、武器范围与战斗 VFX。
 - 正式玩家表现：主游戏已恢复 `AnimatedSprite2D` 的 Idle / Move / Dead 八方向动画状态机，`player_static.png` 仅作为资源缺失时的回退。
-- 正式 UI：主菜单已切换为批准的桃夜巡 B+A 视觉稿；局内 HUD 与开局/升级卡牌使用桃夜巡原子资源动态拼装，商城、仓库、模态框与 Debug 保留现代 Q 版组件体系，并完成焦点/悬停/按下/禁用状态。
+- 正式 UI：主菜单已切换为批准的桃夜巡 B+A 视觉稿；局内 HUD 与开局/升级卡牌使用桃夜巡原子资源动态拼装，商城、仓库、模态框与 Debug 已统一为深靛、宣纸、古金、玉青、朱砂体系，并完成焦点/悬停/按下/禁用状态。
 - 正式字体：`Noto Sans SC` 与 OFL 许可已进入工程并应用于游戏内 UI 和 Meta UI。
 - 剩余缺口：正式音频、可选的玩家逐帧动画升级、实体视图对象池与 140 敌人压力检查。
 
@@ -50,12 +50,12 @@ ArtAsset/ 或 Experimental/
 | 玩家 | 已配置（回退保留） | `assets/sprites/player/player_static.png`；旧 `idle/walk_*.png` | `scenes/game/player_view.gd/.tscn` |
 | 七类敌人与 Boss | 已配置 | `assets/sprites/enemies/*.png` | `scenes/art_catalog.gd`、`scenes/game/world_art_view.gd` |
 | 六武器与弹道 | 已配置 | `assets/icons/weapon_*.png`、`projectile_*.png`、`assets/sprites/weapons/jade_ring_world.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
-| 掉落与稀有物 | 已配置 | `assets/icons/pickup_*.png`、`rare_*.png`；经验宝石已作为世界贴图使用 | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
+| 掉落与稀有物 | 待升级 | `assets/icons/pickup_*.png`、`rare_*.png`；世界图标、拾取光效、吸附/拾取范围和功能说明已放大完善，现有血包与稀有物切片仍待无污染重导出 | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 召唤物与任务 | 已配置 | `assets/sprites/summons/*.png`、`assets/vfx/skeleton_minion*.png`、`assets/icons/task_*.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 战斗 VFX | 已配置 | `assets/vfx/*.png`；16 张第一代单帧 VFX 已替换为 384×384 RGBA 手绘图片 | `art_catalog.gd`、`world_art_view.gd` |
-| 现代 Q 版 UI 图形 | 已配置 | `assets/ui/modern/*.png`（13 类）；11 张徽章/印章/卡角已升级为精细手绘版 | `art_catalog.gd`、`meta_screens.gd`、`debug_overlay.gd` |
+| 桃夜巡辅助 UI 图形 | 已配置 | `assets/ui/modern/*.svg`（13 类）作为清晰矢量运行时图标；同名 PNG 保留美术对照 | `art_catalog.gd`、`meta_screens.gd`、`debug_overlay.gd` |
 | 桃夜巡主菜单 | 已配置 | `assets/ui/peach_night/menu_bg_exact.png`、三类按钮切片 | `scenes/ui/peach_night_menu.gd`、`meta_screens.gd` |
-| 桃夜巡局内原子 UI | 已配置 | `assets/ui/peach_night/atomic/` 的背板、边框、头像、状态条、图标、花饰、法器槽、标签和纸张纹理 | `scenes/game/game_overlay.gd`、`logic/ui_layout.gd` |
+| 桃夜巡局内原子 UI | 已配置 | `assets/ui/peach_night/atomic/` 的背板、边框、头像、状态条、精修矢量状态图标、花饰、法器槽、标签和纸张纹理 | `scenes/game/game_overlay.gd`、`logic/ui_layout.gd` |
 | 品牌吉祥物 | 已配置（回退保留） | `assets/ui/modern/brand_mascot.png` | `scenes/ui/meta_screens.gd` 的非桃夜巡界面 |
 | 中文字体 | 已配置 | `assets/fonts/noto_sans_sc.ttf`、`OFL.txt` | `game_overlay.gd`、`meta_screens.tscn` |
 | Debug Runtime/Overlay | 已配置 | Godot Control | `logic/debug_runtime.gd`、`scenes/game/debug_overlay.gd/.tscn` |
@@ -83,7 +83,7 @@ ArtAsset/ 或 Experimental/
 | chaser / enhancedChaser / charger / ranged / bomber / shield | 已配置 | 独立敌人贴图、朝向、受击/冰冻/DoT 状态、血条 |
 | Boss | 已配置 | 专用贴图、Boss 尺寸、狂暴光效、血条与 HUD medallion |
 | 玩家与敌方弹道 | 已配置 | 按武器/阵营映射正式弹道资源；轨道玉环已使用独立世界图片，并保留轨迹与危险提示 |
-| 经验、血包、五种稀有物 | 已配置 | 经验宝石已绑定正式世界图片；其余对象使用独立图标、拾取光效和 HUD/结算图标 |
+| 经验、血包、五种稀有物 | 待升级 | 灵晶、血包和稀有遗物已放大；灵晶磁吸 240px，普通/稀有拾取 30/42px；最近拾取物显示名称与作用，拾取稀有物后显示具体增益。现有血包与稀有物仍需重导无污染透明单图 |
 | 普通/尸体/护法/鬼火召唤 | 已配置 | 普通骷髅、尸体、玉卫和鬼火均使用独立世界图片，不再复用同一贴图或 UI 图标 |
 | 披风、玉环、丹火、法杖 | 已配置 | 范围、轨迹、爆发、灵弹和命中 VFX |
 | 任务信标与任务区域 | 已配置 | guard/delivery/bounty 正式图标、信标 VFX 与世界提示 |
@@ -94,11 +94,11 @@ ArtAsset/ 或 Experimental/
 
 | 界面 | 状态 | 正式化内容 |
 | --- | --- | --- |
-| 基础 HUD | 已配置 | 桃夜巡深蓝金边底部壳体由原子资源和程序化面板拼装；头像环、等级、XP/生命/波次、守夜时间、暗晶、暂停、三格法器、首领状态与击破统计分区清晰，法器视觉槽和点击命中区域一致 |
+| 基础 HUD | 已配置 | 桃夜巡深蓝金边壳体按 1280×720 原生比例分布于左上/中上/右上与底部；头像环、等级、XP/生命/波次、守夜时间、暗晶、暂停、法器、首领状态与击破统计分区清晰，图标采用统一细描边矢量体系，法器视觉槽和点击命中区域一致 |
 | 开局/升级/任务奖励卡牌 | 已配置 | 桃夜巡宣纸卡由纸张纹理、边框、标题牌、编号、品质签、图标灵火环、等级胶囊、描述板、选择按钮和桃花角饰拼装；六卡开局、三卡升级与 hover 上浮间距已复核 |
 | 撤离、死亡、结算 | 已配置 | medallion、按钮 crest、收益/损失汇总和键鼠操作提示 |
 | 主菜单 | 已配置 | 按批准的桃夜巡 B+A 稿像素级还原背景、暗晶计数和商城/开始巡守/仓库热区，保留动态数值和交互反馈 |
-| 商城/仓库 | 已配置 | 现代 medallion、圆角列表卡、动态行图标、购买/出售状态和中文字体 |
+| 商城/仓库 | 已配置 | 桃夜巡矢量 medallion、紧凑宣纸列表卡、动态行图标、购买/出售状态和中文字体；六行内容在 720p 安全区内完整显示 |
 | Boss/任务提示 | 已配置 | Boss medallion、Boss 条、任务正式图标、世界信标与 HUD 卡片 |
 | Debug Overlay | 已配置 | 薄荷胶囊入口、奶油白圆角控制台、珊瑚标题与统一输入控件；保留自动暂停/恢复、F2/Esc/遮罩关闭及全部调试能力 |
 
@@ -119,7 +119,7 @@ ArtAsset/ 或 Experimental/
 
 ### 8.3 静态图片质量升级
 
-世界经验宝石、玉环、玉卫、鬼火和骷髅尸体均已使用独立世界图片；16 张第一代单帧 VFX 已替换为统一的 384×384 RGBA 手绘资源。`assets/ui/modern/` 中 11 张方形 UI 装饰也已升级为细节更完整的手绘版本；横向 `divider_blossom.png` 因布局用途保留原子切片形态。生成图集和透明单图归档在 `ArtAsset/Image/`，运行时只引用 `GameProject/assets/`。
+世界经验宝石、玉环、玉卫、鬼火和骷髅尸体均已使用独立世界图片；16 张第一代单帧 VFX 已替换为统一的 384×384 RGBA 手绘资源。`assets/ui/modern/` 中 11 张方形 UI 装饰保留手绘 PNG 作为美术对照，运行时改用同名 SVG，确保 HUD、商城、仓库与 Debug 在不同尺寸下边缘清晰、描边一致；横向花饰同样使用矢量版本。生成图集和透明单图归档在 `ArtAsset/Image/`，运行时只引用 `GameProject/assets/`。
 
 ### 8.4 桃夜巡 UI 原子化约束
 

@@ -70,7 +70,8 @@ static func _weapon_reward_pool(game) -> Array[Dictionary]:
         if weapon.level < weapon.card["maxLevel"]:
             pool.append({"type": "taskWeapon", "rewardId": weapon.card["id"], "isNew": false,
                 "card": _reward_card("task-weapon-%s" % weapon.card["id"], "强化·%s" % weapon.card["name"]),
-                "levelInfo": "Lv %d → Lv %d" % [weapon.level, weapon.level + 1]})
+                "levelInfo": "Lv %d → Lv %d" % [weapon.level, weapon.level + 1],
+                "benefit": CardsScript.weapon_level_benefit(weapon.card["id"], weapon.level + 1)})
     if game.weapons.size() < Config.CONFIG["cards"]["maxWeaponSlots"]:
         for card: Dictionary in CardsScript.WEAPON_CARDS:
             var owned: bool = false
@@ -81,7 +82,7 @@ static func _weapon_reward_pool(game) -> Array[Dictionary]:
             if not owned:
                 pool.append({"type": "taskWeapon", "rewardId": card["id"], "isNew": true,
                     "card": _reward_card("task-weapon-new-%s" % card["id"], "武装·%s" % card["name"]),
-                    "levelInfo": "获得 Lv 1"})
+                    "levelInfo": "获得 Lv 1", "benefit": CardsScript.weapon_level_benefit(card["id"], 1)})
     return pool
 
 
@@ -164,7 +165,9 @@ static func apply_reward(offer: Dictionary, game) -> void:
             else:
                 var owned = game.get_weapon(reward_id)
                 if owned != null and owned.level < owned.card["maxLevel"]:
+                    var previous_level: int = owned.level
                     owned.level += 1
+                    game.on_weapon_level_changed(owned, previous_level)
             # 任务武器奖励与正式升级走同一条联动刷新路径。
             game.synergies.refresh(game.weapons, game.elapsed)
         "taskStat":

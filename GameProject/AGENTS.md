@@ -18,7 +18,7 @@
 | 文档 | 角色 | 更新纪律 |
 | --- | --- | --- |
 | `RULES.md` | 游戏规则真值：机制、公式、时序、RNG 顺序（§1–§17）；附录 B 矛盾裁决表；附录 C smoke 章节对照 | 规则变化必须同步；不放数值表（原附录 A 已全量并入 BALANCE.md，现为重定向） |
-| `BALANCE.md` | 数值配置唯一文档真值：CONFIG 全量表格（与 `autoload/config.gd` 逐键一致）、16 处 js 差异键原值标注、调参历史 | 改数流程：先改 `autoload/config.gd` → 同步本表 → 跑 headless smoke 验证 |
+| `BALANCE.md` | 数值配置唯一文档真值：CONFIG 全量表格（与 `autoload/config.gd` 逐键一致）、21 处 Godot 差异项与调参历史 | 改数流程：先改 `autoload/config.gd` → 同步本表 → 跑 headless smoke 验证 |
 | `PROGRESS.md` | 里程碑进度与时间线（§6 表格） | 状态变化只追加一行，不回改历史行 |
 | `PORT_PLAN.md` | JS↔GDScript 移植映射、命名对照与关键决策 | 移植约定变化时同步 |
 | `PLANS/` | 里程碑计划拆解（M1/M2/M3-plan.md） | 按里程碑维护 |

@@ -21,6 +21,8 @@ func run(runner) -> void:
     runner.check(not offers.is_empty(), "[7] 满武器槽仍应有升级/属性卡")
     for offer: Dictionary in offers:
         runner.check(offer["type"] != "new", "[7] 满武器槽不应出现新武器")
+        if offer["type"] == "upgrade":
+            runner.check(not offer.get("benefit", "").is_empty(), "[7] 武器升级卡应显示本级收益")
     game.weapons = []
     for card: Dictionary in CardsScript.WEAPON_CARDS:
         var weapon := FakeWeapon.new()

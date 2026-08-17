@@ -230,7 +230,9 @@ func _apply_weapon_level(id: String, level: int) -> void:
     if existing == null:
         existing = WeaponFactoryScript.create_weapon(id)
         game.weapons.append(existing)
+    var previous_level: int = existing.level
     existing.level = level
+    game.on_weapon_level_changed(existing, previous_level)
     var kept: Dictionary = {"value": false}
     game.weapons = game.weapons.filter(func(weapon) -> bool:
         if weapon.card["id"] != id:

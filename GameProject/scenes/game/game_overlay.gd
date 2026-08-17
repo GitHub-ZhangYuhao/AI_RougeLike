@@ -37,7 +37,7 @@ const NIGHT_MID: Color = Color('203a55')
 const WALNUT: Color = Color('4a2c24')
 const ANTIQUE_GOLD: Color = Color('b57b36')
 const SPIRIT_GLOW: Color = Color('79e1bd')
-const UI_SCALE: float = 0.7
+const UI_SCALE: float = 1.0
 const CARD_COLORS: Dictionary = {
 	"sword": Color("9fd8e8"), "cloak": Color("e97b52"), "talisman": Color("e6ca62"),
 	"trail": Color("d95b3c"), "ring": Color("acd77b"), "staff": Color("aa85d8"),
@@ -252,6 +252,8 @@ func _draw_hud_pause_button(rect: Rect2) -> void:
 func _draw_composed_weapon_slots(size: Vector2) -> void:
 	var rects: Array[Dictionary] = UiLayoutScript.get_weapon_slot_rects(size.x, size.y)
 	var selected_ids: Array[String] = run.synergies.selected_weapon_ids
+	var primary = run.synergies.primary_definition()
+	var primary_ids: Array = primary["weaponIds"] if primary != null else []
 	if rects.is_empty():
 		return
 	var first: Dictionary = rects[0]
@@ -263,6 +265,7 @@ func _draw_composed_weapon_slots(size: Vector2) -> void:
 		first['h'] + 54.0
 	)
 	_draw_atomic_hud_shell(dock_rect)
+	_draw_synergy_status(dock_rect)
 	var label_rect := Rect2(first['x'], first['y'] - 27.0, last['x'] + last['w'] - first['x'], 22.0)
 	_draw_panel(label_rect, Color('153c3af0'), Color('78c9a7'), 1.0, 11.0)
 	draw_string(UI_FONT, label_rect.position + Vector2(0.0, 16.0), '法器阵列', HORIZONTAL_ALIGNMENT_CENTER, label_rect.size.x, 11, Color('baf0d6'))
@@ -271,19 +274,21 @@ func _draw_composed_weapon_slots(size: Vector2) -> void:
 		var slot_rect := Rect2(data['x'], data['y'], data['w'], data['h'])
 		var weapon = run.weapons[i] if i < run.weapons.size() else null
 		var selected: bool = weapon != null and selected_ids.has(weapon.card['id'])
-		if selected:
-			draw_circle(slot_rect.get_center(), slot_rect.size.x * 0.54, Color(SPIRIT_GLOW, 0.17))
+		var linked: bool = weapon != null and primary_ids.has(weapon.card['id'])
+		if selected or linked:
+			draw_circle(slot_rect.get_center(), slot_rect.size.x * 0.54, Color(CINNABAR if selected else SPIRIT_GLOW, 0.17))
 		_draw_panel(Rect2(slot_rect.position + Vector2(0.0, 3.0), slot_rect.size), Color('050b13b8'), Color.TRANSPARENT, 0.0, 11.0)
-		_draw_panel(slot_rect, Color('102633f7') if weapon != null else Color('101d2be8'), CINNABAR if selected else Color('a97539'), 3.0 if selected else 2.0, 11.0)
+		var slot_border: Color = CINNABAR if selected else (SPIRIT_GLOW if linked else Color('a97539'))
+		_draw_panel(slot_rect, Color('102633f7') if weapon != null else Color('101d2be8'), slot_border, 3.0 if selected or linked else 2.0, 11.0)
 		draw_line(slot_rect.position + Vector2(8.0, 5.0), slot_rect.position + Vector2(slot_rect.size.x - 8.0, 5.0), Color(GOLD, 0.66), 2.0)
 		if weapon != null:
 			var id: String = weapon.card['id']
 			_draw_texture_centered(ArtCatalog.WEAPON_ICONS.get(id), slot_rect.position + Vector2(slot_rect.size.x * 0.5, 27.0), 42.0)
-			var pip_gap: float = 4.0
-			var pip_width: float = (slot_rect.size.x - 20.0 - pip_gap * 4.0) / 5.0
-			for pip in 5:
+			var pip_gap: float = 3.0
+			var pip_width: float = (slot_rect.size.x - 20.0 - pip_gap * 5.0) / 6.0
+			for pip in 6:
 				var pip_rect := Rect2(slot_rect.position + Vector2(10.0 + pip * (pip_width + pip_gap), slot_rect.size.y - 11.0), Vector2(pip_width, 5.0))
-				_draw_panel(pip_rect, Color('6bd19b') if pip < mini(weapon.level, 5) else Color('294044'), Color('153128'), 1.0, 2.0)
+				_draw_panel(pip_rect, Color('6bd19b') if pip < weapon.level else Color('294044'), Color('153128'), 1.0, 2.0)
 		else:
 			var empty_pulse: float = 0.5 + sin(animation_time * 2.4 + i * 0.8) * 0.5
 			var empty_center := slot_rect.get_center() - Vector2(0.0, 2.0)
@@ -295,6 +300,24 @@ func _draw_composed_weapon_slots(size: Vector2) -> void:
 		draw_circle(key_center, 9.5, Color('172c38'))
 		draw_arc(key_center, 10.5, 0.0, TAU, 22, GOLD, 1.3)
 		draw_string(UI_FONT, key_center + Vector2(-9.0, 4.0), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 18.0, 10, PAPER_LIGHT)
+
+
+func _draw_synergy_status(dock_rect: Rect2) -> void:
+	var definition = run.synergies.primary_definition()
+	var rect := Rect2(dock_rect.position.x, dock_rect.position.y - 45.0, dock_rect.size.x, 38.0)
+	var flash: float = clampf(run.synergies.trigger_flash_ttl / 0.35, 0.0, 1.0)
+	_draw_panel(rect, Color('102b36f2'), Color(SPIRIT_GLOW, 0.72 + flash * 0.28), 2.0 + flash, 12.0)
+	if definition == null:
+		draw_string(UI_FONT, rect.position + Vector2(10.0, 16.0), '主联动未激活', HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 20.0, 11, Color('b8cdbf'))
+		draw_string(UI_FONT, rect.position + Vector2(10.0, 31.0), '任意两把法器达到 Lv4 后自动激活', HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 20.0, 9, MUTED)
+		return
+	var runtime = run.synergies.get_runtime(definition['id'])
+	var mode_text: String = '已锁定' if run.synergies.activation_mode() == 'locked' else '自动主联动'
+	var trigger_count: int = runtime.get('triggerCount', 0) if runtime != null else 0
+	draw_string(UI_FONT, rect.position + Vector2(10.0, 16.0), '%s · %s' % [mode_text, definition['name']], HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 84.0, 11, MINT)
+	draw_string(UI_FONT, rect.position + Vector2(rect.size.x - 76.0, 16.0), '触发 %d' % trigger_count, HORIZONTAL_ALIGNMENT_RIGHT, 66.0, 9, GOLD)
+	draw_string(UI_FONT, rect.position + Vector2(10.0, 31.0), definition['effectText'], HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 20.0, 9, PAPER_LIGHT)
+
 
 func _draw_composed_boss_plaque(hud_rect: Rect2) -> void:
 	var plaque_rect := Rect2(hud_rect.position + Vector2(784.0, 101.0), Vector2(224.0, 62.0))
@@ -457,7 +480,7 @@ func _draw_dead(size: Vector2) -> void:
 				losses.append("%s×%d" % [_material_name(id), run.lastDeathLoss[id]])
 		if not losses.is_empty():
 			loss_text = "损失  " + "  ".join(losses)
-	_draw_modal(size, "魂灯熄灭", "存活 %s   境界 Lv%d   斩敌 %d\n%s" % [_format_time(run.elapsed), run.level, run.kills, loss_text], CINNABAR)
+	_draw_modal(size, "魂灯熄灭", "存活 %s   境界 Lv%d   斩敌 %d\n%s  ·  暗晶保留 +%d" % [_format_time(run.elapsed), run.level, run.kills, loss_text, run.lastDeathReward], CINNABAR)
 	_draw_key_button(Rect2(size.x * 0.5 - 110.0, size.y * 0.62, 220.0, 52.0), "R", "返回主菜单", CINNABAR)
 
 
@@ -514,6 +537,11 @@ func _draw_announcements(size: Vector2) -> void:
 		var alpha: float = minf(1.0, run.waveDirector.bannerTimer * 1.5)
 		var label: String = "休整片刻" if run.waveDirector.phase == "rest" else ("首领来袭" if run.waveDirector.isBossWave else "第 %d 波" % run.waveDirector.wave)
 		draw_string(UI_FONT, Vector2(0.0, size.y * 0.23), label, HORIZONTAL_ALIGNMENT_CENTER, size.x, 31, Color(GOLD, alpha))
+	if run.state == "playing" and run.elapsed <= 10.0:
+		_draw_pickup_guide()
+	if run.synergies.activation_flash_ttl > 0.0 and run.synergies.primary_definition() != null:
+		_draw_synergy_awakening(size)
+		return
 	var message = run.rareMessage if run.rareMessage != null else run.synergies.announcement
 	if message == null:
 		return
@@ -523,6 +551,32 @@ func _draw_announcements(size: Vector2) -> void:
 	draw_string(UI_FONT, Vector2(0.0, size.y * 0.28), text, HORIZONTAL_ALIGNMENT_CENTER, size.x, 24, color)
 	if not detail.is_empty():
 		draw_string(UI_FONT, Vector2(0.0, size.y * 0.28 + 25.0), detail, HORIZONTAL_ALIGNMENT_CENTER, size.x, 14, BONE)
+
+
+func _draw_synergy_awakening(size: Vector2) -> void:
+	var definition: Dictionary = run.synergies.primary_definition()
+	var alpha: float = clampf(run.synergies.activation_flash_ttl / 1.8, 0.0, 1.0)
+	var pulse: float = 0.5 + sin(animation_time * 10.0) * 0.5
+	var rect := Rect2(size.x * 0.5 - 270.0, size.y * 0.19, 540.0, 108.0)
+	_draw_panel(rect, Color(0.03, 0.11, 0.15, 0.9 * alpha), Color(0.35, 1.0, 0.86, 0.72 + pulse * 0.28), 3.0 + pulse * 2.0, 20.0)
+	var first_icon: Texture2D = ArtCatalog.WEAPON_ICONS.get(definition['weaponIds'][0])
+	var second_icon: Texture2D = ArtCatalog.WEAPON_ICONS.get(definition['weaponIds'][1])
+	_draw_texture_centered(first_icon, rect.position + Vector2(58.0, 54.0), 66.0 + pulse * 5.0)
+	_draw_texture_centered(second_icon, rect.end - Vector2(58.0, 54.0), 66.0 + pulse * 5.0)
+	draw_line(rect.position + Vector2(94.0, 54.0), rect.end - Vector2(94.0, 54.0), Color(0.42, 1.0, 0.86, alpha * 0.48), 7.0, true)
+	draw_line(rect.position + Vector2(94.0, 54.0), rect.end - Vector2(94.0, 54.0), Color(GOLD, alpha * 0.86), 2.0, true)
+	draw_string(UI_FONT, rect.position + Vector2(112.0, 34.0), 'BUILD COMPLETE · 联动成型', HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 224.0, 16, Color(0.52, 1.0, 0.88, alpha))
+	draw_string(UI_FONT, rect.position + Vector2(112.0, 63.0), definition['name'], HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 224.0, 27, Color(PAPER_LIGHT, alpha))
+	draw_string(UI_FONT, rect.position + Vector2(112.0, 87.0), definition['effectText'], HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 224.0, 12, Color(BONE, alpha))
+
+
+func _draw_pickup_guide() -> void:
+	var rect := Rect2(14.0, 140.0, 342.0, 54.0)
+	_draw_panel(rect, Color('0b1728ee'), Color(ANTIQUE_GOLD, 0.86), 2.0, 15.0)
+	_draw_texture_centered(UI_ICON_CRYSTAL, rect.position + Vector2(24.0, 16.0), 22.0)
+	draw_string(UI_FONT, rect.position + Vector2(42.0, 19.0), '灵晶靠近后自动吸附 · 增加悟道经验', HORIZONTAL_ALIGNMENT_LEFT, 286.0, 11, Color('c9e8dc'))
+	_draw_texture_centered(UI_ICON_HEART, rect.position + Vector2(24.0, 39.0), 20.0)
+	draw_string(UI_FONT, rect.position + Vector2(42.0, 43.0), '生命精华回复 %d 生命 · 稀有遗物强化本局' % Config.CONFIG['pickups']['hpValue'], HORIZONTAL_ALIGNMENT_LEFT, 286.0, 11, Color('ead6b8'))
 
 
 func _draw_panel(rect: Rect2, fill: Color, border: Color, width: float = 1.0, radius: float = 18.0) -> void:
