@@ -80,7 +80,7 @@ ArtAsset/ 或 Experimental/
 
 | 对象/系统 | 状态 | 当前正式表现 |
 | --- | --- | --- |
-| chaser / enhancedChaser / charger / ranged / bomber / shield | 已配置 | 独立敌人贴图、朝向、受击/冰冻/DoT 状态、血条 |
+| chaser / enhancedChaser / charger / ranged / bomber / shield | 已配置（贴图）／待补状态表现 | 独立敌人贴图、朝向、受击/冰冻/DoT 状态、血条；charger 有完整冲撞预警（危险车道+倒计时环）。**仍缺**：shield 的 `phase` 攻防窗口（3s 挡 / 1.5s 开，受伤 0.35× vs 1.25×）、bomber 的引信预警（`windup 0.9`、`blastRadius 88`）、enhancedChaser 的狂暴预警（`warningDuration 0.45`）——这三项机制目前在画面上完全不可见，见 `OPTIMIZATION_TRACKER.md` §第八轮候选 |
 | Boss | 已配置 | 专用贴图、Boss 尺寸、狂暴光效、血条与 HUD medallion |
 | 玩家与敌方弹道 | 已配置 | 按武器/阵营映射正式弹道资源；轨道玉环已使用独立世界图片，并保留轨迹与危险提示 |
 | 经验、血包、五种稀有物 | 待升级 | 灵晶、血包和稀有遗物已放大；灵晶磁吸 240px，普通/稀有拾取 30/42px；最近拾取物显示名称与作用，拾取稀有物后显示具体增益。现有血包与稀有物仍需重导无污染透明单图 |

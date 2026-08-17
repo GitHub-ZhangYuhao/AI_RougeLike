@@ -26,6 +26,25 @@
 让「已进入拾取范围」可见。同轮修正 `logic/weapons/sword.gd` 的道剑 Lv2–5 `maxHits` 2/2/2/4 → 全部 `INF`，
 恢复与原型 `js/weapons/sword.js` 的一致（原型 smoke 一直断言全等级无限贯穿），该项属移植缺陷修复而非平衡调整。
 
+## 待校准项（2026-08-18 复核提出，尚未处理）
+
+按优先级排列。每项都要走「改 `autoload/config.gd` → 同步本表 → 跑 headless smoke」流程，
+背景与依据见 `OPTIMIZATION_TRACKER.md` §第八轮候选。
+
+1. **六武器强度重排（高）**：第五轮把道剑 Lv2–5 `maxHits` 恢复为 `INF` 后，道剑在密集波次的实际 DPS
+   明显上升，其余五把未做任何补偿。需要一轮同条件对比（固定波次 / 固定敌群）再决定是补强其他武器
+   还是回调道剑的伤害或间隔。
+2. **稀有物无上限乘法叠加（高）**：`logic/rare_items.gd` 的 `rareBonuses["damageMult"] *= 1.2`
+   等四项均为乘法且**没有上限**。更关键的是掉落源比设计预期宽——`logic/enemies/shield.gd`
+   把**所有**盾兵的 `rank` 都设为 `"elite"`，而盾兵在 `enemyTypes.shield` 里有 `weight 4`、
+   `unlockAt 180`、`maxAlive 1`，属于常规刷新单位，`game_run.gd` 里每个 elite 击杀都会
+   `create_rare_pickup`。一局 25 分钟可能累积 20+ 个永久乘区，形成指数级 power creep。
+   处理方向二选一：给 `rareBonuses` 加 cap / 改为加法递减，或把稀有物掉落限定在波次精英与 Boss。
+3. **`pickups.rarePickupRadius` 58 是否过头（中）**：js 原值 30，第五轮按体验反馈提到 58。
+   与上一条叠加后稀有物几乎不会漏捡，建议连同掉落源一起校准。
+4. **W25 Boss 弹 161 原始伤害（中）**：本文件「第三轮后曲线速览」已自标需要实机与受击遥测校准，至今未做。
+5. **单局 25 分钟时长（低）**：已由 90s/波压到 60s/波，是否继续压缩取决于单局时长目标。
+
 ---
 
 ## 1. 视图 view
