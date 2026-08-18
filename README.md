@@ -16,10 +16,10 @@
 
 ## 当前状态（2026-08-19）
 
-- Godot 移植 **M0–M5 全部完成**，处于 **M6 打磨期**；headless smoke 419 checks / 24 scenarios 全绿，原型 smoke 同构双绿。
-- 美术：玩家八方向序列帧、节点式草甸地形、武器卡牌概念图、弹道/玉环特效、披风/丹炉序列帧图集已入库；披风/丹炉序列帧的运行时集成待做。
-- 音频：`AudioManager` autoload 框架就绪，SFX 3/23、BGM 0/6（资源生产待补）。
-- 主要剩余工作：对象池与 180 敌人压测、音频资源生产、序列帧 VFX 集成、统一敌人预警层、Windows 导出。
+- Godot 移植 **M0–M5 全部完成**，处于 **M6 打磨期**；headless smoke 436 checks / 25 scenarios 全绿，原型 smoke 同构双绿。
+- 美术：玩家八方向序列帧、节点式草甸地形、武器卡牌概念图、弹道/玉环特效、披风/丹炉序列帧图集已入库并完成运行时集成（披风 Lv6 爆发一次性播放、丹炉/余烬/丹火循环火焰）；披风火焰爆燃图集另完成一轮亮度阿尔法重抠像。
+- 音频：`AudioManager` autoload 框架就绪，SFX 24 条 ogg 入库（覆盖 `SFX_PATHS` 全部 23 键，部分键共用文件），BGM 3/6（menu/battle/boss；rest/extraction/summary 待补）；键位重映射与音量/交叉淡化参数在工作区 WIP 待落库。
+- 主要剩余工作：对象池与 180 敌人压测、音频收尾（BGM 3 条 + SFX 键位重映射落库）、盾兵攻防相位表现、Windows 导出。
 - 完整版本史见 [`CHANGELOG.md`](./CHANGELOG.md)；Godot 侧里程碑分解见 [`GameProject/PROGRESS.md`](./GameProject/PROGRESS.md)。
 
 ## 快速开始

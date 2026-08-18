@@ -20,13 +20,13 @@
 状态图例：⬜ 未开始 ｜ 🟨 进行中 ｜ ✅ 完成 ｜ ⛔ 受阻（必须同步登记到 §5）
 
 - 里程碑完成度：**6 / 7**
-- smoke 章节移植：**24 / 24**（矩阵见 §4，含 Godot 侧新增的 [22] 音频章节）
+- smoke 章节移植：**25 / 25**（矩阵见 §4，含 Godot 侧新增的 [22] 音频章节与 [24] 序列帧章节）
 - 每次全绿检查：Godot smoke 与根目录 `npm run smoke` 必须双绿。
 
 ## 2. 当前焦点（最多 3 项，随进度滚动）
 
 1. **180 敌人性能与对象池**：评估 `WorldArtView` 实体/VFX 分配，补齐压力场景和必要的降级策略。
-2. **正式音频**：AudioManager 框架已落地（`autoload/audio_manager.gd` + s22 冒烟章节），资源进度 SFX 3/23、BGM 0/6；继续补充 BGM、武器、受击、掉落、UI 与 Boss 音效，并保持音频层单向读取逻辑状态。
+2. **正式音频**：AudioManager 框架已落地（`autoload/audio_manager.gd` + s22 冒烟章节），SFX 24 条 ogg 入库（覆盖 `SFX_PATHS` 全部 23 键），BGM 3/6（menu/battle/boss）；剩余：BGM 3 条（rest/extraction/summary）、SFX 键位重映射与音量/交叉淡化参数落库（工作区 WIP），并保持音频层单向读取逻辑状态。
 3. **最终回归与导出检查**：完成全量 verify、键鼠/UI 流程复核和 Windows 导出验收。
 
 > 打磨类待办（敌人预警、稀有物数值、序列帧、死资源等）不占用上面三项焦点，
@@ -101,7 +101,7 @@
 - [x] `logic/debug_runtime.gd`（跨 reset 存活 + serialize）
 - [x] `scenes/game/debug_overlay.gd`（右上角常驻“调试台 F2”入口；面板打开时暂停世界，支持按钮/F2/Esc/遮罩关闭，并完整保留倍率、生命、刷怪、波次、武器与配置存取功能）
 - [ ] 实体视图对象池、VFX 预算与性能检查（180 存活上限）
-- [ ] 正式音频资源与音频表现层（AudioManager 框架已落地；缺 SFX 20 条、BGM 6 条，清单见 ART_ASSET_CONFIG.md §9）
+- [ ] 正式音频资源与音频表现层（AudioManager 框架已落地，SFX 24 条覆盖 23 键、BGM 3/6；缺 BGM 3 条 + 键位重映射 WIP 落库，清单见 ART_ASSET_CONFIG.md §9）
 - [ ] Windows 导出与最终人工回归
 
 ## 4. smoke 章节移植矩阵
@@ -132,6 +132,7 @@
 | [20] | Build batch 3 | M4 | ✅ |
 | [21] | 局内随机任务与奖励 | M5 | ✅ |
 | [22] | 音频系统（AudioManager） | M6 | ✅ |
+| [24] | 序列帧图集裁帧（flipbook） | M6 | ✅ |
 
 ## 5. 阻塞问题与风险登记
 
@@ -177,3 +178,6 @@
 | 2026-08-19 | M6 | 两侧对齐：js talisman thunderAoE 半径 95→80，与 Godot/RULES 一致（第六轮遗留清零）；原型 smoke 绿 | 0e89026 |
 | 2026-08-19 | M6 | 两套 25 帧序列帧图集入库：cloak_fire_burst_anim / furnace_flame_anim（MiniMax H3 视频→ComfyUI 抽帧→5×5 图集）+ .import；生产管线归档 ArtAsset/Image/VFX/gen_20260818_anim；art_catalog/world_art_view 抽帧集成待做 | 671cea9 |
 | 2026-08-19 | M6 | 开炉 SFX：新增 sfx_furnace_open（视频生成音频转制 ogg，WAV 母带存 ArtAsset/Audio/sfx），audio_manager 监听丹火炉累计开炉数触发播放（高频节流 0.12s），s22 冒烟扩展；SFX 账面 3/23，Godot smoke 419 项 / 24 场景与原型 smoke 双绿（文档同提交纪律由 f764530 后补） | ab77e16 |
+| 2026-08-19 | M6 | 序列帧运行时接入：新增 flipbook.gd 纯函数裁帧；cloakFireBurstAnim/furnaceFlameAnim 入库（VFX_TEXTURES 22→24），披风 Lv6 爆发一次性播放 + 丹炉/余烬/丹火循环火焰（世界坐标相位）；另补 4 类敌人预警（bomber 自爆蓄力/enhanced_chaser 狂暴前/Boss 弹幕蓄力/ranged 枪口蓄力点）；新增 s24_flipbook 章节，Godot smoke 436 项 / 25 场景与原型 smoke 双绿（文档补录） | cbab517 |
+| 2026-08-19 | M6 | 音频资源批量入库：21 条 SFX + 3 条 BGM（battle/boss/menu），磁盘 SFX 24 条覆盖 SFX_PATHS 全部 23 键（部分键共用文件）、BGM 3/6；s22 抽查通过（文档补录） | ff44fac |
+| 2026-08-19 | M6 | 披风火焰爆燃序列帧重抠像：BiRefNet 抠像侵蚀弥散火焰，改亮度阿尔法重键（remat_luma.py），图集原位重建、硬规格不变，覆盖率弧线恢复蓄力 53–72% → 爆发 82–88% → 单调消散；资产零回归（文档补录） | 12b1180 |

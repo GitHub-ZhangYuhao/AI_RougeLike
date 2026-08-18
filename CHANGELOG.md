@@ -65,10 +65,16 @@
 - 更正：Godot smoke 检查数 415→419 由 `ab77e16` 新增 s22 检查所致（此前误归因，历史行不回改）；已更新 README 与 ART_ASSET_CONFIG 现状行。
 - 补同步 `ab77e16`（开炉 SFX）的文档缺口：SFX 账面 2/22→3/23 同步至 PROGRESS / OPTIMIZATION_TRACKER / ART_ASSET_CONFIG / README（该提交当时未带文档，违反同提交纪律，此处补录）。
 
+## 2026-08-19 · 第八轮收尾（补录）
+
+- `cbab517` **feat(vfx)**：序列帧运行时接入——新增 `logic/systems/flipbook.gd` 纯函数裁帧；`art_catalog.gd` 增 `cloakFireBurstAnim` / `furnaceFlameAnim`（`VFX_TEXTURES` 22→24）；`world_art_view.gd` 披风 Lv6 爆发一次性播放 + 丹炉/余烬/丹火循环火焰（世界坐标位置相位）；另补齐 **4 类敌人预警**：bomber 自爆蓄力（加速闪烁+收缩环）、enhanced_chaser 狂暴前（脉动光环+旋转断口）、Boss 弹幕蓄力（扩张环+倒计时弧）、ranged 枪口蓄力点；新增 s24_flipbook 冒烟章节（419→436 项 / 24→25 场景）。该提交未带文档，违反同提交纪律，此处补录。
+- `ff44fac` **feat(audio)**：21 条 SFX + 3 条 BGM（battle/boss/menu）入库；磁盘 SFX 共 24 条，覆盖 `SFX_PATHS` 全部 23 键（部分键共用文件），BGM 3/6（rest/extraction/summary 缺，gameplay 实际文件为 battle）；s22 仅抽查首批 3 条 SFX + bus layout，无回归。该提交未带文档，违反同提交纪律，此处补录。
+- `12b1180` **fix(vfx)**：披风火焰爆燃序列帧重抠像——BiRefNet 显著性抠像侵蚀弥散火焰（关键帧覆盖率 82%→19.8%），改用亮度阿尔法重键（remat_luma.py：黑点提升 / 0.02 噪底 / gamma 0.8 光晕 / 反预乘 + 0.10 clamp / bleed 24），图集原位重建，硬规格（2000×2000 RGBA8、5×5、cell 400、fps 4.83871）不变；覆盖率弧线恢复为蓄力 53–72% → 爆发 82–88% → 单调消散；生产归档 `ArtAsset/Image/VFX/gen_20260819_anim/`。
+- 现状同步：Godot smoke 436 项 / 25 场景；序列帧运行时集成完成；音频 SFX 24/23 键、BGM 3/6；敌人预警已补 4 类（shield phase 仍缺）。SFX 键位重映射、BGM 音量/交叉淡化（audio_manager WIP）与 fireBallAnim（并行会话 WIP）未落库。
+
 ## 进行中 / 已知缺口
 
 - 对象池 + 180 敌人压测（`GameProject/OPTIMIZATION_TRACKER.md` 候选）。
-- 音频资源生产：SFX 3/23、BGM 0/6。
-- 披风/丹炉序列帧运行时集成（`art_catalog.gd` 仍 preload 静态贴图）。
-- 统一敌人预警表现层。
+- 音频收尾：BGM 缺 3 条（rest/extraction/summary）；SFX 24 条已覆盖 23 键，键位重映射与 BGM 音量/交叉淡化参数在工作区 WIP 待落库。
+- 盾兵攻防相位表现（其余 4 类敌人预警已由 `cbab517` 补齐：bomber/enhanced_chaser/Boss/ranged）。
 - Windows 导出流程。

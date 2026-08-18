@@ -1,6 +1,6 @@
 # Godot 美术资源配置台账
 
-> 最后核对：2026-08-18
+> 最后核对：2026-08-19
 >
 > 适用工程：`GameProject/`（Godot 4.7.1）
 >
@@ -18,13 +18,13 @@
 ## 2. 当前总体进度
 
 - 工程里程碑：M0–M5 完成，M6 进行中，完成度 `6 / 7`。
-- Godot smoke：`24 / 24` 章节已全部移植（含 Godot 侧新增的 [22] 音频章节），最新本地回归为 `419` 项检查全绿（2026-08-19 复核更正：`250a430` 后实际已为 419 项，此前台账未同步）。
+- Godot smoke：`25 / 25` 章节已全部移植（含 Godot 侧新增的 [22] 音频章节与 [24] 序列帧章节），最新本地回归为 `436` 项检查（2026-08-19：`cbab517` 新增 s24_flipbook 章节，419→436 项 / 24→25 场景）。
 - 正式关卡：4096×4096 草甸地形、确定性地图边界和环境装饰均已挂入主场景。
 - 正式世界表现：`WorldArtView` 已取代 `PlaceholderWorld`，接管敌人、Boss、弹道、掉落、召唤物、任务信标、武器范围与战斗 VFX。
 - 正式玩家表现：主游戏已恢复 `AnimatedSprite2D` 的 Idle / Move / Dead 八方向动画状态机，`player_static.png` 仅作为资源缺失时的回退。
 - 正式 UI：主菜单已切换为批准的桃夜巡 B+A 视觉稿；局内 HUD 与开局/升级卡牌使用桃夜巡原子资源动态拼装，商城、仓库、模态框与 Debug 已统一为深靛、宣纸、古金、玉青、朱砂体系，并完成焦点/悬停/按下/禁用状态。
 - 正式字体：`Noto Sans SC` 与 OFL 许可已进入工程并应用于游戏内 UI 和 Meta UI。
-- 剩余缺口：正式音频资源（AudioManager 框架已落地，SFX 3/23、BGM 0/6）、两套序列帧图集的渲染层集成、可选的玩家逐帧动画升级、实体视图对象池与 180 敌人压力检查。
+- 剩余缺口：音频收尾（SFX 24 条覆盖 23 键、BGM 3/6，缺 BGM 3 条与键位重映射 WIP 落库）、盾兵攻防相位表现、可选的玩家逐帧动画升级、实体视图对象池与 180 敌人压力检查。
 
 ## 3. 资源流向约定
 
@@ -52,8 +52,8 @@ ArtAsset/ 或 Experimental/
 | 六武器与弹道 | 已配置 | `assets/icons/weapon_*.png`、`projectile_*.png`、`assets/sprites/weapons/jade_ring_world.png`；玉环已重绘为四刃青玉环刃，雷符弹体与落雷/连锁表现已放大 | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 掉落与稀有物 | 待升级 | `assets/icons/pickup_*.png`、`rare_*.png`、`assets/vfx/rare_pickup_glow.png`；稀有拾取半径 40px 并绘制真实半径脉动环，世界图标 68px、专用发光贴图 110px；现有血包与稀有物切片仍待无污染重导出 | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 召唤物与任务 | 已配置 | `assets/sprites/summons/*.png`、`assets/vfx/skeleton_minion*.png`、`assets/icons/task_*.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
-| 音频 | 部分配置（框架就绪） | `assets/audio/sfx/weapon/sfx_cloak_burst.ogg`、`sfx_trail_blaze.ogg`、`sfx_furnace_open.ogg`、`default_bus_layout.tres`；缺 SFX 20 条、BGM 6 条（清单以 `autoload/audio_manager.gd` 的 SFX_PATHS/BGM_PATHS 为准） | `autoload/audio_manager.gd`、`game_view.gd`、`meta_screens.gd` |
-| 战斗 VFX | 已配置 | `assets/vfx/*.png`（`VFX_TEXTURES` 22 条）；16 张第一代单帧 VFX 已替换为 384×384 RGBA 手绘图片；2026-08-18 补入 `sword_projectile_lv2`、`flying_sword_v2`、`hostile_projectile_v3`、`charge_indicator_v2`、`task_beacon_v2`、`rare_pickup_glow` | `art_catalog.gd`、`world_art_view.gd` |
+| 音频 | 部分配置（资源批量入库） | `assets/audio/` 下 24 条 SFX（weapon/enemy/player/pickup/ui/wave 六类）+ 3 条 BGM（bgm_menu/bgm_battle/bgm_boss）+ `default_bus_layout.tres`；SFX 覆盖 SFX_PATHS 全部 23 键（部分键共用文件），BGM 3/6（rest/extraction/summary 缺）；键位重映射与音量参数在工作区 WIP | `autoload/audio_manager.gd`、`game_view.gd`、`meta_screens.gd` |
+| 战斗 VFX | 已配置 | `assets/vfx/*.png`（`VFX_TEXTURES` 24 条）；16 张第一代单帧 VFX 已替换为 384×384 RGBA 手绘图片；2026-08-18 补入 `sword_projectile_lv2`、`flying_sword_v2`、`hostile_projectile_v3`、`charge_indicator_v2`、`task_beacon_v2`、`rare_pickup_glow`；2026-08-19 补入 `cloak_fire_burst_anim`/`furnace_flame_anim`（5×5 序列帧图集，运行时裁帧已接入，`cloak_fire_burst_anim` 完成一轮亮度阿尔法重抠像） | `art_catalog.gd`、`world_art_view.gd`、`logic/systems/flipbook.gd` |
 | 桃夜巡辅助 UI 图形 | 已配置 | `assets/ui/modern/*.svg`（13 类）作为清晰矢量运行时图标；同名 PNG 保留美术对照 | `art_catalog.gd`、`meta_screens.gd`、`debug_overlay.gd` |
 | 桃夜巡主菜单 | 已配置 | `assets/ui/peach_night/menu_bg_exact.png`、三类按钮切片 | `scenes/ui/peach_night_menu.gd`、`meta_screens.gd` |
 | 桃夜巡局内原子 UI | 已配置 | `assets/ui/peach_night/atomic/` 的背板、边框、头像、状态条、精修矢量状态图标、花饰、法器槽、标签和纸张纹理 | `scenes/game/game_overlay.gd`、`logic/ui_layout.gd` |
@@ -81,7 +81,7 @@ ArtAsset/ 或 Experimental/
 
 | 对象/系统 | 状态 | 当前正式表现 |
 | --- | --- | --- |
-| chaser / enhancedChaser / charger / ranged / bomber / shield | 已配置（贴图）／待补状态表现 | 独立敌人贴图、朝向、受击/冰冻/DoT 状态、血条；charger 有完整冲撞预警（危险车道+倒计时环）。**仍缺**：shield 的 `phase` 攻防窗口（3s 挡 / 1.5s 开，受伤 0.35× vs 1.25×）、bomber 的引信预警（`windup 0.9`、`blastRadius 88`）、enhancedChaser 的狂暴预警（`warningDuration 0.45`）——这三项机制目前在画面上完全不可见，见 `OPTIMIZATION_TRACKER.md` §第八轮候选 |
+| chaser / enhancedChaser / charger / ranged / bomber / shield | 已配置（贴图）／待补状态表现 | 独立敌人贴图、朝向、受击/冰冻/DoT 状态、血条；charger 有完整冲撞预警（危险车道+倒计时环）；2026-08-19 `cbab517` 补齐 4 类预警：bomber 自爆蓄力（加速闪烁+收缩环，预告 blastRadius）、enhancedChaser 狂暴前（脉动光环+旋转断口）、Boss 弹幕蓄力（扩张环+倒计时弧）、ranged 枪口蓄力点。**仍缺**：shield 的 `phase` 攻防窗口（3s 挡 / 1.5s 开，受伤 0.35× vs 1.25×），见 `OPTIMIZATION_TRACKER.md` §第八轮候选 |
 | Boss | 已配置 | 专用贴图、Boss 尺寸、狂暴光效、血条与 HUD medallion |
 | 玩家与敌方弹道 | 已配置 | 按武器/阵营映射正式弹道资源；雷符弹体、落雷和连锁闪电已强化尺度；轨道玉环使用四刃环刃世界图片，自身朝向固定，仅围绕玩家公转并沿圆轨道留下渐隐弧形拖尾 |
 | 经验、血包、五种稀有物 | 待升级 | 灵晶、血包和稀有遗物已放大；灵晶磁吸 240px，普通/稀有拾取 30/40px；最近拾取物显示名称与作用，拾取稀有物后显示具体增益。现有血包与稀有物仍需重导无污染透明单图 |
@@ -130,9 +130,9 @@ ArtAsset/ 或 Experimental/
 
 | 类别 | 未完成内容 | 后续入口 |
 | --- | --- | --- |
-| 音频 | AudioManager 框架已实现（`autoload/audio_manager.gd`，含 s22 冒烟章节）；缺 SFX 20 条、BGM 6 条 | 按 SFX_PATHS/BGM_PATHS 清单补 ogg 进 `assets/audio/`（WAV 母带存 ArtAsset/Audio/），逐条替换静音占位 |
+| 音频 | AudioManager 框架已实现（`autoload/audio_manager.gd`，含 s22 冒烟章节）；SFX 24 条入库（覆盖 SFX_PATHS 全部 23 键），BGM 3/6：缺 rest/extraction/summary；SFX 键位重映射与 BGM 音量/交叉淡化参数待落库（工作区 WIP） | 按 BGM_PATHS 清单补 3 条 BGM（WAV 母带存 ArtAsset/Audio/），落库 audio_manager 键位重映射 |
 | 动态 VFX 与可选动画升级 | 闪电链、弹道拖尾、雷符闪电束的动态材质/序列帧；敌人/Boss 攻击、受击和死亡补帧；玩家逐帧连贯性 | 复用现有 PlayerView/WorldArtView 状态映射，本轮静态图片完成后再单独处理 |
-| 序列帧 VFX | `furnace_flame_anim`（火行路径）与 `cloak_fire_burst_anim`（披风 Lv6 爆发）两套 25 帧图集已生成入库（`assets/vfx/*_anim.png` + .import；生产归档 `ArtAsset/Image/VFX/gen_20260818_anim/`）；`art_catalog.gd` 仍 preload 静态贴图，抽帧渲染未接入 | art_catalog 增加 5×5 AtlasTexture 抽帧，world_art_view 按帧播放替换静态贴图 |
+| 序列帧 VFX | ✅ 完成：`furnace_flame_anim`（火行路径）与 `cloak_fire_burst_anim`（披风 Lv6 爆发）两套 25 帧图集已入库并完成运行时裁帧接入（`cbab517`：flipbook.gd 裁帧 + 披风 Lv6 爆发一次性播放 + 丹炉/余烬/丹火循环火焰）；`cloak_fire_burst_anim` 经 `12b1180` 完成亮度阿尔法重抠像，覆盖率弧线蓄力 53–72% → 爆发 82–88%（生产归档 gen_20260818_anim / gen_20260819_anim） | 无缺口；后续优化走美术迭代流程 |
 | 死资源清理 | `hostile_projectile_v2.png`、`task_beacon.png`、`charge_indicator.png` 已被 v2/v3 顶替，`sword_projectile_v2.png` 只剩回退作用，四者均无运行时引用 | 与其他死资源一并评估后统一删除 |
 | 视频资源 | 当前没有正式视频资源或视频播放管线 | 后续按剧情、开场或界面需求单独立项 |
 | 性能表现 | 实体视图对象池、VFX 预算、140 敌人压力下的降级策略 | M6 性能任务 |
