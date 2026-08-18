@@ -20,13 +20,13 @@
 状态图例：⬜ 未开始 ｜ 🟨 进行中 ｜ ✅ 完成 ｜ ⛔ 受阻（必须同步登记到 §5）
 
 - 里程碑完成度：**6 / 7**
-- smoke 章节移植：**23 / 23**（矩阵见 §4）
+- smoke 章节移植：**24 / 24**（矩阵见 §4，含 Godot 侧新增的 [22] 音频章节）
 - 每次全绿检查：Godot smoke 与根目录 `npm run smoke` 必须双绿。
 
 ## 2. 当前焦点（最多 3 项，随进度滚动）
 
 1. **180 敌人性能与对象池**：评估 `WorldArtView` 实体/VFX 分配，补齐压力场景和必要的降级策略。
-2. **正式音频**：补充 BGM、武器、受击、掉落、UI 与 Boss 音效，并保持音频层单向读取逻辑状态。
+2. **正式音频**：AudioManager 框架已落地（`autoload/audio_manager.gd` + s22 冒烟章节），资源进度 SFX 2/22、BGM 0/6；继续补充 BGM、武器、受击、掉落、UI 与 Boss 音效，并保持音频层单向读取逻辑状态。
 3. **最终回归与导出检查**：完成全量 verify、键鼠/UI 流程复核和 Windows 导出验收。
 
 > 打磨类待办（敌人预警、稀有物数值、序列帧、死资源等）不占用上面三项焦点，
@@ -86,7 +86,7 @@
 - [x] `tests/scenarios/`：[15][16][21]
 
 ### M6 调试 / 性能 / 打磨 ｜ 🟨 进行中
-验收：Godot 侧 [Debug] 绿 + 全部 23 章节回归绿。
+验收：Godot 侧 [Debug] 绿 + 全部 24 章节回归绿。
 - [x] 玩家动画状态机恢复：主游戏重新接入 `AnimatedSprite2D` / `player_sprite_frames.gd`，支持 Idle、Move、Dead 与八方向动画映射；正左方向镜像、左上/左下独立图集，`player_static.png` 保留为资源缺失回退
 - [x] 正式草甸关卡：节点式地形材质挂载 `main.tscn`，预览场景保留为材质调试工具
 - [x] 关卡边界逻辑：玩家/敌人/弹道/相机/刷怪点/任务点统一约束，玩家保留视觉安全边距
@@ -101,7 +101,7 @@
 - [x] `logic/debug_runtime.gd`（跨 reset 存活 + serialize）
 - [x] `scenes/game/debug_overlay.gd`（右上角常驻“调试台 F2”入口；面板打开时暂停世界，支持按钮/F2/Esc/遮罩关闭，并完整保留倍率、生命、刷怪、波次、武器与配置存取功能）
 - [ ] 实体视图对象池、VFX 预算与性能检查（180 存活上限）
-- [ ] 正式音频资源与音频表现层
+- [ ] 正式音频资源与音频表现层（AudioManager 框架已落地；缺 SFX 20 条、BGM 6 条，清单见 ART_ASSET_CONFIG.md §9）
 - [ ] Windows 导出与最终人工回归
 
 ## 4. smoke 章节移植矩阵
@@ -131,6 +131,7 @@
 | [19] | Build batches 1-2 | M4 | ✅ |
 | [20] | Build batch 3 | M4 | ✅ |
 | [21] | 局内随机任务与奖励 | M5 | ✅ |
+| [22] | 音频系统（AudioManager） | M6 | ✅ |
 
 ## 5. 阻塞问题与风险登记
 
@@ -171,5 +172,7 @@
 | 2026-08-17 | M6 | 强化成长高潮：六武器 Lv4/Lv6 分别获得专属觉醒/终极蜕变演出及常驻阶位光环；Build 成型增加专属横幅、青金世界爆发、镜头冲击、法器持续连线，并放大实际触发灵光；Godot smoke 403 项/23 场景全绿 | 待提交 |
 | 2026-08-18 | M6 | 补齐 OPTIMIZATION_TRACKER 第四/五轮未落库缺口：修复 `world_art_view` 对 Object 误用 `has()`/双参 `get()` 导致的 Boss 与冲撞兵绘制 pass 中断；道剑 Lv2–5 `maxHits` 恢复 INF 对齐原型；新增任务目标引导（导引线/光柱/屏外箭头）、重做冲撞预警、放大稀有拾取与 Lv6 飞剑、去除远程兵多余光晕圆、Lv2 弹道贴图补 45° 偏移；新增 5 张 384×384 RGBA VFX（gpt-image-1.5）并补齐 `.import`；debug 新增发放暗晶；Godot smoke 405 项/23 场景与原型 smoke 双绿 | 0b05978 |
 | 2026-08-18 | M6 | 复核记录：OPTIMIZATION_TRACKER 追加验收反馈调整与「第八轮候选」待办清单，BALANCE 新增「待校准项」（道剑穿透后武器强度重排、稀有物无上限叠加与盾兵掉落源过宽、rarePickupRadius 58 复核），ART_ASSET_CONFIG 修正盾兵/自爆兵/精英狂暴状态表现缺失的标注 | 待提交 |
-| 2026-08-18 | M6 | 音频系统落地：新增 AudioManager autoload（BGM/SFX 状态机、武器与波次音效绑定、节流与清理），将视频生成音频转制为技能音效 sfx_cloak_burst / sfx_trail_blaze（ogg，WAV 母带存 ArtAsset/Audio/sfx），default_bus_layout 总线布局；新增 s22 音频冒烟场景，Godot smoke 415 项 24 场景与原型 smoke 双绿 | 待提交 |
-| 2026-08-19 | M6 | 数值收敛（Hooke 轮）：盾兵基础阶位 elite→normal，精英仅由精英波（eliteEvery=3）产出，单局稀有掉落上限收敛至 18（精英 8 + Boss 5×2）；新增乘法类稀有加成硬上限（伤害≤1.8 / 经验≤2.0 / 移速≤1.35 / 磁吸≤240）；Godot rarePickupRadius 58→40；雷符咒 Lv1–3 改为 count 指向最近目标的多发雷弹（4/4/4/2/2/1，Lv3 DPS 30→118），丹火 Lv6 伤害 26→28；新增确定性武器校准工具 weapon_balance.gd，Lv3 DPS 离散度 4.61x→1.18x；BALANCE/RULES 同步更新，Godot smoke 415 项与原型 smoke 双绿 | 待提交 |
+| 2026-08-18 | M6 | 音频系统落地：新增 AudioManager autoload（BGM/SFX 状态机、武器与波次音效绑定、节流与清理），将视频生成音频转制为技能音效 sfx_cloak_burst / sfx_trail_blaze（ogg，WAV 母带存 ArtAsset/Audio/sfx），default_bus_layout 总线布局；新增 s22 音频冒烟场景，Godot smoke 415 项 24 场景与原型 smoke 双绿 | 4cf0420 |
+| 2026-08-19 | M6 | 数值收敛（Hooke 轮）：盾兵基础阶位 elite→normal，精英仅由精英波（eliteEvery=3）产出，单局稀有掉落上限收敛至 18（精英 8 + Boss 5×2）；新增乘法类稀有加成硬上限（伤害≤1.8 / 经验≤2.0 / 移速≤1.35 / 磁吸≤240）；Godot rarePickupRadius 58→40；雷符咒 Lv1–3 改为 count 指向最近目标的多发雷弹（4/4/4/2/2/1，Lv3 DPS 30→118），丹火 Lv6 伤害 26→28；新增确定性武器校准工具 weapon_balance.gd，Lv3 DPS 离散度 4.61x→1.18x；BALANCE/RULES 同步更新，Godot smoke 415 项与原型 smoke 双绿 | 250a430 |
+| 2026-08-19 | M6 | 两侧对齐：js talisman thunderAoE 半径 95→80，与 Godot/RULES 一致（第六轮遗留清零）；原型 smoke 绿 | 0e89026 |
+| 2026-08-19 | M6 | 两套 25 帧序列帧图集入库：cloak_fire_burst_anim / furnace_flame_anim（MiniMax H3 视频→ComfyUI 抽帧→5×5 图集）+ .import；生产管线归档 ArtAsset/Image/VFX/gen_20260818_anim；art_catalog/world_art_view 抽帧集成待做 | 671cea9 |

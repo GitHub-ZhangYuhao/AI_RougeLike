@@ -5,10 +5,10 @@
 ## 项目结构与模块组织
 
 - `project.godot` — 项目入口：60Hz 逻辑帧；窗口 1280×720、不开 stretch；注册 autoload。
-- `autoload/` — 全局单例：`config.gd`（← js/config.js，1:1 Dictionary，**保留 JS camelCase 键名**以便与 `BALANCE.md` 逐键对照）、`rng.gd`（可注入随机源）、`events.gd`（表现层信号总线）、`meta_save.gd`（← js/meta/save.js，user:// JSON）。
+- `autoload/` — 全局单例：`config.gd`（← js/config.js，1:1 Dictionary，**保留 JS camelCase 键名**以便与 `BALANCE.md` 逐键对照）、`rng.gd`（可注入随机源）、`events.gd`（表现层信号总线）、`meta_save.gd`（← js/meta/save.js，user:// JSON）、`audio_manager.gd`（BGM/SFX 播放层：状态机切歌、SFX 池与节流，只读逻辑状态）。
 - `logic/` — **纯 GDScript 类（RefCounted），不依赖 Node/SceneTree，可无头运行**。与根目录 `js/` 一一对应：顶层文件对应 `js/*.js`；`enemies/ weapons/ systems/ meta/` 对应 `js/` 同名子目录；`index.js` 移植为工厂（`*_factory.gd`）。数值、公式、时序、RNG 顺序必须与 `RULES.md` 一致。
 - `scenes/` — 表现层（Node/场景）：`main.tscn`、`game/`（game_view 驱动定步长、实体视图对象池、debug_overlay）、`ui/`（hud、card_choice、pause_overlay、meta_screens）。**只允许单向依赖 scenes → logic**，禁止 logic 引用任何 Node。
-- `tests/` — `smoke_runner.gd` + `scenarios/`（原型 headless-smoke.mjs 的 23 个章节逐章复刻，一个 .gd 一个章节）。
+- `tests/` — `smoke_runner.gd` + `scenarios/`（原型 headless-smoke.mjs 的 23 个章节逐章复刻 + Godot 侧新增 [22] 音频章节，一个 .gd 一个章节）。
 - `tools/run_smoke.gd` — SceneTree 脚本入口，供 `--headless` 运行。
 - `ART_ASSET_CONFIG.md` — 美术资源配置台账；记录已配置、待修订、未配置和集中式占位符，资源状态变化时同步更新。
 - 原型侧文件（`js/`、`index.html`、`tools/headless-smoke.mjs` 等）**只读参照，禁止在移植工作中修改**。
@@ -23,6 +23,7 @@
 | `PORT_PLAN.md` | JS↔GDScript 移植映射、命名对照与关键决策 | 移植约定变化时同步 |
 | `PLANS/` | 里程碑计划拆解（M1/M2/M3-plan.md） | 按里程碑维护 |
 | `ART_ASSET_CONFIG.md` | 美术资源台账（已配置/待修订/未配置/集中式占位符） | 资源状态变化时同步 |
+| `OPTIMIZATION_TRACKER.md` | 优化迭代台账：按轮记录问题、修复与验收 | 新轮追加、不回改旧轮；发现历史记录失真时加「复核」注记而不是改写原文 |
 ## 工作目录管理
 
 ### 全仓库目录归属（谁可以写哪里）
@@ -30,7 +31,7 @@
 | 目录 / 文件 | 归属 | 移植期间可写性 |
 | --- | --- | --- |
 | `index.html`、`js/`、`tools/`、`package.json` | HTML 原型 | ❌ 只读参照。改动原型 = 原型演进，必须独立提交并同步 RULES.md，不得夹带在移植提交里 |
-| `DESIGN.md`、`Docs/` | 策划/设计文档 | ❌ 移植期间不改；矛盾一律按 RULES.md 附录 B 裁决 |
+| `Docs/` | 策划/设计文档 | ❌ 移植期间不改；矛盾一律按 RULES.md 附录 B 裁决 |
 | `GameEngine/` | 本地 Godot 4.7.1 引擎（gitignored） | 只放引擎本体；不放项目文件，GameProject 内不得反向引用引擎目录 |
 | `GameProject/` | **Godot 移植唯一工作区** | ✅ 全部 Godot 代码、场景、测试、文档只落在这里 |
 | `ArtAsset/` | 美术素材源库（CharacterAnimation / Image / Video） | 只读参照；定稿素材**复制**进 `GameProject/assets/` 后再提交 |

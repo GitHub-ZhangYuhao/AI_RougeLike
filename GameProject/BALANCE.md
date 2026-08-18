@@ -65,7 +65,7 @@ RULES.md §12.3 / §12.4、双侧 smoke 的曲线断言同步。
 
 - 决策记录：纯 damage/interval 补偿 talisman 会让已有 chain + thunderAoE 的 Lv6 爆表，故选前置 count 曲线（低阶数量铺开、高阶机制接管）。
 - 被否方案：talisman count `[3,3,3,2,2,1]`（Lv3 仅 89.6 DPS，spread 1.55x 不达标）；trail Lv6 radius 62→66 + burnDps 14→16（仅 +0.5 DPS，已回退）。
-- 遗留的两侧不一致（本轮未修）：js talisman thunderAoE 半径 95 vs Godot `THUNDER_AOE_RADIUS` 80。
+- 遗留的两侧不一致已修复（2026-08-19，提交 `0e89026`）：js talisman thunderAoE 半径 95 → 80，与 Godot `THUNDER_AOE_RADIUS` 对齐，第六轮无遗留。
 
 ## 待校准项（2026-08-18 复核提出）
 

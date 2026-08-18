@@ -36,7 +36,8 @@ GameProject/
 │  ├─ config.gd             # ← js/config.js（camelCase 键，1:1）
 │  ├─ rng.gd                # 可注入随机源（next()）
 │  ├─ events.gd             # 表现层信号总线
-│  └─ meta_save.gd          # ← js/meta/save.js（user://save.json）
+│  ├─ meta_save.gd          # ← js/meta/save.js（user://save.json）
+│  └─ audio_manager.gd      # BGM/SFX 播放层（只读逻辑状态，M6 音频框架）
 ├─ logic/                   # 纯 RefCounted，可无头运行，与 js/ 一一对应
 │  ├─ utils.gd              # ← js/utils.js
 │  ├─ game_run.gd           # ← js/game.js（状态机/update 顺序/伤害管线）
@@ -61,7 +62,7 @@ GameProject/
 │  └─ ui/                   # hud.gd、card_choice.gd、pause_overlay.gd、meta_screens.gd
 ├─ tests/
 │  ├─ smoke_runner.gd       # 场景注册 + 汇总 + 退出码
-│  └─ scenarios/            # [0]–[21] + debug，一章一个 .gd（同构复刻 headless-smoke.mjs）
+│  └─ scenarios/            # [0]–[22] + debug，一章一个 .gd（[0]–[21] 同构复刻 headless-smoke.mjs，[22] 为 Godot 侧音频章节）
 └─ tools/
    └─ run_smoke.gd          # SceneTree 脚本：Godot.exe --headless --path GameProject --script res://tools/run_smoke.gd
 ```
@@ -89,7 +90,7 @@ GameProject/
 | ui/meta-screens.js | scenes/ui/meta_screens.gd + logic/ui_layout.gd | 同上 |
 | debug-runtime.js | logic/debug_runtime.gd | 跨 reset 存活 |
 | debug-panel.js | scenes/game/debug_overlay.gd | DOM → 游戏内 overlay（M6） |
-| tools/headless-smoke.mjs | tests/smoke_runner.gd + tests/scenarios/*.gd | 23 章节逐章复刻 |
+| tools/headless-smoke.mjs | tests/smoke_runner.gd + tests/scenarios/*.gd | 23 章节逐章复刻 + [22] 音频（Godot 侧新增，共 24 章节） |
 
 ## 4. 里程碑与验收
 

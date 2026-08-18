@@ -350,11 +350,32 @@
 
 ---
 
+## 第八轮：音频框架与数值审计（2026-08-18/19）
+
+> 处理「第八轮候选」中优先级最高的三类缺口：音频、数值、序列帧。
+> 相关提交：`4cf0420`（音频框架）、`250a430`（数值收敛）、`0e89026`（js/Godot 对齐）、`671cea9`（序列帧图集）。
+
+| # | 项目 | 状态 | 说明 |
+|---|------|------|------|
+| 1 | AudioManager autoload 框架 | ✅ 完成 | `autoload/audio_manager.gd`：SFX 8 路池 + 节流 + 音高抖动、BGM 双播放器交叉淡入、按 game_run 状态自动切歌、监听 `Events.sfx_requested`；game_view/meta_screens 完成接线；`default_bus_layout.tres` 总线布局；新增 s22 音频冒烟章节，Godot smoke 415 项 / 24 场景与原型 smoke 双绿 |
+| 2 | 首批技能音效 | ✅ 完成 | 视频生成音频转制 `sfx_cloak_burst` / `sfx_trail_blaze`（ogg 入 `assets/audio/sfx/weapon/`，WAV 母带存 `ArtAsset/Audio/sfx/`） |
+| 3 | 数值三项待校准 | ✅ 完成 | 武器强度重排、稀有物叠加与掉落源收敛、rarePickupRadius 复核全部解决；方法与数据见 `BALANCE.md` 调参历史第六轮；新增确定性校准工具 `tools/weapon_balance.gd`（双进程跑分逐字一致） |
+| 4 | 两套 25 帧序列帧 | 🟨 图集就绪 | `cloak_fire_burst_anim` / `furnace_flame_anim`（5×5 网格、384px/帧）已入 `assets/vfx/` 与 `.import`，生产管线归档 `ArtAsset/Image/VFX/gen_20260818_anim/`；`art_catalog.gd` 仍 preload 静态贴图，抽帧渲染集成待做 |
+
+资源进度：音频 SFX 2/22、BGM 0/6（清单以 `autoload/audio_manager.gd` 的 `SFX_PATHS` / `BGM_PATHS` 为准，缺口台账见 `ART_ASSET_CONFIG.md` §9）。
+
+---
+
 ## 第八轮候选：待办清单（2026-08-19 起）
 
 > 下列条目均为 2026-08-18 复核代码时确认存在的缺口，附依据文件/配置键，便于开工时直接定位。
 > 归属其他台账的条目只在此处交叉引用，不重复维护：性能与音频见 `PROGRESS.md` §2 当前焦点，
 > 资源缺口见 `ART_ASSET_CONFIG.md` §9，数值待校准见 `BALANCE.md` §待校准项。
+>
+> **2026-08-19 状态更新**（执行记录见上文「第八轮：音频框架与数值审计」节）：
+> - 「音频完全空缺」→ 🟨 进行中：AudioManager 框架已落地，剩余资源补齐（SFX 2/22、BGM 0/6）。
+> - 「两套 25 帧序列帧」→ 🟨 图集就绪待集成：两张图集已入库，渲染层抽帧接入未做。
+> - 数值表三项（武器强度重排 / 稀有物叠加与掉落源 / rarePickupRadius）→ ✅ 已解决，见 `BALANCE.md` 第六轮。
 
 ### 美术效果与资源
 
@@ -391,5 +412,5 @@
 ### 建议起手三件
 
 1. **盾兵 phase + 自爆兵引信预警**：两个敌人的核心机制当前完全不可见，投入小、体感提升最直接。
-2. **稀有物掉落源与叠加上限**（连带复核道剑穿透后的武器强度）：目前最可能让曲线崩掉的数值问题。
-3. **接入音频层**：即便先只做攻击/受击/拾取三个音效，感官提升也超过任何贴图重绘。
+2. ~~**稀有物掉落源与叠加上限**~~ ✅ 已完成（2026-08-19，`BALANCE.md` 第六轮；含武器强度重排与 rarePickupRadius 复核）。
+3. **接入音频层** → 🟨 框架已落地（AudioManager + s22 冒烟）：剩余为资源补齐（SFX 2/22、BGM 0/6），按 `ART_ASSET_CONFIG.md` §9 清单推进。
