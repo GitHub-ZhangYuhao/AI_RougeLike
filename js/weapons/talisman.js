@@ -100,7 +100,7 @@ export class TalismanWeapon extends WeaponBase {
     const total = 0.18;
     if (s.thunderAoE) {
       // 范围落雷：内部自动跳过死亡敌人，击杀走统一伤害入口
-      hitEnemiesInRadius(world, e.x, e.y, 95, dmg, null, {
+      hitEnemiesInRadius(world, e.x, e.y, 80, dmg, null, {
         sourceWeaponId: 'talisman',
         sourceAction: 'thunder',
         sourceTags: ['lightning', 'thunder', 'area'],
