@@ -12,7 +12,7 @@ func run(runner) -> void:
 
 
 func _check_weapon_sfx(runner) -> void:
-    var expected: Array[String] = ["sfx_cloak_burst", "sfx_trail_blaze"]
+    var expected: Array[String] = ["sfx_cloak_burst", "sfx_trail_blaze", "sfx_furnace_open"]
     for sfx_name in expected:
         runner.check(AudioManager.SFX_PATHS.has(sfx_name),
                 "[22] SFX_PATHS contains %s" % sfx_name)

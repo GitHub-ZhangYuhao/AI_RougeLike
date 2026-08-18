@@ -60,6 +60,8 @@ var _prev_is_boss_wave: bool = false
 var _prev_card_played: bool = false
 ## 武器实例 id → 上一帧 shocks/furnaces 数量（检测新增爆发用）
 var _prev_weapon_counts: Dictionary = {}
+## 武器实例 id → 上一帧丹火炉累计开炉次数（检测新开炉用）
+var _prev_furnace_opens: Dictionary = {}
 ## 清理节流字典的计时器
 var _cleanup_timer: float = 0.0
 
@@ -74,6 +76,7 @@ const SFX_PATHS: Dictionary = {
 	"sfx_talisman_zap": "res://assets/audio/sfx/weapon/sfx_talisman_zap.ogg",
 	"sfx_cloak_burst": "res://assets/audio/sfx/weapon/sfx_cloak_burst.ogg",
 	"sfx_trail_blaze": "res://assets/audio/sfx/weapon/sfx_trail_blaze.ogg",
+	"sfx_furnace_open": "res://assets/audio/sfx/weapon/sfx_furnace_open.ogg",
 	"sfx_ring_orbit": "res://assets/audio/sfx/weapon/sfx_ring_orbit.ogg",
 	"sfx_staff_cast": "res://assets/audio/sfx/weapon/sfx_staff_cast.ogg",
 	# --- 敌人 ---
@@ -128,6 +131,7 @@ const HIGH_FREQ_INTERVALS: Dictionary = {
 	"sfx_player_hurt": 0.15,
 	"sfx_cloak_burst": 0.25,
 	"sfx_trail_blaze": 0.3,
+	"sfx_furnace_open": 0.12,
 }
 
 # ============================================================
@@ -216,6 +220,7 @@ func bind_run(game_run) -> void:
 	_prev_is_boss_wave = false
 	_prev_card_played = false
 	_prev_weapon_counts = {}
+	_prev_furnace_opens = {}
 	_throttle_times.clear()
 	_cleanup_timer = 0.0
 	# 新对局直接落位对应 BGM（无淡入）
@@ -228,6 +233,7 @@ func _check_weapons() -> void:
 		var wid: int = weapon.get_instance_id()
 		if not _prev_weapon_counts.has(wid):
 			_prev_weapon_counts[wid] = _weapon_event_count(weapon)
+			_prev_furnace_opens[wid] = _furnace_open_count(weapon)
 			continue
 		var current: int = _weapon_event_count(weapon)
 		var prev: int = _prev_weapon_counts[wid]
@@ -241,6 +247,12 @@ func _check_weapons() -> void:
 			elif "furnaces" in weapon:
 				play_sfx("sfx_trail_blaze")
 		_prev_weapon_counts[wid] = current
+		# 开炉：所有丹火炉累计开炉次数增加（消耗燃料喷发的瞬间）
+		var opens_now: int = _furnace_open_count(weapon)
+		var opens_prev: int = int(_prev_furnace_opens.get(wid, 0))
+		if opens_now > opens_prev:
+			play_sfx("sfx_furnace_open")
+		_prev_furnace_opens[wid] = opens_now
 
 func _weapon_event_count(weapon) -> int:
 	if "shocks" in weapon:
@@ -248,6 +260,15 @@ func _weapon_event_count(weapon) -> int:
 	if "furnaces" in weapon:
 		return weapon.furnaces.size()
 	return -1
+
+func _furnace_open_count(weapon) -> int:
+	## 丹火炉（trail）所有炉区累计开炉次数；非丹火炉武器返回 0
+	if not "furnaces" in weapon:
+		return 0
+	var total: int = 0
+	for zone in weapon.furnaces:
+		total += int(zone.get("opens", 0))
+	return total
 
 
 # ============================================================
