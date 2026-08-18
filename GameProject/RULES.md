@@ -2,7 +2,7 @@
 
 **定位**：本文件是把根目录 HTML 原型（`js/`）移植到 Godot（本目录 `GameProject/`）时的**唯一规则真值**。移植产生的 `logic/` 代码必须与本文件逐条对应。
 
-**真值优先级**：`js/` 运行代码 > `Docs/` 策划文档 > `DESIGN.md`。文档与代码矛盾时一律以代码为准（见附录 B 矛盾裁决表）。
+**真值优先级**：`js/` 运行代码 > `Docs/` 策划文档。文档与代码矛盾时一律以代码为准（见附录 B 矛盾裁决表）。
 
 **约束**：
 - 所有公式、数值、时机、概率权重、**随机数调用顺序**均按 `js/` 代码 1:1 抄录，移植时不得"顺手优化"、取整或合并。
@@ -908,7 +908,7 @@ pairKey = 两个武器 id 排序后以 `+` 连接。
 | 4 | 道剑 Lv6 飞剑充能 | 每击杀 10 个敌人 | 每命中 10 次（飞剑命中不计，countIntent=false） | sword.js |
 | 5 | 雷符闪电链搜索半径 | ≤160px | 旧 js 为 180px | 按 2026-08-17 策划确认：普通链及中继入口/出口统一 160px |
 | 6 | 玉环 Lv6 狂暴/反制 | 每 80 杀狂暴 3s；冻结 1.5s；CD ≥ 20s | 旧 js 为 50 杀 / 4s / 冻结 2s / CD16 | 按 2026-08-17 策划确认：80 杀 / 3s / 冻结 1.5s / CD20 |
-| 7 | 披风 Lv6 击杀特效 | 每 100 杀重置震荡 CD | 每 100 杀追加强化冲击（半径 ×1.8 / 8 ticks / 减速 3s），不重置普通 CD | cloak.js + DESIGN.md |
+| 7 | 披风 Lv6 击杀特效 | 每 100 杀重置震荡 CD | 每 100 杀追加强化冲击（半径 ×1.8 / 8 ticks / 减速 3s），不重置普通 CD | cloak.js + git 历史（DESIGN.md 已于 2026-08-19 删除） |
 | 8 | 法杖自爆半径 | Lv4 约 70，Lv5 增加 50% | 旧 js 为 85 / 125 / 125 | 按 2026-08-17 策划确认：70 / 105 / 105 |
 | 9 | Godot 侧手感调参（2026-08-15） | js/config.js 原值：enemy.speed 85 / enemy.hp 50 / 存活上限 min(140, 20+8×(wave−1)) / quota round(16×mult)、增长 0.5 | Godot CONFIG：speed 76 / hp 45 / min(180, 30+10×(wave−1)) / quota round(24×mult)、增长 0.8 | 按实机反馈调参，Godot 侧为准；js 原型不回改，BALANCE.md（原附录 A）已同步为 Godot 真值 |
 | 10 | Godot 侧第二轮数值调参（2026-08-15） | 第一轮后 Godot CONFIG：hpPerMin 54 / speedPerMin 0.08 / hpPerWave 三段 0.16/0.30/0.28 / hpWaveCap 7 / baseSpeedMult 1.5 / speedWaveCap 2 / startMaxAlive 30 / maxAlivePerWave 10 / baseQuota 24 / quantityPerWave 0.8 / quantityWaveCap 11.25 | hpPerMin 10 / speedPerMin 0.015 / hpPerWave 三段 0.10/0.12/0.10 / hpWaveCap 3 / baseSpeedMult 1.35 / speedWaveCap 1.6 / startMaxAlive 40 / maxAlivePerWave 12 / baseQuota 30 / quantityPerWave 1.2 / quantityWaveCap 14；maxAliveCap 保持 180；apply_wave_scaling 由硬编码改为 Config 驱动 | 按实机反馈"血太厚/移速涨太快/怪太少"调参，Godot 侧为准；js 原型不回改，BALANCE.md（原附录 A）已同步为 Godot 真值 |

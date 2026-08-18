@@ -61,6 +61,7 @@
 - 删除过时文档：根 `DESIGN.md`、`Docs/wave-difficulty-table.md`、`Docs/project-status-summary.md`、`Docs/art-resource-refresh-2026-08-16.md`（信息已由 `GameProject/RULES.md`、`BALANCE.md`、`PROGRESS.md`、`ART_ASSET_CONFIG.md` 承接）。
 - 重写根 `README.md`；新建本文件（`CHANGELOG.md`）与 `Docs/README.md`（文档地图 + 更新纪律）。
 - Docs 5 个保留文件加状态头/复核注记；`AGENTS.md` 增补文档纪律与 Godot 命令；修复 RULES.md / PLANS 中的 DESIGN.md 引用。
+- 更正：Godot smoke 实际检查数为 419 项（`250a430` 后即如此，文档一直误记为 415）；已更新 README 与 ART_ASSET_CONFIG 现状行，历史变更行不回改。
 
 ## 进行中 / 已知缺口
 
