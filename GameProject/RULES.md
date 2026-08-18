@@ -343,10 +343,10 @@ speedMult  = 1.35 + (1.6 - 1.35) × speedProgress    # baseSpeedMult 1.35 → sp
 | normal | chaser |
 | enhanced-minion | enhancedChaser、ranged、bomber |
 | enhanced | charger |
-| elite | shield |
+| elite | shield（基础 rank normal，仅精英波生成路径赋 elite rank，见 §8.2） |
 | boss | boss |
 
-elite/boss 档享受任务增伤（§5.1 步骤 2）；elite 死亡掉稀有拾取物；boss 死亡掉 2 个。
+elite/boss 档享受任务增伤（§5.1 步骤 2）；elite 死亡掉稀有拾取物；boss 死亡掉 2 个。常规刷新（normal rank）的盾兵不掉稀有物（第六轮起）。
 
 ---
 ### 7.6 各类型行为（js/enemies/）
@@ -367,7 +367,7 @@ elite/boss 档享受任务增伤（§5.1 步骤 2）；elite 死亡掉稀有拾�
 **bomber（自爆者，enhanced-minion）**：接近至 `dist ≤ 58`（triggerDistance）→ windup；`windupTimer ≥ 0.9`（windup）→ **先置 `exploded = true`**，然后若 `dist ≤ 88`（blastRadius）调 `hurtPlayer(damage)`，生成爆炸视觉（spawnEnemyBlast，半径 88），`dead = true`。
 - **被击杀 ≠ 爆炸**：引爆前被打死不会爆炸（exploded 标志防重复）。
 
-**shield（护盾者，elite）**：`shielded`（3s）↔ `open`（1.5s）循环切换；用 while 循环一次性追平跨过的多个周期。
+**shield（护盾者，基础 rank normal / 精英波为 elite）**：`shielded`（3s）↔ `open`（1.5s）循环切换；用 while 循环一次性追平跨过的多个周期。
 - `modifyIncomingDamage`：shielded 期 ×0.35（shieldDamageMult），open 期 ×1.25（openDamageMult）。
 - 始终 moveToward 玩家。
 
@@ -409,7 +409,7 @@ elite/boss 档享受任务增伤（§5.1 步骤 2）；elite 死亡掉稀有拾�
 4. phase 'wave'：`waveTimer = max(0, waveTimer − dt)`。
 
 **普通波流程**：
-- `wave % 3 == 0`（eliteEvery）→ 波开始先强制刷 1 只 shield（精英保底；spawned++，timer = spawnInterval）。
+- `wave % 3 == 0`（eliteEvery）→ 波开始先强制刷 1 只 shield 并赋 `elite` rank（精英保底，驱动稀有物掉落与精英视觉；spawned++，timer = spawnInterval）。
 - 其余按 spawnInterval 节奏刷怪；`waveTimer ≤ 0` → 进入下一波（**存活敌人延续，不清场**）。
 
 **Boss 波流程（wave % 5 == 0）**：
@@ -574,16 +574,17 @@ n = 局内层数 + 局外等级（§4.1），apply 效果：
 ---
 ### 12.3 talisman 雷符咒
 
-| Lv | damage | interval | speed | range | 特性 |
-| --- | --- | --- | --- | --- | --- |
-| 1 | 12 | 1.0 | 460 | 520 | — |
-| 2 | 15 | 0.95 | 460 | 520 | thunder |
-| 3 | 19 | 0.88 | 460 | 520 | thunder |
-| 4 | 23 | 0.81 | 460 | 520 | chain，bounces 2 |
-| 5 | 27 | 0.75 | 460 | 520 | chain，bounces 2 |
-| 6 | 31 | 0.70 | 490 | 550 | thunderFirst，thunderAoE，chain，bounces 3 |
+| Lv | damage | interval | speed | range | count | 特性 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 12 | 1.0 | 460 | 520 | 4 | — |
+| 2 | 15 | 0.95 | 460 | 520 | 4 | thunder |
+| 3 | 19 | 0.88 | 460 | 520 | 4 | thunder |
+| 4 | 23 | 0.81 | 460 | 520 | 2 | chain，bounces 2 |
+| 5 | 27 | 0.75 | 460 | 520 | 2 | chain，bounces 2 |
+| 6 | 31 | 0.70 | 490 | 550 | 1 | thunderFirst，thunderAoE，chain，bounces 3 |
 
 机制：
+- **count（多发雷弹）**：每波攻击射出 count 道雷弹，分别指向射程内最近的 count 个不同目标（目标不足则少发，单目标场景只发 1 道）。Lv1–3 以 4 发铺开火力弥补无 thunder/chain 的覆盖缺口；Lv4 起闪电链接管多目标能力，count 回落；Lv6 单发，覆盖由 chain bounces 3 与 thunderAoE 承担。
 - 弹道半径 5；`lifetime = range / speed + 0.3`。
 - **thunder**：落雷伤害 = damage × 1.5；每目标 2 次命中计数器（WeakMap 实现，目标死亡/离场即失效，不得跨目标泄漏）。
 - **thunderFirst（Lv6）**：每波第一击必定落雷。**thunderAoE（Lv6）**：落雷附带半径 80 的范围伤害。
@@ -599,7 +600,7 @@ n = 局内层数 + 局外等级（§4.1），apply 效果：
 | 3 | 14 | 48 | 5.5 | 0.18 | burn 14 |
 | 4 | 16 | 52 | 7.0 | 0.18 | furnace，life 6，areaScale 1.0，pull 25，tick ×1.25，open ×6 |
 | 5 | 21 | 57 | 8.5 | 0.18 | enhancedFurnace，life 7.5，areaScale 1.15，pull 35，tick ×1.5，open ×7 |
-| 6 | 26 | 62 | 10.0 | 0.18 | nineTurn，life 9，hotZoneLife 5；沿用 Lv5 炉火强化 |
+| 6 | 28 | 62 | 10.0 | 0.18 | nineTurn，life 9，hotZoneLife 5；沿用 Lv5 炉火强化 |
 
 机制：
 - 火径每 **0.4s** tick 一次，对半径内敌人造成 damage 并施加共享火系 **burn** DoT（dps = burnDps × damageMult，2s）。

@@ -1,8 +1,9 @@
-import { WeaponBase, nearestEnemy, hitEnemiesInRadius } from './base.js';
+import { WeaponBase, nearestN, hitEnemiesInRadius } from './base.js';
 import { createProjectile } from '../projectile.js';
 import { dist2 } from '../utils.js';
 
 // ---------- 雷符咒：远程雷电弹道 ----------
+// 低阶多发：count 决定每波雷弹数量，分别指向最近的 count 个不同目标
 // Lv2 引雷：按弹道命中次数计数，每 2 次命中劈雷一次（伤害 = 弹道 ×1.5）
 // Lv4 闪电链：命中后向附近敌人弹射，每次 50% 伤害
 // Lv6 质变：链弹射 3 目标；每波攻击首个命中目标必定引雷（不占计数）；引雷变范围伤害
@@ -28,24 +29,26 @@ export class TalismanWeapon extends WeaponBase {
     this.timer -= dt;
     if (this.timer > 0) return;
     const s = this.stats;
-    const target = nearestEnemy(world.enemies, world.player.x, world.player.y, s.range ** 2);
-    if (!target) { this.timer = 0; return; }
+    const targets = nearestN(world.enemies, world.player.x, world.player.y, s.count || 1, s.range ** 2);
+    if (!targets.length) { this.timer = 0; return; }
     this.timer = s.interval;
     const damage = s.damage * world.mods.damageMult;
     const lifetime = s.range / s.speed + 0.3;
     this.attackSeq++;
-    const angle = Math.atan2(target.y - world.player.y, target.x - world.player.x);
-    const p = createProjectile(world.player.x, world.player.y, angle, {
-      speed: s.speed, radius: 5, damage, lifetime, color: '#8be0ff',
-    });
-    p.attackSeq = this.attackSeq;
-    p.damageOptions = {
-      sourceWeaponId: 'talisman',
-      sourceAction: 'projectile',
-      sourceTags: ['lightning', 'projectile'],
-    };
-    p.onHit = (e) => this._onProjectileHit(e, p);
-    world.projectiles.push(p);
+    for (const target of targets) {
+      const angle = Math.atan2(target.y - world.player.y, target.x - world.player.x);
+      const p = createProjectile(world.player.x, world.player.y, angle, {
+        speed: s.speed, radius: 5, damage, lifetime, color: '#8be0ff',
+      });
+      p.attackSeq = this.attackSeq;
+      p.damageOptions = {
+        sourceWeaponId: 'talisman',
+        sourceAction: 'projectile',
+        sourceTags: ['lightning', 'projectile'],
+      };
+      p.onHit = (e) => this._onProjectileHit(e, p);
+      world.projectiles.push(p);
+    }
   }
 
   // 弹道命中回调（由 game._handleCollisions 调用，发生在 damageEnemy 之后）
@@ -268,20 +271,20 @@ export class TalismanWeapon extends WeaponBase {
 
 export const CARD = {
   id: 'talisman', kind: 'weapon', name: '雷符咒', icon: '⚡', maxLevel: 6,
-  desc: '向远处敌人射出雷电弹道。每命中 2 次触发引雷，Lv4 起命中还会弹射闪电链。',
+  desc: '向远处敌人射出雷电弹道（低阶同时射向多个目标）。每命中 2 次触发引雷，Lv4 起命中还会弹射闪电链。',
   levels: [
-    // Lv1 数值基准
-    { damage: 12, interval: 1.0, speed: 460, range: 520 },
+    // Lv1 数值基准（4 道雷弹指向不同目标）
+    { damage: 12, interval: 1.0, speed: 460, range: 520, count: 4 },
     // Lv2 解锁引雷
-    { damage: 15, interval: 0.95, speed: 460, range: 520, thunder: true },
+    { damage: 15, interval: 0.95, speed: 460, range: 520, count: 4, thunder: true },
     // Lv3 数值成长
-    { damage: 19, interval: 0.88, speed: 460, range: 520, thunder: true },
-    // Lv4 解锁闪电链（弹射 2 次）
-    { damage: 23, interval: 0.81, speed: 460, range: 520, thunder: true, chain: true, chainBounces: 2 },
+    { damage: 19, interval: 0.88, speed: 460, range: 520, count: 4, thunder: true },
+    // Lv4 解锁闪电链（弹射 2 次），雷弹数量回落为 2
+    { damage: 23, interval: 0.81, speed: 460, range: 520, count: 2, thunder: true, chain: true, chainBounces: 2 },
     // Lv5 数值成长
-    { damage: 27, interval: 0.75, speed: 460, range: 520, thunder: true, chain: true, chainBounces: 2 },
-    // Lv6 质变：链弹射 3 目标；每波攻击首命中必定引雷（不占计数）；引雷变范围伤害
-    { damage: 31, interval: 0.70, speed: 490, range: 550, thunder: true, thunderFirst: true, thunderAoE: true, chain: true, chainBounces: 3 },
+    { damage: 27, interval: 0.75, speed: 460, range: 520, count: 2, thunder: true, chain: true, chainBounces: 2 },
+    // Lv6 质变：链弹射 3 目标；每波攻击首命中必定引雷（不占计数）；引雷变范围伤害；单发但覆盖靠机制
+    { damage: 31, interval: 0.70, speed: 490, range: 550, count: 1, thunder: true, thunderFirst: true, thunderAoE: true, chain: true, chainBounces: 3 },
   ],
   create() { return new TalismanWeapon(this); },
 };

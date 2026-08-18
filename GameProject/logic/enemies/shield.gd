@@ -6,7 +6,7 @@ var phaseTimer: float
 
 func _init(x0: float, y0: float, elapsed: float = 0.0) -> void:
     var config: Dictionary = Config.CONFIG["enemyTypes"]["shield"]
-    super(x0, y0, elapsed, {"type": "shield", "rank": "elite", "hpMult": config["hpMult"],
+    super(x0, y0, elapsed, {"type": "shield", "rank": "normal", "hpMult": config["hpMult"],
         "speedMult": config["speedMult"], "damageMult": config["damageMult"]})
     phaseTimer = config["shieldDuration"]
 

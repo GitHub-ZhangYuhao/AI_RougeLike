@@ -12,7 +12,7 @@ func run(runner) -> void:
     runner.check(ids == ["damage", "armor", "magnet", "xp", "maxHp", "moveSpeed"], "[5] attribute pool contains removed or missing cards")
     runner.check(Config.CONFIG["gems"]["magnetRadius"] == 240, "[5] base magnet radius must be 240px")
     runner.check(Config.CONFIG["gems"]["pickupRadius"] == 30, "[5] gem pickup radius must be 30px")
-    runner.check(Config.CONFIG["pickups"]["pickupRadius"] == 30 and Config.CONFIG["pickups"]["rarePickupRadius"] == 58, "[5] pickup radii must match enlarged UX targets")
+    runner.check(Config.CONFIG["pickups"]["pickupRadius"] == 30 and Config.CONFIG["pickups"]["rarePickupRadius"] == 40, "[5] pickup radii must match enlarged UX targets")
     var mods: Dictionary = CardsScript.compute_mods({"damage": 2, "armor": 5, "magnet": 2, "xp": 3, "maxHp": 2, "moveSpeed": 1})
     var expected: Dictionary = {"damageMult": 1.3, "armor": 75.0, "damageReduction": 75.0 / 175.0, "magnetRadiusBonus": 100.0, "xpMult": 1.45, "maxHpBonus": 40.0, "moveSpeedMult": 1.06}
     for key: String in expected:

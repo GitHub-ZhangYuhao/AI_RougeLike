@@ -175,7 +175,7 @@ const CONFIG: Dictionary = {
     "pickups": {
         "hpValue": 15,
         "pickupRadius": 30,
-        "rarePickupRadius": 58,
+        "rarePickupRadius": 40,
         "maxAlive": 5,
     },
     "hud": {"font": "16px \"Segoe UI\", \"Microsoft YaHei\", sans-serif"},

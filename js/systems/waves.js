@@ -108,6 +108,8 @@ export class WaveDirector {
         },
       );
       if (elite) {
+        // 盾兵基础 rank 为 normal，仅精英波生成路径赋 elite rank（驱动稀有物掉落与精英视觉）
+        elite.rank = 'elite';
         this.eliteSpawned = true;
         this.spawned++;
         game.spawner.timer = this.spawnInterval;

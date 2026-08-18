@@ -8,7 +8,13 @@ func run(runner) -> void:
     runner.check(waves._quota_for(15) == 9 and waves._quota_for(25) == 13, "[9] boss quotas")
     var run = runner.harness.fresh_playing_game()
     Rng.set_source(func(): return 0.5)
+    # 掉落源修复：盾兵基础 rank 为 normal，常规击杀不掉稀有物
+    var shield = Factory.create_enemy_by_type("shield", 0, 0, 0, 1)
+    run.enemies.append(shield); run.damage_enemy(shield, shield.maxHp * 10.0)
+    runner.check(run.pickups.size() == 0, "[9] normal shield drops no rare")
+    # 精英波路径赋 elite rank（与 logic/systems/waves.gd 同构），必掉 1 件
     var elite = Factory.create_enemy_by_type("shield", 0, 0, 0, 1)
+    elite.rank = "elite"
     run.enemies.append(elite); run.damage_enemy(elite, elite.maxHp * 10.0)
     runner.check(run.pickups.size() == 1 and run.pickups[0]["kind"] == "rare", "[9] elite rare drop")
     run._update_pickups(0.0)

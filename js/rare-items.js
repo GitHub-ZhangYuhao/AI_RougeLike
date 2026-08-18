@@ -1,8 +1,18 @@
+// 乘法类稀有物加成硬上限（与 GameProject/logic/rare_items.gd 同构）
+export const RARE_BONUS_CAPS = {
+  damageMult: 1.8,
+  xpMult: 2.0,
+  moveSpeedMult: 1.35,
+  magnetRadiusBonus: 240,
+};
+
 const ITEMS = [
   {
     id: 'warRune', name: '战意符石', icon: '◆', color: '#ffca28',
     desc: '永久提升 20% 武器伤害',
-    apply(game) { game.rareBonuses.damageMult *= 1.2; },
+    apply(game) {
+      game.rareBonuses.damageMult = Math.min(game.rareBonuses.damageMult * 1.2, RARE_BONUS_CAPS.damageMult);
+    },
   },
   {
     id: 'bloodJade', name: '血玉', icon: '♥', color: '#ef5350',
@@ -15,17 +25,23 @@ const ITEMS = [
   {
     id: 'magnetCore', name: '聚灵核心', icon: '◎', color: '#40c4ff',
     desc: '经验吸附范围永久增加 80',
-    apply(game) { game.rareBonuses.magnetRadiusBonus += 80; },
+    apply(game) {
+      game.rareBonuses.magnetRadiusBonus = Math.min(game.rareBonuses.magnetRadiusBonus + 80, RARE_BONUS_CAPS.magnetRadiusBonus);
+    },
   },
   {
     id: 'spiritBook', name: '悟道残卷', icon: '✦', color: '#b388ff',
     desc: '永久提升 25% 经验获取',
-    apply(game) { game.rareBonuses.xpMult *= 1.25; },
+    apply(game) {
+      game.rareBonuses.xpMult = Math.min(game.rareBonuses.xpMult * 1.25, RARE_BONUS_CAPS.xpMult);
+    },
   },
   {
     id: 'windFeather', name: '疾风羽', icon: '➤', color: '#69f0ae',
     desc: '永久提升 10% 移动速度',
-    apply(game) { game.rareBonuses.moveSpeedMult *= 1.1; },
+    apply(game) {
+      game.rareBonuses.moveSpeedMult = Math.min(game.rareBonuses.moveSpeedMult * 1.1, RARE_BONUS_CAPS.moveSpeedMult);
+    },
   },
 ];
 
