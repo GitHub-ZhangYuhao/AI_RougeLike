@@ -24,6 +24,7 @@ func _ready() -> void:
 	overlay.bind_run(run)
 	meta_screens.bind_run(run)
 	debug_overlay.bind_run(run)
+	AudioManager.bind_run(run)
 	_sync_views(get_viewport_rect().size)
 
 

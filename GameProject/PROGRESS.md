@@ -171,3 +171,4 @@
 | 2026-08-17 | M6 | 强化成长高潮：六武器 Lv4/Lv6 分别获得专属觉醒/终极蜕变演出及常驻阶位光环；Build 成型增加专属横幅、青金世界爆发、镜头冲击、法器持续连线，并放大实际触发灵光；Godot smoke 403 项/23 场景全绿 | 待提交 |
 | 2026-08-18 | M6 | 补齐 OPTIMIZATION_TRACKER 第四/五轮未落库缺口：修复 `world_art_view` 对 Object 误用 `has()`/双参 `get()` 导致的 Boss 与冲撞兵绘制 pass 中断；道剑 Lv2–5 `maxHits` 恢复 INF 对齐原型；新增任务目标引导（导引线/光柱/屏外箭头）、重做冲撞预警、放大稀有拾取与 Lv6 飞剑、去除远程兵多余光晕圆、Lv2 弹道贴图补 45° 偏移；新增 5 张 384×384 RGBA VFX（gpt-image-1.5）并补齐 `.import`；debug 新增发放暗晶；Godot smoke 405 项/23 场景与原型 smoke 双绿 | 0b05978 |
 | 2026-08-18 | M6 | 复核记录：OPTIMIZATION_TRACKER 追加验收反馈调整与「第八轮候选」待办清单，BALANCE 新增「待校准项」（道剑穿透后武器强度重排、稀有物无上限叠加与盾兵掉落源过宽、rarePickupRadius 58 复核），ART_ASSET_CONFIG 修正盾兵/自爆兵/精英狂暴状态表现缺失的标注 | 待提交 |
+| 2026-08-18 | M6 | 音频系统落地：新增 AudioManager autoload（BGM/SFX 状态机、武器与波次音效绑定、节流与清理），将视频生成音频转制为技能音效 sfx_cloak_burst / sfx_trail_blaze（ogg，WAV 母带存 ArtAsset/Audio/sfx），default_bus_layout 总线布局；新增 s22 音频冒烟场景，Godot smoke 415 项 24 场景与原型 smoke 双绿 | 待提交 |
