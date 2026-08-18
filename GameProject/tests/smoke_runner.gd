@@ -42,6 +42,7 @@ const SCENARIO_PATHS: Array[String] = [
     "res://tests/scenarios/s20_synergy_third_batch.gd",
     "res://tests/scenarios/s21_tasks_rewards.gd",
     "res://tests/scenarios/s22_audio.gd",
+    "res://tests/scenarios/s24_flipbook.gd",
 ]
 
 var harness = HarnessScript.new()
