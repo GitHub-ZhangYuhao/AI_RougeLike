@@ -243,12 +243,12 @@ func _draw_weapon_zones() -> void:
 			for i in stats['count']:
 				var angle: float = weapon.angle + i * TAU / stats['count']
 				var ring_position := player_position + Vector2(cos(angle), sin(angle)) * orbit_radius
+				var trail_color := Color('ffb56b') if frenzy else Color('8ef7df')
+				_draw_ring_orbit_trail(player_position, orbit_radius, angle, trail_color, frenzy)
 				if frenzy:
-					var tangent := Vector2(-sin(angle), cos(angle))
-					draw_line(ring_position - tangent * 46.0, ring_position, Color(1.0, 0.35, 0.18, 0.34), 9.0, true)
-					draw_line(ring_position - tangent * 34.0, ring_position, Color(0.65, 0.92, 1.0, 0.72), 3.0, true)
-					draw_circle(ring_position, 34.0, Color(1.0, 0.32, 0.12, 0.12))
-				_draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['ring'], ring_position, 88.0 if frenzy else 76.0, angle,
+					draw_circle(ring_position, 30.0, Color(1.0, 0.32, 0.12, 0.1))
+				var display_size: float = 88.0 if frenzy else 76.0
+				_draw_sprite(ArtCatalog.PROJECTILE_TEXTURES['ring'], ring_position, display_size, 0.0,
 					false, Color(1.0, 0.82, 0.68, 1.0) if frenzy else Color.WHITE)
 			for fx: Dictionary in weapon.counter_fx:
 				var counter_progress: float = clampf(fx['t'] / maxf(fx['dur'], 0.001), 0.0, 1.0)
@@ -775,38 +775,70 @@ func _draw_player_projectiles() -> void:
 		var direction: Vector2 = velocity.normalized() if velocity.length_squared() > 0.0 else Vector2.RIGHT.rotated(projectile.angle)
 		var angle: float = direction.angle()
 		var size: float = maxf(26.0, projectile.radius * (6.5 if projectile.swordQi else 4.8))
-		var tail_length: float = size * (2.8 if projectile.swordQi else 1.8)
+		if source == 'talisman':
+			size *= 1.45
+		var tail_length: float = size * (1.65 if projectile.swordQi else 1.1)
 		if source == 'sword' and projectile.swordQi:
 			# Enhanced sword qi rendering — layered xianxia blade effect
 			# Outer aura glow
-			draw_circle(projectile_position, size * 1.0, Color(color, 0.10))
-			draw_circle(projectile_position, size * 0.6, Color(color, 0.18))
+			draw_circle(projectile_position, size * 0.7, Color(color, 0.055))
+			draw_circle(projectile_position, size * 0.42, Color(color, 0.10))
 			# Long trailing energy tail (dual color)
-			draw_line(projectile_position - direction * tail_length * 1.3, projectile_position - direction * tail_length * 0.3, Color(color, 0.15), maxf(2.0, projectile.radius * 1.2), true)
-			draw_line(projectile_position - direction * tail_length, projectile_position, Color(color, 0.35), maxf(4.0, projectile.radius * 2.8), true)
-			draw_line(projectile_position - direction * tail_length * 0.7, projectile_position, Color(1.0, 1.0, 1.0, 0.5), maxf(2.0, projectile.radius * 1.0), true)
+			_draw_soft_projectile_trail(projectile_position, direction, tail_length, maxf(5.0, projectile.radius * 1.35), color, 0.0)
 			# Side wisps (仙气)
 			var perp := direction.rotated(PI * 0.5)
-			for wisp_i in 3:
-				var wisp_t: float = 0.3 + float(wisp_i) * 0.25
+			for wisp_i in 2:
+				var wisp_t: float = 0.38 + float(wisp_i) * 0.3
 				var wisp_pos := projectile_position - direction * tail_length * wisp_t
-				var wisp_offset := perp * sin(animation_time * 12.0 + float(wisp_i) * 2.0) * size * 0.25
-				draw_circle(wisp_pos + wisp_offset, 2.0 + float(wisp_i), Color(color, 0.25 - float(wisp_i) * 0.06))
+				var wisp_offset := perp * sin(animation_time * 7.0 + float(wisp_i) * 2.4) * size * 0.12
+				draw_line(wisp_pos + wisp_offset - direction * size * 0.13, wisp_pos + wisp_offset + direction * size * 0.04, Color(color, 0.12), 1.2, true)
 			# Sword qi sprite (improved texture)
 			# 贴图刀尖朝右上（约 -45°），补 +45° 顺时针偏移才能对准飞行方向
 			_draw_sprite(ArtCatalog.VFX_TEXTURES['swordProjectileLv2'], projectile_position, size * 1.4, angle + PI * 0.25, false, color)
 			# Inner bright core
-			draw_circle(projectile_position, size * 0.22, Color(1.0, 1.0, 1.0, 0.7))
+			draw_circle(projectile_position, size * 0.14, Color(1.0, 1.0, 1.0, 0.58))
 		else:
 			# Standard projectile rendering
-			draw_circle(projectile_position, size * 0.8, Color(color, 0.12))
-			draw_line(projectile_position - direction * tail_length, projectile_position, Color(color, 0.28), maxf(3.0, projectile.radius * 2.4), true)
-			draw_line(projectile_position - direction * tail_length * 0.62, projectile_position, Color(1.0, 1.0, 1.0, 0.45), maxf(1.5, projectile.radius * 0.9), true)
+			draw_circle(projectile_position, size * 0.52, Color(color, 0.065))
+			_draw_soft_projectile_trail(projectile_position, direction, tail_length, maxf(3.0, projectile.radius * 0.95), color, 1.7)
 			if source == 'ring':
-				_draw_sprite(ArtCatalog.VFX_TEXTURES['jadeRingTrail'], projectile_position - direction * size * 0.45, size * 1.6, angle, false, Color(1.0, 1.0, 1.0, 0.55))
+				_draw_sprite(ArtCatalog.VFX_TEXTURES['jadeRingTrail'], projectile_position - direction * size * 0.3, size * 1.4, angle, false, Color(1.0, 1.0, 1.0, 0.42))
 			elif source == 'staff':
-				_draw_sprite(ArtCatalog.VFX_TEXTURES['staffSpiritBolt'], projectile_position - direction * size * 0.28, size * 1.7, angle, false, Color(1.0, 1.0, 1.0, 0.5))
+				_draw_sprite(ArtCatalog.VFX_TEXTURES['staffSpiritBolt'], projectile_position - direction * size * 0.2, size * 1.5, angle, false, Color(1.0, 1.0, 1.0, 0.4))
 			_draw_sprite(texture, projectile_position, size, angle, false, color)
+
+
+func _draw_ring_orbit_trail(center: Vector2, orbit_radius: float, angle: float, color: Color, frenzy: bool) -> void:
+	var inner_color: Color = color.lerp(Color.WHITE, 0.72)
+	var sweep: float = 1.15 if frenzy else 0.9
+	var width: float = 24.0 if frenzy else 17.0
+	var segment_count: int = 6
+	for segment_index in segment_count:
+		var t0: float = float(segment_index) / float(segment_count)
+		var t1: float = float(segment_index + 1) / float(segment_count)
+		var taper: float = pow(t1, 1.4)
+		var segment_start: float = angle - sweep * (1.0 - t0)
+		var segment_end: float = angle - sweep * (1.0 - t1)
+		draw_arc(center, orbit_radius, segment_start, segment_end, 5, Color(color, 0.025 + taper * 0.18), maxf(1.0, width * (0.16 + taper * 0.84)), true)
+		if segment_index >= 1:
+			draw_arc(center, orbit_radius, segment_start, segment_end, 5, Color(inner_color, taper * 0.42), maxf(0.8, width * (0.08 + taper * 0.2)), true)
+
+
+func _draw_soft_projectile_trail(projectile_position: Vector2, direction: Vector2, length: float, width: float, color: Color, phase: float) -> void:
+	var perpendicular := direction.rotated(PI * 0.5)
+	var inner_color: Color = color.lerp(Color.WHITE, 0.68)
+	var segment_count: int = 7
+	for segment_index in segment_count:
+		var t0: float = float(segment_index) / float(segment_count)
+		var t1: float = float(segment_index + 1) / float(segment_count)
+		var start_offset: float = sin(animation_time * 5.0 + phase + t0 * PI) * width * 0.08 * sin(t0 * PI)
+		var end_offset: float = sin(animation_time * 5.0 + phase + t1 * PI) * width * 0.08 * sin(t1 * PI)
+		var segment_start := projectile_position - direction * length * (1.0 - t0) + perpendicular * start_offset
+		var segment_end := projectile_position - direction * length * (1.0 - t1) + perpendicular * end_offset
+		var taper: float = pow(t1, 1.35)
+		draw_line(segment_start, segment_end, Color(color, 0.025 + taper * 0.105), maxf(0.8, width * (0.12 + taper * 0.88)), true)
+		if segment_index >= 2:
+			draw_line(segment_start, segment_end, Color(inner_color, taper * 0.22), maxf(0.65, width * (0.08 + taper * 0.24)), true)
 
 
 func _draw_hostile_projectiles() -> void:
@@ -845,43 +877,44 @@ func _draw_talisman_effects() -> void:
 		var is_aoe: bool = fx.get('aoe', false)
 		var is_sword: bool = fx.get('swordSynergy', false)
 		# Ground impact glow
-		var impact_r: float = 45.0 if is_aoe else 28.0
-		draw_circle(strike_position, impact_r * (1.0 + (1.0 - alpha) * 0.5), Color(0.5, 0.7, 1.0, alpha * 0.2))
-		draw_circle(strike_position, impact_r * 0.5, Color(0.8, 0.9, 1.0, alpha * 0.35))
+		var impact_r: float = 58.0 if is_aoe else 38.0
+		draw_circle(strike_position, impact_r * (1.0 + (1.0 - alpha) * 0.5), Color(0.5, 0.7, 1.0, alpha * 0.22))
+		draw_circle(strike_position, impact_r * 0.55, Color(0.8, 0.9, 1.0, alpha * 0.4))
 		# Lightning bolt from above
-		var bolt_top := strike_position + Vector2(0.0, -180.0)
-		var bolt_color := Color(0.6, 0.8, 1.0, alpha * 0.7) if not is_sword else Color(0.9, 0.7, 1.0, alpha * 0.7)
-		var core_color := Color(1.0, 1.0, 1.0, alpha * 0.9)
+		var bolt_height: float = 230.0
+		var bolt_top := strike_position + Vector2(0.0, -bolt_height)
+		var bolt_color := Color(0.6, 0.8, 1.0, alpha * 0.72) if not is_sword else Color(0.9, 0.7, 1.0, alpha * 0.72)
+		var core_color := Color(1.0, 1.0, 1.0, alpha * 0.94)
 		# Jagged lightning path
 		var segments := PackedVector2Array()
 		var current_pos := bolt_top
 		segments.append(current_pos)
-		var step_count: int = 6
-		var seg_h: float = 180.0 / float(step_count)
+		var step_count: int = 7
+		var seg_h: float = bolt_height / float(step_count)
 		for seg_i in step_count:
-			var jitter_x: float = sin(float(seg_i) * 7.3 + animation_time * 30.0) * 14.0
+			var jitter_x: float = sin(float(seg_i) * 7.3 + animation_time * 30.0) * 18.0
 			current_pos = Vector2(strike_position.x + jitter_x, bolt_top.y + float(seg_i + 1) * seg_h)
 			segments.append(current_pos)
 		# Draw outer glow line
 		for seg_i in range(segments.size() - 1):
-			draw_line(segments[seg_i], segments[seg_i + 1], bolt_color, 5.0, true)
+			draw_line(segments[seg_i], segments[seg_i + 1], bolt_color, 7.5, true)
 		# Draw core line (thinner, brighter)
 		for seg_i in range(segments.size() - 1):
-			draw_line(segments[seg_i], segments[seg_i + 1], core_color, 2.0, true)
+			draw_line(segments[seg_i], segments[seg_i + 1], core_color, 2.8, true)
 		# Branch lightning
-		for branch_i in 3:
+		for branch_i in 4:
 			var branch_start_idx: int = 1 + branch_i * 2
 			if branch_start_idx >= segments.size():
 				continue
 			var branch_start := segments[branch_start_idx]
-			var branch_angle: float = float(branch_i) * 1.2 - 1.2 + sin(animation_time * 20.0) * 0.3
-			var branch_end := branch_start + Vector2(cos(branch_angle), sin(branch_angle) * 0.5 + 0.5).normalized() * 25.0
-			draw_line(branch_start, branch_end, Color(0.6, 0.8, 1.0, alpha * 0.4), 1.5, true)
+			var branch_angle: float = float(branch_i) * 1.0 - 1.5 + sin(animation_time * 20.0) * 0.3
+			var branch_end := branch_start + Vector2(cos(branch_angle), sin(branch_angle) * 0.5 + 0.5).normalized() * 36.0
+			draw_line(branch_start, branch_end, Color(0.6, 0.8, 1.0, alpha * 0.46), 2.2, true)
 		# Impact texture
-		_draw_sprite(ArtCatalog.VFX_TEXTURES.get('thunderStrike', ArtCatalog.VFX_TEXTURES['talismanLightning']), strike_position, 70.0 + (1.0 - alpha) * 20.0, 0.0, false, Color(1.0, 1.0, 1.0, alpha * 0.85))
+		_draw_sprite(ArtCatalog.VFX_TEXTURES.get('thunderStrike', ArtCatalog.VFX_TEXTURES['talismanLightning']), strike_position, 104.0 + (1.0 - alpha) * 28.0, 0.0, false, Color(1.0, 1.0, 1.0, alpha * 0.9))
 		if is_aoe:
 			var aoe_radius: float = fx.get('radius', 80.0)
-			draw_arc(strike_position, aoe_radius * (1.0 + (1.0 - alpha) * 0.3), 0.0, TAU, 32, Color(0.5, 0.7, 1.0, alpha * 0.4), 2.5)
+			draw_arc(strike_position, aoe_radius * (1.0 + (1.0 - alpha) * 0.3), 0.0, TAU, 40, Color(0.5, 0.7, 1.0, alpha * 0.5), 3.6)
 		# Draw chain lightning arcs
 	for fx: Dictionary in talisman.chain_fx:
 		var start := Vector2(fx['x1'], fx['y1'])
@@ -891,20 +924,20 @@ func _draw_talisman_effects() -> void:
 		var chain_color := Color(0.4, 0.7, 1.0, alpha * 0.6) if not is_relay else Color(0.6, 0.4, 1.0, alpha * 0.5)
 		# Jagged chain path
 		var diff := finish - start
-		var seg_count: int = 5
+		var seg_count: int = 6
 		var prev := start
 		for seg_i in range(1, seg_count + 1):
 			var t: float = float(seg_i) / float(seg_count)
 			var point := start + diff * t
 			if seg_i < seg_count:
 				var perp := Vector2(-diff.y, diff.x).normalized()
-				var jitter: float = sin(float(seg_i) * 11.0 + animation_time * 25.0) * 12.0
+				var jitter: float = sin(float(seg_i) * 11.0 + animation_time * 25.0) * 16.0
 				point += perp * jitter
-			draw_line(prev, point, chain_color, 2.5, true)
-			draw_line(prev, point, Color(1.0, 1.0, 1.0, alpha * 0.5), 1.0, true)
+			draw_line(prev, point, chain_color, 4.0, true)
+			draw_line(prev, point, Color(1.0, 1.0, 1.0, alpha * 0.58), 1.6, true)
 			prev = point
 		# Small spark at endpoints
-		draw_circle(finish, 4.0, Color(0.7, 0.85, 1.0, alpha * 0.5))
+		draw_circle(finish, 6.0, Color(0.7, 0.85, 1.0, alpha * 0.58))
 
 
 func _draw_effects() -> void:

@@ -49,7 +49,7 @@ ArtAsset/ 或 Experimental/
 | 环境装饰 | 已配置（烘焙进整体地图） | `assets/terrain/amber_starlight_sanctuary_2048.png`；旧 `assets/environment/*.png` 保留回退 | `scenes/game/meadow_level.tscn`、`meadow_decor.gd` |
 | 玩家 | 已配置（回退保留） | `assets/sprites/player/player_static.png`；旧 `idle/walk_*.png` | `scenes/game/player_view.gd/.tscn` |
 | 七类敌人与 Boss | 已配置 | `assets/sprites/enemies/*.png` | `scenes/art_catalog.gd`、`scenes/game/world_art_view.gd` |
-| 六武器与弹道 | 已配置 | `assets/icons/weapon_*.png`、`projectile_*.png`、`assets/sprites/weapons/jade_ring_world.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
+| 六武器与弹道 | 已配置 | `assets/icons/weapon_*.png`、`projectile_*.png`、`assets/sprites/weapons/jade_ring_world.png`；玉环已重绘为四刃青玉环刃，雷符弹体与落雷/连锁表现已放大 | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 掉落与稀有物 | 待升级 | `assets/icons/pickup_*.png`、`rare_*.png`、`assets/vfx/rare_pickup_glow.png`；稀有拾取半径 58px 并绘制真实半径脉动环，世界图标 68px、专用发光贴图 110px；现有血包与稀有物切片仍待无污染重导出 | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 召唤物与任务 | 已配置 | `assets/sprites/summons/*.png`、`assets/vfx/skeleton_minion*.png`、`assets/icons/task_*.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 战斗 VFX | 已配置 | `assets/vfx/*.png`（`VFX_TEXTURES` 22 条）；16 张第一代单帧 VFX 已替换为 384×384 RGBA 手绘图片；2026-08-18 补入 `sword_projectile_lv2`、`flying_sword_v2`、`hostile_projectile_v3`、`charge_indicator_v2`、`task_beacon_v2`、`rare_pickup_glow` | `art_catalog.gd`、`world_art_view.gd` |
@@ -82,7 +82,7 @@ ArtAsset/ 或 Experimental/
 | --- | --- | --- |
 | chaser / enhancedChaser / charger / ranged / bomber / shield | 已配置（贴图）／待补状态表现 | 独立敌人贴图、朝向、受击/冰冻/DoT 状态、血条；charger 有完整冲撞预警（危险车道+倒计时环）。**仍缺**：shield 的 `phase` 攻防窗口（3s 挡 / 1.5s 开，受伤 0.35× vs 1.25×）、bomber 的引信预警（`windup 0.9`、`blastRadius 88`）、enhancedChaser 的狂暴预警（`warningDuration 0.45`）——这三项机制目前在画面上完全不可见，见 `OPTIMIZATION_TRACKER.md` §第八轮候选 |
 | Boss | 已配置 | 专用贴图、Boss 尺寸、狂暴光效、血条与 HUD medallion |
-| 玩家与敌方弹道 | 已配置 | 按武器/阵营映射正式弹道资源；轨道玉环已使用独立世界图片，并保留轨迹与危险提示 |
+| 玩家与敌方弹道 | 已配置 | 按武器/阵营映射正式弹道资源；雷符弹体、落雷和连锁闪电已强化尺度；轨道玉环使用四刃环刃世界图片，自身朝向固定，仅围绕玩家公转并沿圆轨道留下渐隐弧形拖尾 |
 | 经验、血包、五种稀有物 | 待升级 | 灵晶、血包和稀有遗物已放大；灵晶磁吸 240px，普通/稀有拾取 30/42px；最近拾取物显示名称与作用，拾取稀有物后显示具体增益。现有血包与稀有物仍需重导无污染透明单图 |
 | 普通/尸体/护法/鬼火召唤 | 已配置 | 普通骷髅、尸体、玉卫和鬼火均使用独立世界图片，不再复用同一贴图或 UI 图标 |
 | 披风、玉环、丹火、法杖 | 已配置 | 范围、轨迹、爆发、灵弹和命中 VFX |
