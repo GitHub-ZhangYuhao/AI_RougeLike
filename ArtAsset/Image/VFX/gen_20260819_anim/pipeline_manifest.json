@@ -1,0 +1,38 @@
+{
+  "task": "cloak_fire_burst_anim remat (luminance alpha)",
+  "created": "2026-08-19",
+  "input_video": "C:\\WorkSpace\\AIGame\\ArtAsset\\Video\\Effect\\MiniMax_H3_cloak_fire_burst_00001_.mp4",
+  "input_video_note": "与 gen_20260818_anim/videos/ 下源视频 SHA256 一致（同源副本）；本轮不重生成视频，仅重做抠像",
+  "raw_frames_source": "C:\\WorkSpace\\AIGame\\ArtAsset\\Image\\VFX\\gen_20260818_anim\\cloak_flipbook\\frames_raw",
+  "raw_frame_count": 124,
+  "matting": {
+    "method": "luminance alpha (remat_luma.py)",
+    "replaces": "birefnet-general-lite (BiRefNet 显著性分割侵蚀扩散火焰)",
+    "formula": "a_lin = clip((max_channel - black_point) / (255 - black_point)); a = a_lin^gamma",
+    "gamma": 0.8,
+    "noise_floor": 0.02,
+    "rgb": "straight alpha，按 a_lin 反乘并 clamp，透明区 bleed-radius 24 填充",
+    "bleed_radius": 24
+  },
+  "atlas": {
+    "output": "C:\\WorkSpace\\AIGame\\ArtAsset\\Image\\VFX\\gen_20260818_anim\\cloak_flipbook\\sprite_sheet_5x5_25f_2000.png",
+    "copies": [
+      "C:\\WorkSpace\\AIGame\\ArtAsset\\Image\\VFX\\gen_20260818_anim\\final\\cloak_fire_burst_anim.png",
+      "C:\\WorkSpace\\AIGame\\GameProject\\assets\\vfx\\cloak_fire_burst_anim.png"
+    ],
+    "grid": "5x5",
+    "samples": 25,
+    "atlas_size": 2000,
+    "cell": 400,
+    "content": 384,
+    "gutter": 8,
+    "source_fps": 24.0,
+    "playback_fps": 4.83871,
+    "pixel_format": "RGBA8 straight alpha"
+  },
+  "scripts": {
+    "remat": "remat_luma.py",
+    "atlas": ".agents/skills/video-to-alpha-flipbook/scripts/build_sprite_sheet.py",
+    "preview": ".agents/skills/video-to-alpha-flipbook/scripts/preview_sprite_sheet.py"
+  }
+}

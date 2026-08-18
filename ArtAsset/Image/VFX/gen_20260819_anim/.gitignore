@@ -1,0 +1,9 @@
+# 序列帧生产中间产物（体积大、可再生），只归档精选产物
+**/frames_raw/
+**/frames_alpha/
+videos/
+*.log
+*.err.log
+*.wav
+*.mp4
+*_checker_preview.jpg
