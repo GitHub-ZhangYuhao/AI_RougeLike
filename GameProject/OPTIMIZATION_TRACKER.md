@@ -362,7 +362,7 @@
 | 3 | 数值三项待校准 | ✅ 完成 | 武器强度重排、稀有物叠加与掉落源收敛、rarePickupRadius 复核全部解决；方法与数据见 `BALANCE.md` 调参历史第六轮；新增确定性校准工具 `tools/weapon_balance.gd`（双进程跑分逐字一致） |
 | 4 | 两套 25 帧序列帧 | 🟨 图集就绪 | `cloak_fire_burst_anim` / `furnace_flame_anim`（5×5 网格、384px/帧）已入 `assets/vfx/` 与 `.import`，生产管线归档 `ArtAsset/Image/VFX/gen_20260818_anim/`；`art_catalog.gd` 仍 preload 静态贴图，抽帧渲染集成待做 |
 
-资源进度：音频 SFX 2/22、BGM 0/6（清单以 `autoload/audio_manager.gd` 的 `SFX_PATHS` / `BGM_PATHS` 为准，缺口台账见 `ART_ASSET_CONFIG.md` §9）。
+资源进度：音频 SFX 3/23、BGM 0/6（清单以 `autoload/audio_manager.gd` 的 `SFX_PATHS` / `BGM_PATHS` 为准，缺口台账见 `ART_ASSET_CONFIG.md` §9）。
 
 ---
 
@@ -373,7 +373,7 @@
 > 资源缺口见 `ART_ASSET_CONFIG.md` §9，数值待校准见 `BALANCE.md` §待校准项。
 >
 > **2026-08-19 状态更新**（执行记录见上文「第八轮：音频框架与数值审计」节）：
-> - 「音频完全空缺」→ 🟨 进行中：AudioManager 框架已落地，剩余资源补齐（SFX 2/22、BGM 0/6）。
+> - 「音频完全空缺」→ 🟨 进行中：AudioManager 框架已落地，剩余资源补齐（SFX 3/23、BGM 0/6）。
 > - 「两套 25 帧序列帧」→ 🟨 图集就绪待集成：两张图集已入库，渲染层抽帧接入未做。
 > - 数值表三项（武器强度重排 / 稀有物叠加与掉落源 / rarePickupRadius）→ ✅ 已解决，见 `BALANCE.md` 第六轮。
 
@@ -413,4 +413,4 @@
 
 1. **盾兵 phase + 自爆兵引信预警**：两个敌人的核心机制当前完全不可见，投入小、体感提升最直接。
 2. ~~**稀有物掉落源与叠加上限**~~ ✅ 已完成（2026-08-19，`BALANCE.md` 第六轮；含武器强度重排与 rarePickupRadius 复核）。
-3. **接入音频层** → 🟨 框架已落地（AudioManager + s22 冒烟）：剩余为资源补齐（SFX 2/22、BGM 0/6），按 `ART_ASSET_CONFIG.md` §9 清单推进。
+3. **接入音频层** → 🟨 框架已落地（AudioManager + s22 冒烟）：剩余为资源补齐（SFX 3/23、BGM 0/6），按 `ART_ASSET_CONFIG.md` §9 清单推进。

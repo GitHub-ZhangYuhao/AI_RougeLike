@@ -55,18 +55,20 @@
 - `0e89026` fix(weapons)：js 侧雷符 thunderAoE 半径对齐 RULES 真值（95→80）。
 - `671cea9` feat(vfx)：披风/丹炉序列帧 sprite-sheet 图集入库（运行时集成待做）。
 - `98248dc` docs(godot)：六份 GameProject 文档同步（BALANCE/PROGRESS/OPTIMIZATION_TRACKER/ART_ASSET_CONFIG/AGENTS/PORT_PLAN）。
+- `ab77e16` feat(audio)：新增开炉音效 sfx_furnace_open（监听丹火炉累计开炉数触发，高频节流 0.12s）；SFX 账面 2/22→3/23，s22 冒烟扩展（415→419 项）。
 
 ## 2026-08-19 · 文档体系重整
 
 - 删除过时文档：根 `DESIGN.md`、`Docs/wave-difficulty-table.md`、`Docs/project-status-summary.md`、`Docs/art-resource-refresh-2026-08-16.md`（信息已由 `GameProject/RULES.md`、`BALANCE.md`、`PROGRESS.md`、`ART_ASSET_CONFIG.md` 承接）。
 - 重写根 `README.md`；新建本文件（`CHANGELOG.md`）与 `Docs/README.md`（文档地图 + 更新纪律）。
 - Docs 5 个保留文件加状态头/复核注记；`AGENTS.md` 增补文档纪律与 Godot 命令；修复 RULES.md / PLANS 中的 DESIGN.md 引用。
-- 更正：Godot smoke 实际检查数为 419 项（`250a430` 后即如此，文档一直误记为 415）；已更新 README 与 ART_ASSET_CONFIG 现状行，历史变更行不回改。
+- 更正：Godot smoke 检查数 415→419 由 `ab77e16` 新增 s22 检查所致（此前误归因，历史行不回改）；已更新 README 与 ART_ASSET_CONFIG 现状行。
+- 补同步 `ab77e16`（开炉 SFX）的文档缺口：SFX 账面 2/22→3/23 同步至 PROGRESS / OPTIMIZATION_TRACKER / ART_ASSET_CONFIG / README（该提交当时未带文档，违反同提交纪律，此处补录）。
 
 ## 进行中 / 已知缺口
 
 - 对象池 + 180 敌人压测（`GameProject/OPTIMIZATION_TRACKER.md` 候选）。
-- 音频资源生产：SFX 2/22、BGM 0/6。
+- 音频资源生产：SFX 3/23、BGM 0/6。
 - 披风/丹炉序列帧运行时集成（`art_catalog.gd` 仍 preload 静态贴图）。
 - 统一敌人预警表现层。
 - Windows 导出流程。

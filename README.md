@@ -18,7 +18,7 @@
 
 - Godot 移植 **M0–M5 全部完成**，处于 **M6 打磨期**；headless smoke 419 checks / 24 scenarios 全绿，原型 smoke 同构双绿。
 - 美术：玩家八方向序列帧、节点式草甸地形、武器卡牌概念图、弹道/玉环特效、披风/丹炉序列帧图集已入库；披风/丹炉序列帧的运行时集成待做。
-- 音频：`AudioManager` autoload 框架就绪，SFX 2/22、BGM 0/6（资源生产待补）。
+- 音频：`AudioManager` autoload 框架就绪，SFX 3/23、BGM 0/6（资源生产待补）。
 - 主要剩余工作：对象池与 180 敌人压测、音频资源生产、序列帧 VFX 集成、统一敌人预警层、Windows 导出。
 - 完整版本史见 [`CHANGELOG.md`](./CHANGELOG.md)；Godot 侧里程碑分解见 [`GameProject/PROGRESS.md`](./GameProject/PROGRESS.md)。
 

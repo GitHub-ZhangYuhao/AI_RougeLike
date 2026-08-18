@@ -26,7 +26,7 @@
 ## 2. 当前焦点（最多 3 项，随进度滚动）
 
 1. **180 敌人性能与对象池**：评估 `WorldArtView` 实体/VFX 分配，补齐压力场景和必要的降级策略。
-2. **正式音频**：AudioManager 框架已落地（`autoload/audio_manager.gd` + s22 冒烟章节），资源进度 SFX 2/22、BGM 0/6；继续补充 BGM、武器、受击、掉落、UI 与 Boss 音效，并保持音频层单向读取逻辑状态。
+2. **正式音频**：AudioManager 框架已落地（`autoload/audio_manager.gd` + s22 冒烟章节），资源进度 SFX 3/23、BGM 0/6；继续补充 BGM、武器、受击、掉落、UI 与 Boss 音效，并保持音频层单向读取逻辑状态。
 3. **最终回归与导出检查**：完成全量 verify、键鼠/UI 流程复核和 Windows 导出验收。
 
 > 打磨类待办（敌人预警、稀有物数值、序列帧、死资源等）不占用上面三项焦点，
@@ -176,3 +176,4 @@
 | 2026-08-19 | M6 | 数值收敛（Hooke 轮）：盾兵基础阶位 elite→normal，精英仅由精英波（eliteEvery=3）产出，单局稀有掉落上限收敛至 18（精英 8 + Boss 5×2）；新增乘法类稀有加成硬上限（伤害≤1.8 / 经验≤2.0 / 移速≤1.35 / 磁吸≤240）；Godot rarePickupRadius 58→40；雷符咒 Lv1–3 改为 count 指向最近目标的多发雷弹（4/4/4/2/2/1，Lv3 DPS 30→118），丹火 Lv6 伤害 26→28；新增确定性武器校准工具 weapon_balance.gd，Lv3 DPS 离散度 4.61x→1.18x；BALANCE/RULES 同步更新，Godot smoke 415 项与原型 smoke 双绿 | 250a430 |
 | 2026-08-19 | M6 | 两侧对齐：js talisman thunderAoE 半径 95→80，与 Godot/RULES 一致（第六轮遗留清零）；原型 smoke 绿 | 0e89026 |
 | 2026-08-19 | M6 | 两套 25 帧序列帧图集入库：cloak_fire_burst_anim / furnace_flame_anim（MiniMax H3 视频→ComfyUI 抽帧→5×5 图集）+ .import；生产管线归档 ArtAsset/Image/VFX/gen_20260818_anim；art_catalog/world_art_view 抽帧集成待做 | 671cea9 |
+| 2026-08-19 | M6 | 开炉 SFX：新增 sfx_furnace_open（视频生成音频转制 ogg，WAV 母带存 ArtAsset/Audio/sfx），audio_manager 监听丹火炉累计开炉数触发播放（高频节流 0.12s），s22 冒烟扩展；SFX 账面 3/23，Godot smoke 419 项 / 24 场景与原型 smoke 双绿（文档同提交纪律由 f764530 后补） | ab77e16 |

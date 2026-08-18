@@ -24,7 +24,7 @@
 - 正式玩家表现：主游戏已恢复 `AnimatedSprite2D` 的 Idle / Move / Dead 八方向动画状态机，`player_static.png` 仅作为资源缺失时的回退。
 - 正式 UI：主菜单已切换为批准的桃夜巡 B+A 视觉稿；局内 HUD 与开局/升级卡牌使用桃夜巡原子资源动态拼装，商城、仓库、模态框与 Debug 已统一为深靛、宣纸、古金、玉青、朱砂体系，并完成焦点/悬停/按下/禁用状态。
 - 正式字体：`Noto Sans SC` 与 OFL 许可已进入工程并应用于游戏内 UI 和 Meta UI。
-- 剩余缺口：正式音频资源（AudioManager 框架已落地，SFX 2/22、BGM 0/6）、两套序列帧图集的渲染层集成、可选的玩家逐帧动画升级、实体视图对象池与 180 敌人压力检查。
+- 剩余缺口：正式音频资源（AudioManager 框架已落地，SFX 3/23、BGM 0/6）、两套序列帧图集的渲染层集成、可选的玩家逐帧动画升级、实体视图对象池与 180 敌人压力检查。
 
 ## 3. 资源流向约定
 
@@ -52,7 +52,7 @@ ArtAsset/ 或 Experimental/
 | 六武器与弹道 | 已配置 | `assets/icons/weapon_*.png`、`projectile_*.png`、`assets/sprites/weapons/jade_ring_world.png`；玉环已重绘为四刃青玉环刃，雷符弹体与落雷/连锁表现已放大 | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 掉落与稀有物 | 待升级 | `assets/icons/pickup_*.png`、`rare_*.png`、`assets/vfx/rare_pickup_glow.png`；稀有拾取半径 40px 并绘制真实半径脉动环，世界图标 68px、专用发光贴图 110px；现有血包与稀有物切片仍待无污染重导出 | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
 | 召唤物与任务 | 已配置 | `assets/sprites/summons/*.png`、`assets/vfx/skeleton_minion*.png`、`assets/icons/task_*.png` | `art_catalog.gd`、`world_art_view.gd`、`game_overlay.gd` |
-| 音频 | 部分配置（框架就绪） | `assets/audio/sfx/weapon/sfx_cloak_burst.ogg`、`sfx_trail_blaze.ogg`、`default_bus_layout.tres`；缺 SFX 20 条、BGM 6 条（清单以 `autoload/audio_manager.gd` 的 SFX_PATHS/BGM_PATHS 为准） | `autoload/audio_manager.gd`、`game_view.gd`、`meta_screens.gd` |
+| 音频 | 部分配置（框架就绪） | `assets/audio/sfx/weapon/sfx_cloak_burst.ogg`、`sfx_trail_blaze.ogg`、`sfx_furnace_open.ogg`、`default_bus_layout.tres`；缺 SFX 20 条、BGM 6 条（清单以 `autoload/audio_manager.gd` 的 SFX_PATHS/BGM_PATHS 为准） | `autoload/audio_manager.gd`、`game_view.gd`、`meta_screens.gd` |
 | 战斗 VFX | 已配置 | `assets/vfx/*.png`（`VFX_TEXTURES` 22 条）；16 张第一代单帧 VFX 已替换为 384×384 RGBA 手绘图片；2026-08-18 补入 `sword_projectile_lv2`、`flying_sword_v2`、`hostile_projectile_v3`、`charge_indicator_v2`、`task_beacon_v2`、`rare_pickup_glow` | `art_catalog.gd`、`world_art_view.gd` |
 | 桃夜巡辅助 UI 图形 | 已配置 | `assets/ui/modern/*.svg`（13 类）作为清晰矢量运行时图标；同名 PNG 保留美术对照 | `art_catalog.gd`、`meta_screens.gd`、`debug_overlay.gd` |
 | 桃夜巡主菜单 | 已配置 | `assets/ui/peach_night/menu_bg_exact.png`、三类按钮切片 | `scenes/ui/peach_night_menu.gd`、`meta_screens.gd` |
