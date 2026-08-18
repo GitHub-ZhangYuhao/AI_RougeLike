@@ -1,0 +1,77 @@
+{
+  "1": {
+    "_meta": { "title": "加载 ACE-Step 1.5 All-in-One 检查点" },
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "ace_step_1.5_turbo_aio.safetensors"
+    }
+  },
+  "2": {
+    "_meta": { "title": "正向提示词 - 修改 tags 描述你想要的音效" },
+    "class_type": "TextEncodeAceStepAudio",
+    "inputs": {
+      "clip": ["1", 1],
+      "tags": "sharp sword slash sound effect, metallic ring, swift air cut, single strike, clean crisp, game audio",
+      "lyrics": "",
+      "lyrics_strength": 1.0
+    }
+  },
+  "3": {
+    "_meta": { "title": "负向提示词" },
+    "class_type": "TextEncodeAceStepAudio",
+    "inputs": {
+      "clip": ["1", 1],
+      "tags": "low quality, noisy, distorted, speech, vocals, dialogue, music",
+      "lyrics": "",
+      "lyrics_strength": 1.0
+    }
+  },
+  "4": {
+    "_meta": { "title": "空白音频 Latent (2秒)" },
+    "class_type": "EmptyAceStep1.5LatentAudio",
+    "inputs": {
+      "seconds": 2.0,
+      "batch_size": 1
+    }
+  },
+  "5": {
+    "_meta": { "title": "KSampler 采样" },
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["1", 0],
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "latent_image": ["4", 0],
+      "seed": 42,
+      "steps": 20,
+      "cfg": 7.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1.0
+    }
+  },
+  "6": {
+    "_meta": { "title": "VAE 解码音频" },
+    "class_type": "VAEDecodeAudio",
+    "inputs": {
+      "samples": ["5", 0],
+      "vae": ["1", 2]
+    }
+  },
+  "7": {
+    "_meta": { "title": "预览音频" },
+    "class_type": "PreviewAudio",
+    "inputs": {
+      "audio": ["6", 0]
+    }
+  },
+  "8": {
+    "_meta": { "title": "保存音频为 FLAC" },
+    "class_type": "SaveAudioAdvanced",
+    "inputs": {
+      "audio": ["6", 0],
+      "filename_prefix": "audio/ace_step_sfx",
+      "format": "flac"
+    }
+  }
+}
