@@ -99,3 +99,4 @@
 ## 2026-08-19 · 关卡场景调整
 
 - chore(scene)：草地关卡 Ground 缩放 0.5→0.861 并平移居中，背景色块收缩至 ±1763 恰好适配缩放后地面显示区域；新增 CollisionPolygon2D 关卡边界。
+- chore(export)：新增 Windows Desktop 导出预设 export_presets.cfg（x86_64、嵌入 PCK，输出路径 build/windows/aigame.exe）。
