@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://d3761tros44s"]
 
-[ext_resource type="Texture2D" uid="uid://uxvoeknrbbvk" path="res://assets/terrain/amber_starlight_sanctuary_2048.png" id="2_in6ls"]
+[ext_resource type="Texture2D" uid="uid://b7epc6nt7k8q2" path="res://assets/terrain/amber_starlight_sanctuary_4096.png" id="1_lrly7"]
 [ext_resource type="Script" uid="uid://fhl3akpnialn" path="res://scenes/game/meadow_decor.gd" id="3_decor"]
 
 [node name="MeadowLevel" type="Node2D" unique_id=517040107]
@@ -20,9 +20,9 @@ texture_filter = 6
 texture_repeat = 1
 position = Vector2(-6.4999785, -6.499979)
 scale = Vector2(0.86108404, 0.86108416)
-texture = ExtResource("2_in6ls")
+texture = ExtResource("1_lrly7")
 polygon = PackedVector2Array(-2048, -2048, 2048, -2048, 2048, 2048, -2048, 2048)
-uv = PackedVector2Array(0, 0, 2048, 0, 2048, 2048, 0, 2048)
+uv = PackedVector2Array(0, 0, 4096, 0, 4096, 4096, 0, 4096)
 
 [node name="WalkableBoundary" type="Polygon2D" parent="." unique_id=1190753711]
 color = Color(1, 0.85, 0.45, 0.08)
