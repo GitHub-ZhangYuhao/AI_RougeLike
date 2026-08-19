@@ -101,3 +101,7 @@
 - chore(scene)：草地关卡 Ground 缩放 0.5→0.861 并平移居中，背景色块收缩至 ±1763 恰好适配缩放后地面显示区域；新增 CollisionPolygon2D 关卡边界。
 - chore(export)：新增 Windows Desktop 导出预设 export_presets.cfg（x86_64、嵌入 PCK，输出路径 build/windows/aigame.exe）。
 - chore(scene)：草地关卡边界碰撞改挂 Area2D（裸 CollisionPolygon2D 在 Node2D 下不生效）并精调多边形范围；双冒烟 440 项 / 25 场景全绿。
+
+## 2026-08-19 · 触屏选卡（移动端适配）
+
+- feat(input)：触屏点选卡牌——game_view.gd 将 InputEventScreenTouch（index 0 按下）桥接为鼠标左键单击、InputEventScreenDrag（index 0）桥接为鼠标移动，第二根手指忽略；选卡/菜单复用鼠标命中语义，移动端无需键盘即可完成完整流程，数字键保留为桌面端快捷路径。新增 s23_touch_choice 冒烟章节（触摸按下/拖拽/多指/点选开局进 playing 全流程）；run_smoke.gd 延后到第一帧执行（_initialize 阶段根窗口尚未入树，场景类章节 @onready 为空）；RULES.md §3.2/§11.6/附录 C 同步。双冒烟 450 项 / 26 场景全绿。

@@ -60,6 +60,19 @@ func _input(event: InputEvent) -> void:
 			return
 		run.input.mouse_move(event.position.x, event.position.y)
 		run.input.mouse_down()
+	elif event is InputEventScreenTouch:
+		# 移动端触摸：主手指（index 0）按下等效鼠标左键点击，选卡/菜单热点复用鼠标命中语义。
+		# emulate_mouse_from_touch 开启时系统还会派发模拟鼠标事件，mouse_down() 幂等，重复无害。
+		if event.pressed and event.index == 0:
+			if debug_overlay.consumes_pointer(event.position):
+				return
+			run.input.mouse_move(event.position.x, event.position.y)
+			run.input.mouse_down()
+	elif event is InputEventScreenDrag:
+		if event.index == 0:
+			if debug_overlay.consumes_pointer(event.position):
+				return
+			run.input.mouse_move(event.position.x, event.position.y)
 
 
 func _physics_process(delta: float) -> void:

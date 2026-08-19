@@ -143,6 +143,7 @@
 - 移动轴：WASD 与方向键；对角线归一化 **÷√2**。
 - `wasPressed(code)`：当帧边沿查询；`mouseClicked`：当帧单击标志。
 - `endFrame()`：每个逻辑帧末尾清空 pressed 与 mouseClicked。
+- Godot 移植扩展（触屏）：`game_view.gd` 将 `InputEventScreenTouch`（index 0 按下）桥接为鼠标左键单击（写入坐标并置点击标志），`InputEventScreenDrag`（index 0）桥接为鼠标移动；第二根手指（index ≠ 0）忽略。选卡、菜单、武器槽点选等热点复用鼠标命中语义，移动端无需键盘即可操作。
 
 ### 3.3 移速合成
 
@@ -506,6 +507,7 @@ gainXp(v):
 ### 11.6 输入与布局
 
 - 键盘：Digit1–9 / Numpad1–9 优先于鼠标。
+- 触屏/点选：触摸点击经 `game_view.gd` 桥接为鼠标单击（见 §3.2），移动端可完成开局/升级选卡与菜单交互；数字键保留为桌面端快捷路径。
 - 卡牌矩形 `getCardRects(viewW, viewH, count)`：
   - ≤3 张：290 × 430，间距 45，`y = max(176, (viewH − 430)/2 + 35)`，整行水平居中。
   - >3 张：两行 205 × 285，横向间距 24、纵向间距 12，第二行水平居中。
@@ -946,5 +948,8 @@ pairKey = 两个武器 id 排序后以 `+` 连接。
 | [19] | First and second weapon Build batches | M4 |
 | [20] | Third weapon Build batch | M4 |
 | [21] | Randomized in-run tasks and rewards | M5 |
+| [22] | 音频资产与 AudioManager 映射（Godot 专属章节） | Godot 专属 |
+| [23] | 触屏选卡（触摸→鼠标桥接，Godot 专属章节） | Godot 专属 |
+| [24] | 翻页本图集数学（Godot 专属章节） | Godot 专属 |
 
 > RNG 覆盖点：smoke 在 headless-smoke.mjs 第 420 / 538 / 576 / 807 / 973 / 1032 / 1067 / 1251 行覆盖 `Math.random` 为常量函数。Godot 侧通过 `Rng.next()` 注入实现同等能力（PORT_PLAN §实现决策）。
