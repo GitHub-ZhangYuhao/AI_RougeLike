@@ -18,3 +18,6 @@ Experimental/
 # Local agent/tool state
 .claude/
 tools/AudioWorkflows/.cache/
+
+# Production source frames (too large for GitHub, 88MB+)
+ArtAsset/Flipbook/
