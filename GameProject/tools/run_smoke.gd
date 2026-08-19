@@ -30,15 +30,21 @@ func _run_smoke() -> void:
         _finish(1)
 
 
-## 延迟一帧再 quit：让 AudioServer 完成对已 stop 的 BGM 播放对象的回收，
-## 否则 headless 退出会误报 ObjectDB 泄漏（bgm ogg 播放链）。
+## 延迟若干帧再 quit：让 AudioServer 完成对已 stop/free 的 BGM 播放对象的回收，
+## 否则 headless 退出会误报 ObjectDB 泄漏（bgm ogg 播放链）。单帧窗口不稳定，
+## 给混音线程 10 帧窗口（实测 1 帧时泄漏必现）。
 var _exit_code: int = 0
+var _drain_frames: int = 0
 
 
 func _finish(code: int) -> void:
     _exit_code = code
-    process_frame.connect(_quit_next_frame, CONNECT_ONE_SHOT)
+    _drain_frames = 10
+    process_frame.connect(_drain_then_quit)
 
 
-func _quit_next_frame() -> void:
-    quit(_exit_code)
+func _drain_then_quit() -> void:
+    _drain_frames -= 1
+    if _drain_frames <= 0:
+        process_frame.disconnect(_drain_then_quit)
+        quit(_exit_code)
