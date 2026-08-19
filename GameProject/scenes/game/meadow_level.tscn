@@ -8,17 +8,18 @@ z_index = -100
 z_as_relative = false
 
 [node name="Backdrop" type="ColorRect" parent="." unique_id=1481659062]
-offset_left = -4096.0
-offset_top = -4096.0
-offset_right = 4096.0
-offset_bottom = 4096.0
+offset_left = -1763.0
+offset_top = -1763.0
+offset_right = 1763.0
+offset_bottom = 1763.0
 mouse_filter = 2
 color = Color(0.025, 0.03, 0.065, 1)
 
 [node name="Ground" type="Polygon2D" parent="." unique_id=1196258164]
 texture_filter = 6
 texture_repeat = 1
-scale = Vector2(0.5, 0.5)
+position = Vector2(-6.4999785, -6.499979)
+scale = Vector2(0.86108404, 0.86108416)
 texture = ExtResource("2_in6ls")
 polygon = PackedVector2Array(-2048, -2048, 2048, -2048, 2048, 2048, -2048, 2048)
 uv = PackedVector2Array(0, 0, 2048, 0, 2048, 2048, 0, 2048)
@@ -26,3 +27,6 @@ uv = PackedVector2Array(0, 0, 2048, 0, 2048, 2048, 0, 2048)
 [node name="Decor" type="Node2D" parent="." unique_id=1374383082]
 z_index = 10
 script = ExtResource("3_decor")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=2062722249]
+polygon = PackedVector2Array(-361, -1130, -91, -1263, 187, -1243, 371, -1848, -1891, -1845, -1925, -18, -1621, -18, -1424, -219, -1310, -621, -957, -656, -759, -751, -756, -1001)
