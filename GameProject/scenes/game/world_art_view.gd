@@ -229,13 +229,16 @@ func _draw_weapon_zones() -> void:
 				var enhanced: bool = shock.get('enhanced', false)
 				var shock_alpha: float = 1.0 - progress
 				var shock_radius: float = shock['max_r'] * progress
-				var tint := Color(1.0, 0.92, 0.62, shock_alpha) if enhanced else Color(1.0, 1.0, 1.0, shock_alpha)
+				# 使用高亮暖色模拟 Additive 混合模式，避免 alpha 抠像问题
+				var tint := Color(1.0, 0.72, 0.28, shock_alpha * 0.9) if enhanced else Color(1.0, 0.82, 0.45, shock_alpha * 0.85)
 				var burst_texture: Texture2D = ArtCatalog.VFX_TEXTURES.get('cloakFireBurstAnim')
 				if burst_texture != null:
 					var burst_frame: int = FlipbookScript.frame_for_progress(progress, BURST_FRAME_COUNT)
-					_draw_sprite_region(burst_texture, FlipbookScript.frame_region(burst_frame), shock_position, shock_radius * 2.1, 0.0, tint)
+					_draw_sprite_region(burst_texture, FlipbookScript.frame_region(burst_frame), shock_position, shock_radius * 2.6, 0.0, tint)
 				else:
-					_draw_sprite(ArtCatalog.VFX_TEXTURES['cloakFireBurst'], shock_position, shock_radius * 2.1, 0.0, false, tint)
+					_draw_sprite(ArtCatalog.VFX_TEXTURES['cloakFireBurst'], shock_position, shock_radius * 2.6, 0.0, false, tint)
+				# 叠加内圈高亮核心，模拟 additive 叠加
+				draw_circle(shock_position, shock_radius * 0.6, Color(1.0, 0.9, 0.5, shock_alpha * 0.25))
 				if enhanced:
 					draw_circle(shock_position, shock_radius, Color(1.0, 0.35, 0.08, shock_alpha * 0.08))
 					draw_arc(shock_position, shock_radius, 0.0, TAU, 72, Color(1.0, 0.92, 0.52, shock_alpha * 0.92), 4.5)
@@ -279,7 +282,16 @@ func _draw_weapon_zones() -> void:
 				_draw_zone(zone, Color(1.0, 0.65, 0.12, 0.1), Color('ffca28'))
 			for zone: Dictionary in weapon.cut_zones:
 				var alpha: float = clampf(zone['life'] / zone['maxLife'], 0.0, 1.0)
-				draw_line(Vector2(zone['x1'], zone['y1']), Vector2(zone['x2'], zone['y2']), Color(1.0, 0.35, 0.08, alpha), zone['width'])
+				var p1 := Vector2(zone['x1'], zone['y1'])
+				var p2 := Vector2(zone['x2'], zone['y2'])
+				# 切炉联动特效——燃烧剑痕：外发光 + 明亮核心 + 火星
+				draw_line(p1, p2, Color(1.0, 0.25, 0.04, alpha * 0.3), zone['width'] * 2.5)
+				draw_line(p1, p2, Color(1.0, 0.55, 0.12, alpha * 0.6), zone['width'] * 1.4)
+				draw_line(p1, p2, Color(1.0, 0.9, 0.5, alpha * 0.9), zone['width'] * 0.5)
+				# 沿线撒火星
+				var mid := (p1 + p2) * 0.5
+				var flicker: float = 0.5 + sin(animation_time * 12.0 + zone['x1'] * 0.1) * 0.5
+				draw_circle(mid, zone['width'] * 0.8 * (0.6 + flicker * 0.4), Color(1.0, 0.7, 0.2, alpha * 0.5))
 
 
 # ?????????????????????????
@@ -461,12 +473,27 @@ func _zone_alpha(zone: Dictionary) -> float:
 
 
 func _draw_trails() -> void:
+	var fire_tex: Texture2D = ArtCatalog.VFX_TEXTURES.get('fireBallAnim')
 	for trail: Dictionary in run.trails:
 		if trail['dead']:
 			continue
 		var alpha: float = clampf(trail['life'] / trail['maxLife'], 0.0, 1.0)
-		var trail_position := Vector2(trail['x'], trail['y'])
-		_draw_flame_anim(trail_position, trail['radius'] * 2.1, Color(1.0, 1.0, 1.0, alpha * 0.55))
+		var pos := Vector2(trail['x'], trail['y'])
+		var display_size: float = trail['radius'] * 3.0
+		# 脉动尺寸
+		var pulse: float = 0.88 + sin(animation_time * 8.0 + pos.x * 0.07 + pos.y * 0.05) * 0.12
+		display_size *= pulse
+		if fire_tex != null:
+			# 使用火球序列帧精灵图（与 furnaceFlameAnim 相同的 flipbook 规格）
+			var phase: float = fposmod(pos.x * 0.031 + pos.y * 0.017, 1.0) * float(FLAME_LOOP_FRAMES)
+			var frame: int = int(floor(animation_time * FLAME_FPS + phase)) % FLAME_LOOP_FRAMES
+			_draw_sprite_region(fire_tex, FlipbookScript.frame_region(frame), pos, display_size, 0.0, Color(1.0, 1.0, 1.0, alpha))
+		else:
+			# 后备：纯几何火球
+			var r: float = display_size * 0.5
+			draw_circle(pos, r * 1.2, Color(1.0, 0.4, 0.05, alpha * 0.25))
+			draw_circle(pos, r * 0.85, Color(1.0, 0.65, 0.15, alpha * 0.7))
+			draw_circle(pos, r * 0.5, Color(1.0, 0.9, 0.4, alpha * 0.9))
 
 
 func _draw_gems() -> void:

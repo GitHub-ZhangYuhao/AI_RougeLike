@@ -406,30 +406,38 @@ func _draw_mini_stat(rect: Rect2, icon: Texture2D, text: String, accent: Color) 
 
 
 func _draw_task_panel(size: Vector2) -> void:
-	var rect := Rect2(size.x - 314.0, 14.0, 300.0, 116.0)
-	_draw_atomic_hud_shell(rect)
-	_draw_panel(Rect2(rect.position + Vector2(8.0, 8.0), Vector2(rect.size.x - 68.0, 26.0)), Color(TEAL_DEEP, 0.82), Color(SPIRIT_GLOW, 0.34), 1.0, 13.0)
-	draw_string(UI_FONT, rect.position + Vector2(16.0, 27.0), '奇遇簿', HORIZONTAL_ALIGNMENT_LEFT, 112.0, 16, PAPER_LIGHT)
-	_draw_hud_pause_button(Rect2(rect.end.x - 54.0, rect.position.y + 7.0, 44.0, 44.0))
 	var task = run.taskDirector.current if run.taskDirector != null else null
+	var is_offered: bool = task != null and task['state'] == 'offered'
+	# 任务面板——有任务时加大加亮，特别是有新任务可接取时
+	var panel_rect := Rect2(size.x - 320.0, 10.0, 310.0, 124.0)
+	if is_offered:
+		# 新任务高亮闪烁
+		var pulse: float = 0.6 + sin(animation_time * 4.0) * 0.4
+		_draw_panel(panel_rect, Color(0.04, 0.16, 0.10, 0.96), Color(ANTIQUE_GOLD, pulse), 3.0, 20.0)
+	else:
+		_draw_atomic_hud_shell(panel_rect)
+	_draw_panel(Rect2(panel_rect.position + Vector2(8.0, 8.0), Vector2(panel_rect.size.x - 72.0, 28.0)), Color(TEAL_DEEP, 0.82), Color(SPIRIT_GLOW, 0.34), 1.0, 14.0)
+	draw_string(UI_FONT, panel_rect.position + Vector2(16.0, 28.0), '奇遇簿', HORIZONTAL_ALIGNMENT_LEFT, 120.0, 17, PAPER_LIGHT)
+	_draw_hud_pause_button(Rect2(panel_rect.end.x - 56.0, panel_rect.position.y + 7.0, 46.0, 46.0))
 	if task != null:
 		var type_names: Dictionary = {'guard': '镇守', 'delivery': '护送', 'bounty': '悬赏'}
-		var state_names: Dictionary = {'offered': '等待接取', 'active': '进行中', 'result': '已结束'}
-		_draw_icon_badge(ArtCatalog.TASK_TEXTURES.get(task['type']), rect.position + Vector2(30.0, 60.0), 40.0, 29.0, MINT, task['state'] == 'active')
-		draw_string(UI_FONT, rect.position + Vector2(55.0, 58.0), '%s · T%d' % [type_names.get(task['type'], task['type']), task['tier']], HORIZONTAL_ALIGNMENT_LEFT, 150.0, 13, PAPER_LIGHT)
-		draw_string(UI_FONT, rect.position + Vector2(55.0, 75.0), state_names.get(task['state'], task['state']), HORIZONTAL_ALIGNMENT_LEFT, 150.0, 10, MINT)
+		var state_names: Dictionary = {'offered': '可接取!', 'active': '进行中', 'result': '已结束'}
+		var state_color: Color = ANTIQUE_GOLD if is_offered else MINT
+		_draw_icon_badge(ArtCatalog.TASK_TEXTURES.get(task['type']), panel_rect.position + Vector2(32.0, 64.0), 44.0, 32.0, ANTIQUE_GOLD if is_offered else MINT, task['state'] == 'active')
+		draw_string(UI_FONT, panel_rect.position + Vector2(58.0, 60.0), '%s · T%d' % [type_names.get(task['type'], task['type']), task['tier']], HORIZONTAL_ALIGNMENT_LEFT, 160.0, 16, PAPER_LIGHT)
+		draw_string(UI_FONT, panel_rect.position + Vector2(58.0, 80.0), state_names.get(task['state'], task['state']), HORIZONTAL_ALIGNMENT_LEFT, 160.0, 13, state_color)
 		if task['state'] == 'active':
 			var pulse: float = 0.5 + sin(animation_time * 3.0) * 0.5
-			draw_circle(rect.position + Vector2(218.0, 59.0), 4.0 + pulse * 2.0, Color(JADE, 0.4 + pulse * 0.3))
-			draw_circle(rect.position + Vector2(218.0, 59.0), 2.5, JADE)
+			draw_circle(panel_rect.position + Vector2(228.0, 62.0), 4.0 + pulse * 2.0, Color(JADE, 0.4 + pulse * 0.3))
+			draw_circle(panel_rect.position + Vector2(228.0, 62.0), 2.5, JADE)
 	else:
-		_draw_texture_centered(UI_ICON_SPIRIT, rect.position + Vector2(30.0, 61.0), 34.0)
-		draw_string(UI_FONT, rect.position + Vector2(55.0, 60.0), '夜巡中', HORIZONTAL_ALIGNMENT_LEFT, 150.0, 13, MINT)
-		draw_string(UI_FONT, rect.position + Vector2(55.0, 76.0), '暂无奇遇任务', HORIZONTAL_ALIGNMENT_LEFT, 150.0, 10, Color('b8cdbf'))
-	_draw_mini_stat(Rect2(rect.position + Vector2(10.0, 84.0), Vector2(84.0, 24.0)), UI_ICON_KILL, '击破 %d' % run.kills, CINNABAR)
-	_draw_mini_stat(Rect2(rect.position + Vector2(100.0, 84.0), Vector2(92.0, 24.0)), UI_ICON_CRYSTAL, '暗晶 %d' % run.save.get('darkCrystals', 0), PLUM)
+		_draw_texture_centered(UI_ICON_SPIRIT, panel_rect.position + Vector2(32.0, 65.0), 36.0)
+		draw_string(UI_FONT, panel_rect.position + Vector2(58.0, 63.0), '夜巡中', HORIZONTAL_ALIGNMENT_LEFT, 160.0, 14, MINT)
+		draw_string(UI_FONT, panel_rect.position + Vector2(58.0, 80.0), '暂无奇遇任务', HORIZONTAL_ALIGNMENT_LEFT, 160.0, 11, Color('b8cdbf'))
+	_draw_mini_stat(Rect2(panel_rect.position + Vector2(10.0, 92.0), Vector2(88.0, 26.0)), UI_ICON_KILL, '击破 %d' % run.kills, CINNABAR)
+	_draw_mini_stat(Rect2(panel_rect.position + Vector2(104.0, 92.0), Vector2(96.0, 26.0)), UI_ICON_CRYSTAL, '暗晶 %d' % run.save.get('darkCrystals', 0), PLUM)
 	var boss = _active_boss()
-	_draw_mini_stat(Rect2(rect.position + Vector2(198.0, 84.0), Vector2(92.0, 24.0)), ArtCatalog.UI_TEXTURES['boss'] if boss != null else UI_ICON_SPIRIT, '首领' if boss != null else '平静', CINNABAR if boss != null else JADE)
+	_draw_mini_stat(Rect2(panel_rect.position + Vector2(206.0, 92.0), Vector2(96.0, 26.0)), ArtCatalog.UI_TEXTURES['boss'] if boss != null else UI_ICON_SPIRIT, '首领' if boss != null else '平静', CINNABAR if boss != null else JADE)
 
 func _draw_inventory(size: Vector2) -> void:
 	var entries: Array[Dictionary] = []

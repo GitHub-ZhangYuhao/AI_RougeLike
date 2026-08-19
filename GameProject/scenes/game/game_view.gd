@@ -1,13 +1,17 @@
 extends Node2D
 ## Godot 输入 → InputState；60Hz 累加器驱动纯逻辑；正式美术表现层只读取运行状态。
 const GameRunScript: GDScript = preload('res://logic/game_run.gd')
+const UiLayoutScript: GDScript = preload('res://logic/ui_layout.gd')
 const STEP: float = 1.0 / 60.0
-const CAMERA_ZOOM: float = 0.82
+const CAMERA_ZOOM: float = UiLayoutScript.CAMERA_ZOOM
 const CAMERA_VISUAL_OFFSET_Y: float = -18.0
 
 var run = GameRunScript.new()
 var accumulator: float = 0.0
 var visual_time: float = 0.0
+## 用于表现层检测波次更替与状态切换，驱动 sfx_requested 发射。
+var _prev_view_wave: int = 0
+var _prev_view_state: String = ""
 
 @onready var meadow_level = $MeadowLevel
 @onready var world_art = $WorldArtView
@@ -25,6 +29,8 @@ func _ready() -> void:
 	meta_screens.bind_run(run)
 	debug_overlay.bind_run(run)
 	AudioManager.bind_run(run)
+	_prev_view_wave = run.waveDirector.wave
+	_prev_view_state = run.state
 	_sync_views(get_viewport_rect().size)
 
 
@@ -64,10 +70,31 @@ func _physics_process(delta: float) -> void:
 		run.step(STEP, size.x / CAMERA_ZOOM, size.y / CAMERA_ZOOM)
 		run.input.end_frame()
 		accumulator -= STEP
+	_detect_audio_events()
 	_sync_views(size)
 	world_art.refresh(delta)
 	overlay.refresh(delta)
 	meta_screens.refresh()
+
+
+## 表现层音效触发：检测波次更替与状态切换，通过 Events.sfx_requested 广播。
+## AudioManager 已通过轮询覆盖大部分隐式音效（敌人死亡、宝石拾取、受击等），
+## 此处仅补充轮询难以捕获的事件（波次起始横幅、进入撤离等）。
+func _detect_audio_events() -> void:
+	# 波次更替：waveDirector.wave 递增时视为新波次开始
+	var current_wave: int = run.waveDirector.wave
+	if current_wave > _prev_view_wave and run.state == "playing":
+		if run.waveDirector.isBossWave:
+			Events.sfx_requested.emit("sfx_boss_alarm", {})
+		else:
+			Events.sfx_requested.emit("sfx_wave_start", {})
+	_prev_view_wave = current_wave
+	# 状态切换音效：进入撤离 / 死亡等关键节点
+	var current_state: String = run.state
+	if current_state != _prev_view_state:
+		if current_state == "extraction":
+			Events.sfx_requested.emit("sfx_extraction", {})
+	_prev_view_state = current_state
 
 
 func _sync_views(size: Vector2) -> void:

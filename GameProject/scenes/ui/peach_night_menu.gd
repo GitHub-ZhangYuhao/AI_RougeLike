@@ -29,12 +29,12 @@ func _ready() -> void:
 
 	_currency_label = Label.new()
 	_currency_label.name = "DynamicCrystalAmount"
-	_currency_label.position = Vector2(1112.0, 72.0)
-	_currency_label.size = Vector2(88.0, 62.0)
+	_currency_label.position = Vector2(1120.0, 78.0)
+	_currency_label.size = Vector2(76.0, 48.0)
 	_currency_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_currency_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_currency_label.add_theme_font_override("font", UI_FONT)
-	_currency_label.add_theme_font_size_override("font_size", 34)
+	_currency_label.add_theme_font_size_override("font_size", 26)
 	_currency_label.add_theme_color_override("font_color", Color("2f241e"))
 	_currency_label.add_theme_color_override("font_outline_color", Color("f3ddb1"))
 	_currency_label.add_theme_constant_override("outline_size", 2)
@@ -90,12 +90,15 @@ func _add_hotspot(node_name: String, rect: Rect2, texture: Texture2D, callback: 
 
 
 func _emit_start() -> void:
+	Events.sfx_requested.emit("sfx_ui_click", {})
 	start_pressed.emit()
 
 
 func _emit_shop() -> void:
+	Events.sfx_requested.emit("sfx_ui_click", {})
 	shop_pressed.emit()
 
 
 func _emit_storage() -> void:
+	Events.sfx_requested.emit("sfx_ui_click", {})
 	storage_pressed.emit()

@@ -9,7 +9,7 @@ func title() -> String:
 func run(runner) -> void:
 	runner.check(ArtCatalogScript.ENEMY_TEXTURES.size() == 7, "[0] all enemy production textures registered")
 	runner.check(ArtCatalogScript.WEAPON_ICONS.size() == 6, "[0] all weapon production icons registered")
-	runner.check(ArtCatalogScript.VFX_TEXTURES.size() == 24, "[0] all production VFX textures registered")
+	runner.check(ArtCatalogScript.VFX_TEXTURES.size() == 25, "[0] all production VFX textures registered")
 	runner.check(ArtCatalogScript.UI_TEXTURES.size() == 13, "[0] all production UI ornaments registered")
 	for card: Dictionary in CardsScript.WEAPON_CARDS:
 		runner.check(card["maxLevel"] == 6, "[0] %s maxLevel must be 6" % card["id"])

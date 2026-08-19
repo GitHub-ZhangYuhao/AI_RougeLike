@@ -80,6 +80,7 @@ const VFX_TEXTURES: Dictionary = {
   'cloakFireBurstAnim': preload('res://assets/vfx/cloak_fire_burst_anim.png'),
   'furnaceFlame': preload('res://assets/vfx/furnace_flame.png'),
   'furnaceFlameAnim': preload('res://assets/vfx/furnace_flame_anim.png'),
+  'fireBallAnim': preload('res://assets/vfx/fire_ball_anim.png'),
   'jadeRingTrail': preload('res://assets/vfx/jade_ring_trail.png'),
   'staffSpiritBolt': preload('res://assets/vfx/staff_spirit_bolt.png'),
   'explosion': preload('res://assets/vfx/explosion.png'),

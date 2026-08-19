@@ -13,8 +13,15 @@ extends Node
 
 ## SFX 同时播放最大数（多态复音）
 const SFX_POOL_SIZE: int = 8
+## BGM 名称 → 目标音量 (dB)。局内 BGM 降低，避免太吵。
+const BGM_VOLUME: Dictionary = {
+	"menu": -6.0,
+	"battle": -16.0,
+	"boss": -12.0,
+}
+
 ## BGM 交叉淡入淡出时长（秒）
-const BGM_CROSSFADE: float = 1.0
+const BGM_CROSSFADE: float = 2.0
 
 # ============================================================
 #  节点引用
@@ -64,6 +71,8 @@ var _prev_weapon_counts: Dictionary = {}
 var _prev_furnace_opens: Dictionary = {}
 ## 清理节流字典的计时器
 var _cleanup_timer: float = 0.0
+## SFX 播放器开始播放的时间戳（用于看门狗：防止音效卡住无限播放）
+var _sfx_play_started: Array[float] = []
 
 # ============================================================
 #  SFX 名称 → 资源路径映射
@@ -71,44 +80,41 @@ var _cleanup_timer: float = 0.0
 
 const SFX_PATHS: Dictionary = {
 	# --- 武器 ---
-	"sfx_sword_swing": "res://assets/audio/sfx/weapon/sfx_sword_swing.ogg",
+	"sfx_sword_swing": "res://assets/audio/sfx/weapon/sfx_sword_slash.ogg",
 	"sfx_sword_slash": "res://assets/audio/sfx/weapon/sfx_sword_slash.ogg",
-	"sfx_talisman_zap": "res://assets/audio/sfx/weapon/sfx_talisman_zap.ogg",
+	"sfx_talisman_zap": "res://assets/audio/sfx/weapon/sfx_chain_lightning.ogg",
 	"sfx_cloak_burst": "res://assets/audio/sfx/weapon/sfx_cloak_burst.ogg",
 	"sfx_trail_blaze": "res://assets/audio/sfx/weapon/sfx_trail_blaze.ogg",
 	"sfx_furnace_open": "res://assets/audio/sfx/weapon/sfx_furnace_open.ogg",
-	"sfx_ring_orbit": "res://assets/audio/sfx/weapon/sfx_ring_orbit.ogg",
-	"sfx_staff_cast": "res://assets/audio/sfx/weapon/sfx_staff_cast.ogg",
+	"sfx_ring_orbit": "res://assets/audio/sfx/weapon/sfx_jade_ring.ogg",
+	"sfx_staff_cast": "res://assets/audio/sfx/weapon/sfx_thunder_bolt.ogg",
 	# --- 敌人 ---
 	"sfx_enemy_death": "res://assets/audio/sfx/enemy/sfx_enemy_death.ogg",
 	"sfx_enemy_hit": "res://assets/audio/sfx/enemy/sfx_enemy_hit.ogg",
-	"sfx_boss_roar": "res://assets/audio/sfx/enemy/sfx_boss_roar.ogg",
+	"sfx_boss_roar": "res://assets/audio/sfx/enemy/sfx_boss_appear.ogg",
 	# --- 玩家 ---
 	"sfx_player_hurt": "res://assets/audio/sfx/player/sfx_player_hurt.ogg",
-	"sfx_player_death": "res://assets/audio/sfx/player/sfx_player_death.ogg",
-	"sfx_level_up": "res://assets/audio/sfx/player/sfx_level_up.ogg",
+	"sfx_player_death": "res://assets/audio/sfx/player/sfx_player_hurt.ogg",
+	"sfx_level_up": "res://assets/audio/sfx/pickup/sfx_levelup.ogg",
 	# --- 拾取 ---
 	"sfx_gem_pickup": "res://assets/audio/sfx/pickup/sfx_gem_pickup.ogg",
-	"sfx_hp_pickup": "res://assets/audio/sfx/pickup/sfx_hp_pickup.ogg",
+	"sfx_hp_pickup": "res://assets/audio/sfx/player/sfx_heal.ogg",
 	"sfx_rare_pickup": "res://assets/audio/sfx/pickup/sfx_rare_pickup.ogg",
 	"sfx_extraction": "res://assets/audio/sfx/pickup/sfx_extraction.ogg",
 	# --- UI ---
 	"sfx_ui_click": "res://assets/audio/sfx/ui/sfx_ui_click.ogg",
-	"sfx_card_select": "res://assets/audio/sfx/ui/sfx_card_select.ogg",
-	"sfx_card_deal": "res://assets/audio/sfx/ui/sfx_card_deal.ogg",
+	"sfx_card_select": "res://assets/audio/sfx/ui/sfx_ui_click.ogg",
+	"sfx_card_deal": "res://assets/audio/sfx/pickup/sfx_synergy_activate.ogg",
 	# --- 波次 ---
-	"sfx_wave_start": "res://assets/audio/sfx/wave/sfx_wave_start.ogg",
-	"sfx_boss_alarm": "res://assets/audio/sfx/wave/sfx_boss_alarm.ogg",
+	"sfx_wave_start": "res://assets/audio/sfx/wave/sfx_wave_banner.ogg",
+	"sfx_boss_alarm": "res://assets/audio/sfx/enemy/sfx_boss_appear.ogg",
 }
 
-## BGM 名称 → 资源路径映射
+## BGM 名称 → 资源路径映射（仅列出磁盘上实际存在的 .ogg）
 const BGM_PATHS: Dictionary = {
 	"menu": "res://assets/audio/bgm/bgm_menu.ogg",
-	"gameplay": "res://assets/audio/bgm/bgm_gameplay.ogg",
+	"battle": "res://assets/audio/bgm/bgm_battle.ogg",
 	"boss": "res://assets/audio/bgm/bgm_boss.ogg",
-	"rest": "res://assets/audio/bgm/bgm_rest.ogg",
-	"extraction": "res://assets/audio/bgm/bgm_extraction.ogg",
-	"summary": "res://assets/audio/bgm/bgm_summary.ogg",
 }
 
 ## 游戏状态 → BGM 名称映射
@@ -116,22 +122,27 @@ const STATE_BGM: Dictionary = {
 	"menu": "menu",
 	"shop": "menu",
 	"storage": "menu",
-	"opening": "gameplay",
-	"playing": "gameplay",
-	"choice": "gameplay",
-	"dead": "summary",
-	"summary": "summary",
+	"opening": "battle",
+	"playing": "battle",
+	"choice": "battle",
+	"dead": "menu",
+	"summary": "menu",
 }
 
 ## 高频音效节流默认间隔（秒）
 const HIGH_FREQ_INTERVALS: Dictionary = {
 	"sfx_enemy_death": 0.06,
-	"sfx_enemy_hit": 0.08,
-	"sfx_gem_pickup": 0.05,
+	"sfx_enemy_hit": 0.05,
+	"sfx_gem_pickup": 0.1,
 	"sfx_player_hurt": 0.15,
+	"sfx_ui_click": 0.05,
 	"sfx_cloak_burst": 0.25,
 	"sfx_trail_blaze": 0.3,
 	"sfx_furnace_open": 0.12,
+	"sfx_staff_cast": 0.4,
+	"sfx_talisman_zap": 0.35,
+	"sfx_sword_swing": 0.2,
+	"sfx_ring_orbit": 0.3,
 }
 
 # ============================================================
@@ -146,6 +157,7 @@ func _ready() -> void:
 		player.bus = "SFX"
 		add_child(player)
 		_sfx_pool.append(player)
+		_sfx_play_started.append(0.0)
 	# 2) 创建 BGM 播放器
 	_bgm_player_a = AudioStreamPlayer.new()
 	_bgm_player_a.name = "BGM_A"
@@ -203,6 +215,28 @@ func _process(_delta: float) -> void:
 	_check_level_up()
 	_check_weapons()
 	_check_boss_wave()
+	_watchdog_sfx()
+
+
+## 看门狗：强制停止播放超时的 SFX 播放器（防止音效卡住无限循环）。
+func _watchdog_sfx() -> void:
+	var now: float = Time.get_ticks_msec() / 1000.0
+	for i in _sfx_pool.size():
+		var player: AudioStreamPlayer = _sfx_pool[i]
+		if not player.playing:
+			continue
+		var started: float = _sfx_play_started[i]
+		if started <= 0.0:
+			# 首次检测到播放中但无起始记录，补记
+			_sfx_play_started[i] = now
+			continue
+		var stream_length: float = 3.0  # 默认安全上限
+		if player.stream != null and player.stream.get_length() > 0.0:
+			stream_length = player.stream.get_length()
+		# 考虑 pitch_scale 加速后实际时长缩短
+		var actual_max: float = stream_length / maxf(player.pitch_scale, 0.1) + 0.5
+		if now - started > actual_max:
+			player.stop()
 
 
 # ============================================================
@@ -224,7 +258,7 @@ func bind_run(game_run) -> void:
 	_throttle_times.clear()
 	_cleanup_timer = 0.0
 	# 新对局直接落位对应 BGM（无淡入）
-	_set_bgm(STATE_BGM.get(run.state, "gameplay"))
+	_set_bgm(STATE_BGM.get(run.state, "battle"))
 
 
 func _check_weapons() -> void:
@@ -245,7 +279,7 @@ func _check_weapons() -> void:
 						enhanced = true
 				play_sfx("sfx_cloak_burst", {"no_pitch_variance": enhanced})
 			elif "furnaces" in weapon:
-				play_sfx("sfx_trail_blaze")
+				pass  # 丹火灼烧音效已禁用（持续火焰声会卡住）
 		_prev_weapon_counts[wid] = current
 		# 开炉：所有丹火炉累计开炉次数增加（消耗燃料喷发的瞬间）
 		var opens_now: int = _furnace_open_count(weapon)
@@ -293,6 +327,10 @@ func play_sfx(sfx_name: String, data: Dictionary = {}) -> void:
 		pitch = 1.0 if data.get("no_pitch_variance", false) else randf_range(0.94, 1.06)
 	player.pitch_scale = pitch
 	player.play()
+	# 记录播放起始时间（看门狗用）
+	var idx: int = _sfx_pool.find(player)
+	if idx >= 0:
+		_sfx_play_started[idx] = Time.get_ticks_msec() / 1000.0
 
 
 ## 切换 BGM（双播放器交叉淡入淡出）。当前无播放时直接淡入。
@@ -310,11 +348,12 @@ func play_bgm(bgm_name: String) -> void:
 	var old_player: AudioStreamPlayer = _current_bgm_player
 	var new_player: AudioStreamPlayer = _next_bgm_player
 	new_player.stream = stream
+	var target_vol: float = BGM_VOLUME.get(bgm_name, -10.0)
 	new_player.volume_db = -40.0
 	new_player.play()
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(new_player, "volume_db", 0.0, BGM_CROSSFADE)
+	tween.tween_property(new_player, "volume_db", target_vol, BGM_CROSSFADE)
 	tween.tween_property(old_player, "volume_db", -40.0, BGM_CROSSFADE)
 	tween.chain().tween_callback(func() -> void: old_player.stop())
 	# 交换角色
@@ -336,7 +375,7 @@ func _set_bgm(bgm_name: String) -> void:
 	if stream == null:
 		return
 	_current_bgm_player.stream = stream
-	_current_bgm_player.volume_db = 0.0
+	_current_bgm_player.volume_db = BGM_VOLUME.get(bgm_name, -10.0)
 	_current_bgm_player.play()
 	_current_bgm_name = bgm_name
 
@@ -370,7 +409,7 @@ func _check_boss_wave() -> void:
 		play_sfx("sfx_boss_alarm")
 	elif not is_boss and _prev_is_boss_wave:
 		# Boss 被击败，切回正常 BGM
-		play_bgm("gameplay")
+		play_bgm("battle")
 	_prev_is_boss_wave = is_boss
 
 
