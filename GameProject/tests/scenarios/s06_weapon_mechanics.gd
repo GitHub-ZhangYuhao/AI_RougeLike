@@ -35,6 +35,9 @@ func run(runner) -> void:
     var talisman_world: Dictionary = _base_world()
     talisman.update(1.0 / 60.0, talisman_world)
     runner.check(talisman_world.projectiles.size() == 1, "[6] talisman must fire exactly one projectile")
+    for leaked_projectile in talisman_world.projectiles:
+        leaked_projectile.kill()
+    talisman_world.projectiles.clear()
     talisman.level = 2
     var thunder: Dictionary = {"hits": 0}
     var target_a = _enemy(0.0, 0.0)
@@ -369,10 +372,12 @@ func _release_refs(weapons: Array, worlds: Array) -> void:
 
 
 func _base_world() -> Dictionary:
+    var projectiles: Array = []
     return {
         "player": {"x": 0.0, "y": 0.0, "radius": 12.0, "facing": 0.0, "moving": false, "lastHurtAt": -1.0},
-        "enemies": [_enemy(120.0, 0.0, 1000.0)], "projectiles": [], "trails": [], "summons": [], "effects": [],
+        "enemies": [_enemy(120.0, 0.0, 1000.0)], "projectiles": projectiles, "trails": [], "summons": [], "effects": [],
         "killLog": [], "kill_log": [], "mods": CardsScript.compute_mods({}, {}), "elapsed": 0.0, "kills": 0,
+        "spawn_projectile": Callable(self, "_test_spawn_projectile").bind(projectiles),
         "damage_enemy": func(_enemy_value, _damage: float, _options = {}) -> void: pass,
         "heal_player": func(_amount: float) -> void: pass,
         "drop_pickup": func(_type: String, _x: float, _y: float, _amount: int = 1) -> void: pass,
@@ -381,6 +386,13 @@ func _base_world() -> Dictionary:
         "apply_freeze": func(_enemy_value, _duration: float) -> void: pass,
         "set_player_move_speed_bonus": func(_source, _multiplier: float, _duration: float = 0.12) -> void: pass,
     }
+
+
+## 测试世界的弹道生成入口：与 game_run.spawn_projectile 同语义，直接进本世界数组。
+func _test_spawn_projectile(x: float, y: float, angle: float, options: Dictionary = {}, projectiles: Array = []):
+    var projectile = ProjectileScript.new(x, y, angle, options)
+    projectiles.append(projectile)
+    return projectile
 
 
 func _enemy(x: float, y: float, hp: float = 100.0):

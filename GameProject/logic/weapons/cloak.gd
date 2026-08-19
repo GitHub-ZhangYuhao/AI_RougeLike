@@ -65,4 +65,4 @@ func fire_shock(current_world, enhanced: bool = false) -> void:
         if slow_duration > 0.0:
             current_world.apply_slow.call(enemy, 0.3, slow_duration)
     shocks.append({"x": current_world.player.x, "y": current_world.player.y, "max_r": radius,
-        "t": 0.0, "ttl": 0.45, "enhanced": enhanced})
+        "t": 0.0, "ttl": 1.2, "enhanced": enhanced})

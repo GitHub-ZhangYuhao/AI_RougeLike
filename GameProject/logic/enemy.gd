@@ -2,6 +2,7 @@ extends RefCounted
 ## ← js/enemy.js：M1 追击者与两两分离。
 
 const EnemyBaseScript: GDScript = preload("res://logic/enemies/base.gd")
+const SpatialGridScript: GDScript = preload("res://logic/systems/spatial_grid.gd")
 
 
 static func create_chaser(x: float, y: float, elapsed: float = 0.0, options: Dictionary = {}):
@@ -11,13 +12,18 @@ static func create_chaser(x: float, y: float, elapsed: float = 0.0, options: Dic
     return EnemyBaseScript.new(x, y, elapsed, merged)
 
 
-static func separate_enemies(enemies: Array, dt: float) -> void:
+## grid 可选（logic/systems/spatial_grid.gd）：传入时只查邻域候选索引，
+## 查询窗口已按 MAX_ENTITY_RADIUS 外扩，重叠对不可能漏检；不传则保持原线性扫描。
+static func separate_enemies(enemies: Array, dt: float, grid = null) -> void:
     var scale: float = minf(1.0, 60.0 * dt)
     for i in enemies.size():
         var a = enemies[i]
         if a.dead:
             continue
-        for j in range(i + 1, enemies.size()):
+        var candidates = grid.query_indices(a.x, a.y, a.radius + SpatialGridScript.MAX_ENTITY_RADIUS) if grid != null else range(i + 1, enemies.size())
+        for j in candidates:
+            if j <= i:
+                continue
             var b = enemies[j]
             if b.dead:
                 continue

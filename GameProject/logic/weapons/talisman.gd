@@ -1,7 +1,6 @@
 extends "res://logic/weapons/weapon_base.gd"
 ## ← js/weapons/talisman.js：多发雷弹（count 指向最近的 count 个不同目标）、逐目标引雷计数与闪电链。
 
-const ProjectileScript: GDScript = preload("res://logic/projectile.gd")
 const BaseScript: GDScript = preload("res://logic/weapons/weapon_base.gd")
 
 const CHAIN_RADIUS: float = 160.0
@@ -46,14 +45,13 @@ func update(dt: float, current_world) -> void:
     attack_seq += 1
     for target in targets:
         var angle: float = atan2(target.y - current_world.player.y, target.x - current_world.player.x)
-        var projectile = ProjectileScript.new(current_world.player.x, current_world.player.y, angle, {
+        var projectile = current_world.spawn_projectile.call(current_world.player.x, current_world.player.y, angle, {
             "speed": s["speed"], "radius": 5.0, "damage": s["damage"] * current_world.mods["damageMult"],
             "lifetime": float(s["range"]) / float(s["speed"]) + 0.3,
             "damageOptions": {"sourceWeaponId": "talisman", "sourceAction": "projectile", "sourceTags": ["lightning", "projectile"]},
         })
         projectile.attackSeq = attack_seq
         projectile.onHit = Callable(self, "_on_projectile_hit").bind(projectile)
-        current_world.projectiles.append(projectile)
 
 
 func _clean_counters(enemies: Array) -> void:

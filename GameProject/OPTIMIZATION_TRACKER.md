@@ -397,7 +397,7 @@
 | 高 | **统一敌人预警层** | `cbab517` 已补 bomber/enhanced_chaser/Boss/ranged 4 类预警（world_art_view 内各自绘制，尚未抽通用层）；仅剩盾兵攻防相位 |
 | 中 | 稀有物缺机制型选项 | `rare_items.gd` 5 种全是纯数值乘区（伤害 ×1.2 / 回血 / 磁吸 +80 / 经验 ×1.25 / 移速 ×1.1），没有改变行为的遗物，构筑深度最易补 |
 | 中 | 任务节奏固定 | `tasks.waves = [3,8,13,18,23]`、`triggerWindow [35,45]`、3 种类型；25 分钟仅 5 次任务且类型可能重复 |
-| 中 | 180 敌人对象池与降级策略 | `PROGRESS.md` §2 焦点 1，M6 唯一未完成技术项；分离算法 O(n²) 卡住 `maxAliveCap` |
+| 中 | ~~180 敌人对象池与降级策略~~ ✅ 第九轮已解决（2026-08-19） | 空间网格 + 弹道对象池落地，180 敌单帧省 ~4.3–5.8ms，见下文第九轮基准 |
 | 低 | 六武器质变表现差异 | 道剑有飞剑、披风有爆发，其余四把质变感知偏弱 |
 
 ### 数值（详见 `BALANCE.md` §待校准项）
@@ -415,3 +415,38 @@
 1. **盾兵 phase + 自爆兵引信预警** → 完成 1/2：自爆兵预警已由 `cbab517` 补齐（加速闪烁+收缩环），盾兵攻防相位仍缺。
 2. ~~**稀有物掉落源与叠加上限**~~ ✅ 已完成（2026-08-19，`BALANCE.md` 第六轮；含武器强度重排与 rarePickupRadius 复核）。
 3. **接入音频层** → 🟨 框架已落地（AudioManager + s22 冒烟）：剩余为资源补齐（SFX 3/23、BGM 0/6），按 `ART_ASSET_CONFIG.md` §9 清单推进。
+## 第九轮：性能专项——空间网格与弹道对象池（已完成，2026-08-19）
+
+### 背景
+
+PROGRESS.md §2 焦点 1（M6 唯一未完成技术项）：180 敌人同屏。瓶颈为敌人两两分离 O(n²) 与弹道命中线性扫描，卡住 `maxAliveCap=180`（utoload/config.gd）。本轮以「测量 → 修复 → 复测」流程落地空间分区与对象池。
+
+### 代码变更
+
+| 文件 | 变更 | 说明 |
+|------|------|------|
+| logic/systems/spatial_grid.gd | 新增 | 128px 单元格字典网格；ebuild 按中心点登记，query_indices 窗口外扩 MAX_ENTITY_RADIUS=40（最大敌人 boss 半径 34），升序去重保持与线性扫描同序；int64 打包键 |
+| logic/enemy.gd | 分离接入网格 | separate_enemies(enemies, dt, grid=null)：传网格只查邻域候选（j <= i 跳过去重对），不传保持原线性行为 |
+| logic/game_run.gd | 网格 ×2 重建 + 对象池 + 世界缓存 | 分离前与碰撞前各 ebuild 一次（分离会位移，必须重建）；弹道命中改网格查询；spawn_projectile 统一弹道入口，PROJECTILE_POOL_CAP=256；_world() 快照缓存，Callable 静态键只建一次 |
+| logic/projectile.gd | setup()/kill() | setup 重置全部字段等效新构造；kill 幂等死亡并断开 onHit/hitSet/damageOptions 引用，池回收与泄漏检查依赖它 |
+| logic/weapons/{sword,cloak,talisman}.gd | 统一走 world.spawn_projectile | 不再直接 ProjectileScript.new + append |
+| logic/ui_layout.gd | CAMERA_ZOOM=0.82 单一事实源 | 选卡命中还原屏幕坐标与 game_view 缩放共用同一常量，消除魔数 |
+| 	ests/scenarios/s06_weapon_mechanics.gd | 修复测试世界弹道入口 | Godot 4.1+ Callable.bind 参数追加在调用参数之后，签名把 projectiles 移到末位 |
+
+### 基准（确定性 harness）
+
+GameEngine\Godot.exe --headless --path GameProject --script res://tools/perf_grid_benchmark.gd（SEED=20260819，dt=1/60，区域 900×600，3 次预热 / 30 次迭代；投射物代理 P=48、pr=12）：
+
+| N | 分离 linear→grid | 加速 | rebuild | 查询 scan→grid | 加速 |
+|---|---|---|---|---|---|
+| 60 | 526→186µs | ×2.83 | 33µs | 547→133µs | ×4.12 |
+| 120 | 2356→493µs | ×4.77 | 84µs | 1108→216µs | ×5.13 |
+| 180（cap） | 6015→1310µs | ×4.59 | 85µs | 1446→320µs | ×4.51 |
+| 240 | 8650→1441µs | ×6.00 | 122µs | 2303→322µs | ×7.16 |
+
+等价性：网格与线性命中数完全一致；分离最大位置偏差 ~2e-5 px（近重叠生成对单次 pass 内被推出跨格窗口，玩法可忽略）。180 敌时每逻辑帧约省 5.8ms（本次运行；机器波动区间约 4.3–5.8ms），足以解锁 maxAliveCap=180。
+
+### 验证
+
+Godot smoke 436 checks / 25 scenarios 全绿；原型 
+pm run smoke 全绿。

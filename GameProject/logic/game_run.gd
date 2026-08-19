@@ -23,10 +23,13 @@ const ShopScript: GDScript = preload("res://logic/meta/shop.gd")
 const MetaItemsScript: GDScript = preload("res://logic/meta/items.gd")
 const LevelGeometryScript: GDScript = preload("res://logic/level_geometry.gd")
 const DebugRuntimeScript: GDScript = preload("res://logic/debug_runtime.gd")
+const ProjectileScript: GDScript = preload("res://logic/projectile.gd")
+const SpatialGridScript: GDScript = preload("res://logic/systems/spatial_grid.gd")
 const WEAPON_EVOLUTION_COLORS: Dictionary = {
     "sword": "#9fe8ff", "cloak": "#ff6b32", "talisman": "#ffe45c",
     "trail": "#ff8a32", "ring": "#8fffd0", "staff": "#d89cff",
 }
+const PROJECTILE_POOL_CAP: int = 256
 
 var state: String
 var debug
@@ -76,6 +79,9 @@ var _next_kill_id: int = 1
 var _final_settled: bool = false
 var _death_settled: bool = false
 var _synergy_activation_serial_seen: int = 0
+var _projectile_pool: Array = []
+var _enemy_grid
+var _world_cache: Dictionary = {}
 
 
 func _init() -> void:
@@ -114,6 +120,9 @@ func reset() -> void:
     camera = CameraScript.new(0.0, 0.0)
     enemies = []
     projectiles = []
+    _projectile_pool = []
+    _enemy_grid = SpatialGridScript.new()
+    _world_cache = {}
     hostileProjectiles = []
     trails = []
     summons = []
@@ -212,7 +221,8 @@ func step(dt: float, view_w: float = 1280.0, view_h: float = 720.0) -> void:
             damage_enemy(enemy, dot_damage)
         if not enemy.dead:
             enemy.update(player, dt, _world())
-    EnemyScript.separate_enemies(enemies, dt)
+    _enemy_grid.rebuild(enemies)
+    EnemyScript.separate_enemies(enemies, dt, _enemy_grid)
     for enemy in enemies:
         if not enemy.dead:
             _clamp_entity_to_level(enemy)
@@ -225,7 +235,7 @@ func step(dt: float, view_w: float = 1280.0, view_h: float = 720.0) -> void:
         if not projectile.dead:
             projectile.update(dt)
             if LevelGeometryScript.is_outside_circle(projectile.x, projectile.y, projectile.radius):
-                projectile.dead = true
+                projectile.kill()
     for projectile in hostileProjectiles:
         if not projectile.dead:
             projectile.update(dt)
@@ -261,7 +271,11 @@ func _handle_choice(view_w: float, view_h: float) -> void:
             selected = i
             break
     if selected < 0 and input.mouse_clicked():
-        var rects: Array[Dictionary] = UiLayoutScript.get_card_rects(view_w, view_h, currentOffers.size())
+        # 卡牌命中检测：鼠标在屏幕坐标，卡牌布局用 viewport 原始尺寸
+        # （step 传入的 view_w/view_h 被 CAMERA_ZOOM 除过，这里还原；常量单一事实源见 ui_layout.gd）
+        var screen_w: float = view_w * UiLayoutScript.CAMERA_ZOOM
+        var screen_h: float = view_h * UiLayoutScript.CAMERA_ZOOM
+        var rects: Array[Dictionary] = UiLayoutScript.get_card_rects(screen_w, screen_h, currentOffers.size())
         for i in rects.size():
             var rect: Dictionary = rects[i]
             if input.mouse_x >= rect["x"] and input.mouse_x <= rect["x"] + rect["w"] and input.mouse_y >= rect["y"] and input.mouse_y <= rect["y"] + rect["h"]:
@@ -456,10 +470,12 @@ func _handle_collisions() -> void:
         if UtilsScript.dist2(hostile.x, hostile.y, player.x, player.y) <= pow(hostile.radius + player.radius, 2):
             hostile.dead = true
             hurt_player(hostile.damage)
+    _enemy_grid.rebuild(enemies)
     for projectile in projectiles:
         if projectile.dead:
             continue
-        for enemy in enemies:
+        for j in _enemy_grid.query_indices(projectile.x, projectile.y, projectile.radius + SpatialGridScript.MAX_ENTITY_RADIUS):
+            var enemy = enemies[j]
             if enemy.dead or projectile.hitSet.has(enemy.get_instance_id()):
                 continue
             if UtilsScript.dist2(projectile.x, projectile.y, enemy.x, enemy.y) <= pow(projectile.radius + enemy.radius, 2):
@@ -518,6 +534,8 @@ func _cleanup() -> void:
     for i in range(projectiles.size() - 1, -1, -1):
         if projectiles[i].dead:
             projectiles[i].onHit = Callable()
+            if _projectile_pool.size() < PROJECTILE_POOL_CAP:
+                _projectile_pool.append(projectiles[i])
             projectiles.remove_at(i)
     for i in range(hostileProjectiles.size() - 1, -1, -1):
         if hostileProjectiles[i].dead:
@@ -539,20 +557,36 @@ func _cleanup() -> void:
             effects.remove_at(i)
 
 
+## 世界快照缓存：Callable 等静态键只构建一次，动态键每次调用刷新，避免每帧重建整表。
 func _world() -> Dictionary:
-    return {"player": player, "enemies": enemies, "projectiles": projectiles,
-        "hostileProjectiles": hostileProjectiles, "trails": trails, "summons": summons,
-        "effects": effects, "weapons": weapons, "synergies": synergies, "mods": mods,
-        "elapsed": elapsed, "kills": kills, "killLog": killLog, "kill_log": killLog,
-        "damage_enemy": Callable(self, "damage_enemy"), "hurt_player": Callable(self, "hurt_player"),
-        "heal_player": Callable(self, "heal_player"), "drop_pickup": Callable(self, "drop_pickup"),
-        "spawn_hostile_projectile": Callable(self, "spawn_hostile_projectile"),
-        "spawn_enemy_blast": Callable(self, "spawn_enemy_blast"),
-        "apply_dot": Callable(StatusScript, "apply_dot"), "apply_slow": Callable(StatusScript, "apply_slow"),
-        "apply_freeze": Callable(StatusScript, "apply_freeze"), "has_dot": Callable(StatusScript, "has_dot"),
-        "set_player_move_speed_bonus": Callable(self, "set_player_move_speed_bonus"),
-        "has_synergy": Callable(self, "has_synergy"), "get_weapon": Callable(self, "get_weapon"),
-        "record_synergy_trigger": Callable(self, "record_synergy_trigger")}
+    if _world_cache.is_empty():
+        _world_cache = {
+            "damage_enemy": Callable(self, "damage_enemy"), "hurt_player": Callable(self, "hurt_player"),
+            "heal_player": Callable(self, "heal_player"), "drop_pickup": Callable(self, "drop_pickup"),
+            "spawn_hostile_projectile": Callable(self, "spawn_hostile_projectile"),
+            "spawn_enemy_blast": Callable(self, "spawn_enemy_blast"),
+            "spawn_projectile": Callable(self, "spawn_projectile"),
+            "apply_dot": Callable(StatusScript, "apply_dot"), "apply_slow": Callable(StatusScript, "apply_slow"),
+            "apply_freeze": Callable(StatusScript, "apply_freeze"), "has_dot": Callable(StatusScript, "has_dot"),
+            "set_player_move_speed_bonus": Callable(self, "set_player_move_speed_bonus"),
+            "has_synergy": Callable(self, "has_synergy"), "get_weapon": Callable(self, "get_weapon"),
+            "record_synergy_trigger": Callable(self, "record_synergy_trigger"),
+        }
+    _world_cache["player"] = player
+    _world_cache["enemies"] = enemies
+    _world_cache["projectiles"] = projectiles
+    _world_cache["hostileProjectiles"] = hostileProjectiles
+    _world_cache["trails"] = trails
+    _world_cache["summons"] = summons
+    _world_cache["effects"] = effects
+    _world_cache["weapons"] = weapons
+    _world_cache["synergies"] = synergies
+    _world_cache["mods"] = mods
+    _world_cache["elapsed"] = elapsed
+    _world_cache["kills"] = kills
+    _world_cache["killLog"] = killLog
+    _world_cache["kill_log"] = killLog
+    return _world_cache
 
 
 func _handle_weapon_build_click() -> bool:
@@ -581,6 +615,18 @@ func drop_pickup(type: String, x: float, y: float, amount: int = 1) -> void:
         if alive_hp >= Config.CONFIG["pickups"]["maxAlive"]:
             return
     pickups.append({"type": type, "kind": type, "x": x, "y": y, "amount": amount, "dead": false})
+
+
+## 对象池入口：武器统一经此发射弹道，死亡回收见 _cleanup。
+func spawn_projectile(x0: float, y0: float, angle: float, options: Dictionary = {}):
+    var projectile
+    if _projectile_pool.size() > 0:
+        projectile = _projectile_pool.pop_back()
+        projectile.setup(x0, y0, angle, options)
+    else:
+        projectile = ProjectileScript.new(x0, y0, angle, options)
+    projectiles.append(projectile)
+    return projectile
 
 
 func spawn_hostile_projectile(options: Dictionary):

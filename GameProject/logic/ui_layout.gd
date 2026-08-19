@@ -1,6 +1,10 @@
 extends RefCounted
 ## ← js/ui-cards.js + js/hud.js：渲染与命中检测共用布局。
 
+## 表现层摄像机缩放：game_view 传入 step 的视野尺寸是屏幕尺寸除以该值，
+## 逻辑内需要还原屏幕坐标（如选卡命中）时统一引用此常量。
+const CAMERA_ZOOM: float = 0.82
+
 
 static func get_card_rects(view_w: float, view_h: float, count: int) -> Array[Dictionary]:
 	var rects: Array[Dictionary] = []

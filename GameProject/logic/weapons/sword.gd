@@ -1,7 +1,6 @@
 extends "res://logic/weapons/weapon_base.gd"
 ## ← js/weapons/sword.js：近战、无限穿透剑气、拔剑斩与剑意飞剑。
 
-const ProjectileScript: GDScript = preload("res://logic/projectile.gd")
 const BaseScript: GDScript = preload("res://logic/weapons/weapon_base.gd")
 
 const CARD: Dictionary = {
@@ -51,7 +50,7 @@ func update(dt: float, current_world) -> void:
 
 
 func _fire_main_sword(current_world, s: Dictionary, angle: float, damage: float) -> void:
-    var projectile = ProjectileScript.new(current_world.player.x, current_world.player.y, angle, {
+    var projectile = current_world.spawn_projectile.call(current_world.player.x, current_world.player.y, angle, {
         "speed": s["projectileSpeed"], "radius": 11.0, "damage": damage,
         "lifetime": float(s["projectileRange"]) / float(s["projectileSpeed"]), "maxHits": s["maxHits"],
         "damageOptions": {"sourceWeaponId": "sword", "sourceAction": "projectile", "sourceTags": ["projectile"]},
@@ -61,7 +60,6 @@ func _fire_main_sword(current_world, s: Dictionary, angle: float, damage: float)
     projectile.synergyPrevY = projectile.y
     var hit_state: Dictionary = {"counted": false}
     projectile.onHit = Callable(self, "_on_main_projectile_hit").bind(projectile, hit_state, current_world)
-    current_world.projectiles.append(projectile)
 
 
 func _on_main_projectile_hit(enemy, _projectile, hit_state: Dictionary, current_world) -> void:
