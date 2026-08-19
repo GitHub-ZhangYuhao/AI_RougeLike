@@ -66,7 +66,11 @@
   `GameEngine\Godot.exe --headless --path GameProject --script res://tools/run_smoke.gd`
 - 原型回归（确认移植没有影响原型）：`npm run smoke`
 - 编辑器：用 Godot 4.7.1 打开 `GameProject/project.godot`；运行主场景 F5（main.tscn）。
-- 无编译/打包步骤；不引入第三方 addon（测试运行器自研）。
+- 无编译步骤；不引入第三方 addon（测试运行器自研）。
+- 导出打包（仓库根目录执行；产物在 `GameProject/build/`，已 gitignore）：
+  - Windows：`GameEngine\Godot.exe --headless --path GameProject --export-release "Windows Desktop" build\windows\aigame.exe`
+  - Android（debug APK）：`GameEngine\Godot.exe --headless --path GameProject --export-debug "Android" build\android\aigame.apk`
+  - Android 前置：编辑器设置 → 导出 → Android 必须显式填写 Java SDK Path（JDK 17）与 Android SDK Path（4.7 不读 JAVA_HOME 环境变量）；项目已启用 `rendering/textures/vram_compression/import_etc2_astc`（Android 导出必需，桌面包会因此含双格式纹理）。
 
 ## 代码风格与命名规范
 

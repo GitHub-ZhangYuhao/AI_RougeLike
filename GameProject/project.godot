@@ -37,3 +37,7 @@ window/stretch/aspect="ignore"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
+
+[rendering]
+
+textures/vram_compression/import_etc2_astc=true

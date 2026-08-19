@@ -111,3 +111,10 @@
 - perf(assets)：行走图 atlas 由 4096² 降至 2048²——8 方向行走序列帧图集 bicubic 降采样，约 75MB→约 20MB（原始 4096 备份于 Experimental\backup_4096_walk_atlas\，不入库），walk_*.json 元数据同步（cell 682/683→341/342、gutter 8→4、resized_frame 666→333）；player_view.gd WALK_SCALE 0.14→0.28 补偿，屏幕尺寸不变。Windows 导出包 296.3→257.9 MB。
 - perf(assets)：中文字体子集化——按全仓文案实际用字（1074 字符，其中 943 CJK）子集化两款字体：nowar_rounded_bold.ttf 17.72→0.34 MB、noto_sans_sc.ttf 16.95→0.54 MB（完整字体备份于 Experimental\backup_full_fonts\，不入库）。导出包进一步降至 235.2 MB。
 - chore(tools)：字体子集再生工具 tools/font_subset.py 入库——扫描 GameProject 文本源提取字符集并重跑子集化，字符表留存 tools/font_subset_charset.txt；新增文案后缺字时重跑即可。双冒烟 459 项 / 26 场景全绿。
+
+## 2026-08-20 · Android 打包环境与 Android 导出预设
+
+- feat(export)：新增 Android 导出预设（arm64-v8a 单架构、APK 格式、debug keystore 签名），输出 `build/android/aigame.apk`（约 174 MB），包名 `com.aigame.app`，minSdk 24 / targetSdk 36，versionCode 1 / versionName 1.0；导出排除 tests/tools/markdown，与 Windows 预设一致。
+- chore(env)：本机安装 Android 打包环境（不入库）：Godot 4.7.1 Android 导出模板（debug/release/source）、JDK 17（Temurin 17.0.20）、Android SDK（platform-tools + platforms;android-36 + build-tools;36.0.0）；debug keystore 由编辑器自动生成于 `%APPDATA%\Godot\keystores\debug.keystore`。注意 Godot 4.7 Android 导出强制要求“编辑器设置 → 导出 → Android”显式填写 Java SDK Path 与 Android SDK Path（不读 JAVA_HOME 环境变量）。
+- perf(project)：启用 `rendering/textures/vram_compression/import_etc2_astc`（Android 导出必需），纹理导入为 S3TC+ETC2 双格式：Windows 包 235.2→251.8 MB（+16.6 MB 为双格式纹理代价）；仅发桌面端时可关闭该项并重导入恢复。正式 release APK 需再生成 release keystore（当前仅 debug 包可出）。
+- docs：`GameProject/AGENTS.md` 构建命令节补导出命令与环境要求。双冒烟 459 项 / 26 场景全绿。
