@@ -94,3 +94,4 @@
 
 - fix(vfx)：编码损坏修复与丹火 2048 图集接线——world_art_view.gd 工作区遭有损编码转换（UTF-8→GBK→UTF-8）致 GDScript 解析失败，恢复后重应用功能改动；修复 HEAD 遗留 2 处损坏注释（eda8dd1 起）；剥离 flipbook.gd / s24_flipbook.gd 多余 BOM；flipbook.frame_region 新增 atlas_size 参数（默认 2000 向后兼容，不均匀单元 roundi 定位）支持 2048×2048 图集，_draw_flame_anim 对齐 a260d55 重制的 furnace_flame_anim.png（5×5、content 393、gutter 8）；s24 新增 2048 用例，循环参数更新为 8.823529 fps / 25 帧；双冒烟 440 项 / 25 场景全绿。
 - docs：CHANGELOG.md 与 OPTIMIZATION_TRACKER.md 自 bae597e 混合编码损坏中逐字恢复——9a5557d6 干净基底 + GBK 解码还原追加章节（音频收尾 + Lv6 质变设计；第四轮 6 武器 Lv6 质变视觉差异化），原样保留 a260d55 丹炉火焰图集重制条目。
+- feat(vfx)：行走 trail 火焰换用丹炉火焰新图集——_draw_trails 由 fireBallAnim（2000×2000）改用 furnaceFlameAnim（2048×2048，a260d55 重制）+ frame_region(frame, 5, 2048, 393, 8)，局内行走残留火焰与丹炉/丹火视觉统一；用户局内验证通过；双冒烟 440 项 / 25 场景全绿。

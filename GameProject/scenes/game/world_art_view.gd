@@ -473,7 +473,7 @@ func _zone_alpha(zone: Dictionary) -> float:
 
 
 func _draw_trails() -> void:
-	var fire_tex: Texture2D = ArtCatalog.VFX_TEXTURES.get('fireBallAnim')
+	var fire_tex: Texture2D = ArtCatalog.VFX_TEXTURES.get('furnaceFlameAnim')
 	for trail: Dictionary in run.trails:
 		if trail['dead']:
 			continue
@@ -484,10 +484,10 @@ func _draw_trails() -> void:
 		var pulse: float = 0.88 + sin(animation_time * 8.0 + pos.x * 0.07 + pos.y * 0.05) * 0.12
 		display_size *= pulse
 		if fire_tex != null:
-			# 使用火球序列帧精灵图（与 furnaceFlameAnim 相同的 flipbook 规格）
+			# 使用丹火序列帧图集（2048×2048、5×5 网格，与丹火炉 / 丹火核心共用新图集）
 			var phase: float = fposmod(pos.x * 0.031 + pos.y * 0.017, 1.0) * float(FLAME_LOOP_FRAMES)
 			var frame: int = int(floor(animation_time * FLAME_FPS + phase)) % FLAME_LOOP_FRAMES
-			_draw_sprite_region(fire_tex, FlipbookScript.frame_region(frame), pos, display_size, 0.0, Color(1.0, 1.0, 1.0, alpha))
+			_draw_sprite_region(fire_tex, FlipbookScript.frame_region(frame, 5, 2048, 393, 8), pos, display_size, 0.0, Color(1.0, 1.0, 1.0, alpha))
 		else:
 			# 后备：纯几何火球
 			var r: float = display_size * 0.5
