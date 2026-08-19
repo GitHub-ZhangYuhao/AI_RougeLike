@@ -31,8 +31,8 @@ const DAMAGE_NUMBER_OFFSETS: Array[Vector2] = [
 	Vector2(-1.5, -1.5), Vector2(1.5, -1.5), Vector2(-1.5, 1.5), Vector2(1.5, 1.5),
 ]
 # 序列帧图集常量（规格见 logic/systems/flipbook.gd 与 PRODUCTION_REPORT.md）
-const FLAME_FPS: float = 4.8387
-const FLAME_LOOP_FRAMES: int = 24
+const FLAME_FPS: float = 8.823529
+const FLAME_LOOP_FRAMES: int = 25
 const BURST_FRAME_COUNT: int = 25
 
 var run = null
@@ -1337,7 +1337,7 @@ func _draw_sprite_region(texture: Texture2D, region: Rect2, center: Vector2, dis
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
-## 循环火焰动画（丹火炉 / trail 火苗 / 丹火核心共用）：帧 = floor(animation_time × FLAME_FPS) % 24，
+## 循环火焰动画（丹火炉 / trail 火苗 / 丹火核心共用）：帧 = floor(animation_time × FLAME_FPS) % 25，
 ## 叠加世界坐标导出的位置相位，避免所有火焰同一步调。
 func _draw_flame_anim(center: Vector2, display_size: float, tint: Color = Color.WHITE, rotation: float = 0.0) -> void:
 	var texture: Texture2D = ArtCatalog.VFX_TEXTURES.get('furnaceFlameAnim')
