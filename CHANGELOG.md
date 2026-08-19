@@ -105,3 +105,9 @@
 ## 2026-08-19 · 触屏选卡（移动端适配）
 
 - feat(input)：触屏点选卡牌——game_view.gd 将 InputEventScreenTouch（index 0 按下）桥接为鼠标左键单击、InputEventScreenDrag（index 0）桥接为鼠标移动，第二根手指忽略；选卡/菜单复用鼠标命中语义，移动端无需键盘即可完成完整流程，数字键保留为桌面端快捷路径。新增 s23_touch_choice 冒烟章节（触摸按下/拖拽/多指/点选开局进 playing 全流程）；run_smoke.gd 延后到第一帧执行（_initialize 阶段根窗口尚未入树，场景类章节 @onready 为空）；RULES.md §3.2/§11.6/附录 C 同步。双冒烟 450 项 / 26 场景全绿。
+
+## 2026-08-20 · 包体瘦身（行走图集降采样与中文字体子集化）
+
+- perf(assets)：行走图 atlas 由 4096² 降至 2048²——8 方向行走序列帧图集 bicubic 降采样，约 75MB→约 20MB（原始 4096 备份于 Experimental\backup_4096_walk_atlas\，不入库），walk_*.json 元数据同步（cell 682/683→341/342、gutter 8→4、resized_frame 666→333）；player_view.gd WALK_SCALE 0.14→0.28 补偿，屏幕尺寸不变。Windows 导出包 296.3→257.9 MB。
+- perf(assets)：中文字体子集化——按全仓文案实际用字（1074 字符，其中 943 CJK）子集化两款字体：nowar_rounded_bold.ttf 17.72→0.34 MB、noto_sans_sc.ttf 16.95→0.54 MB（完整字体备份于 Experimental\backup_full_fonts\，不入库）。导出包进一步降至 235.2 MB。
+- chore(tools)：字体子集再生工具 tools/font_subset.py 入库——扫描 GameProject 文本源提取字符集并重跑子集化，字符表留存 tools/font_subset_charset.txt；新增文案后缺字时重跑即可。双冒烟 459 项 / 26 场景全绿。
