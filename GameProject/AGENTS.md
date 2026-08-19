@@ -70,6 +70,7 @@
 - 导出打包（仓库根目录执行；产物在 `GameProject/build/`，已 gitignore）：
   - Windows：`GameEngine\Godot.exe --headless --path GameProject --export-release "Windows Desktop" build\windows\aigame.exe`
   - Android（debug APK）：`GameEngine\Godot.exe --headless --path GameProject --export-debug "Android" build\android\aigame.apk`
+  - Android（release APK，正式签名）：`GameEngine\Godot.exe --headless --path GameProject --export-release "Android" build\android\aigame.apk`（release keystore 已配置在预设 keystore/release*；keystore 文件在 `%APPDATA%\Godot\keystores\release.keystore`，口令与备份在 `Experimental\backup_release_keystore\`，均不入库——丢失后无法以同一签名发布更新）
   - Android 前置：编辑器设置 → 导出 → Android 必须显式填写 Java SDK Path（JDK 17）与 Android SDK Path（4.7 不读 JAVA_HOME 环境变量）；项目已启用 `rendering/textures/vram_compression/import_etc2_astc`（Android 导出必需，桌面包会因此含双格式纹理）。
 
 ## 代码风格与命名规范

@@ -118,3 +118,10 @@
 - chore(env)：本机安装 Android 打包环境（不入库）：Godot 4.7.1 Android 导出模板（debug/release/source）、JDK 17（Temurin 17.0.20）、Android SDK（platform-tools + platforms;android-36 + build-tools;36.0.0）；debug keystore 由编辑器自动生成于 `%APPDATA%\Godot\keystores\debug.keystore`。注意 Godot 4.7 Android 导出强制要求“编辑器设置 → 导出 → Android”显式填写 Java SDK Path 与 Android SDK Path（不读 JAVA_HOME 环境变量）。
 - perf(project)：启用 `rendering/textures/vram_compression/import_etc2_astc`（Android 导出必需），纹理导入为 S3TC+ETC2 双格式：Windows 包 235.2→251.8 MB（+16.6 MB 为双格式纹理代价）；仅发桌面端时可关闭该项并重导入恢复。正式 release APK 需再生成 release keystore（当前仅 debug 包可出）。
 - docs：`GameProject/AGENTS.md` 构建命令节补导出命令与环境要求。双冒烟 459 项 / 26 场景全绿。
+
+## 2026-08-20 · 包体瘦身第二轮与 Android release 签名包
+
+- perf(assets)：主地形贴图 amber_starlight_sanctuary_4096.png 4096²→2048²（LANCZOS 降采样；Polygon2D 归一化 UV，场景零改动；原图备份 Experimental\backup_terrain_4096\，不入库），导入 ctex 16.7→5.2 MB；字体子集再生工具重跑验证幂等（字符集 1073，两字体字节级无变化）。
+- chore(export)：导出预设 exclude_filter（Windows/Android 双预设）排除死资产——全仓无任何引用（无 .uid、无路径引用）的 4 张 ground_*_crisp.webp（APK 内约 35 MB）与仅自引用的预览场景 art_ground_preview.tscn 及其独占贴图 amber_starlight_sanctuary_2048.png（约 4.9 MB）；源文件保留在仓库，仅不进包。
+- feat(export)：生成 release keystore（RSA 2048、10000 天、alias aigame）并写入 Android 预设 keystore/release*；keystore 文件在 %APPDATA%\Godot\keystores\release.keystore，口令与备份在 Experimental\backup_release_keystore\（均不入库）。--export-release 出正式签名 build/android/aigame.apk：174.4 MB（debug）→121.2 MB（release），<150 MB 目标达成；aapt2 校验包名 com.aigame.app、minSdk 24 / targetSdk 36、已签名。
+- 已知遗留：未设置项目图标（导出日志报 No project icon，不影响签名与安装）；微信/抖音小游戏需另走 Web 导出链路。双冒烟 459 项 / 26 场景全绿。
