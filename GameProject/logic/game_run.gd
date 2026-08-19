@@ -204,8 +204,15 @@ func step(dt: float, view_w: float = 1280.0, view_h: float = 720.0) -> void:
         else:
             temporary_speed_mult = maxf(temporary_speed_mult, moveSpeedBonuses[source]["multiplier"])
     player.speed = Config.CONFIG["player"]["speed"] * mods["moveSpeedMult"] * temporary_speed_mult
+    var walkable_from_x: float = player.x
+    var walkable_from_y: float = player.y
     player.update(input, dt)
     _clamp_entity_to_level(player, LevelGeometryScript.PLAYER_INSET)
+    var walkable_position: Dictionary = LevelGeometryScript.clamp_walkable_circle(
+        player.x, player.y, player.radius, walkable_from_x, walkable_from_y
+    )
+    player.x = walkable_position["x"]
+    player.y = walkable_position["y"]
     camera.follow(player, dt, Config.CONFIG["camera"]["lerp"])
     var camera_position: Dictionary = LevelGeometryScript.clamp_camera(camera.x, camera.y, view_w, view_h)
     camera.x = camera_position["x"]

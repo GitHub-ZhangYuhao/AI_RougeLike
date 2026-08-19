@@ -24,11 +24,10 @@ texture = ExtResource("2_in6ls")
 polygon = PackedVector2Array(-2048, -2048, 2048, -2048, 2048, 2048, -2048, 2048)
 uv = PackedVector2Array(0, 0, 2048, 0, 2048, 2048, 0, 2048)
 
+[node name="WalkableBoundary" type="Polygon2D" parent="." unique_id=1190753711]
+color = Color(1, 0.85, 0.45, 0.08)
+polygon = PackedVector2Array(819, 939, 1203, 552, 1501, -166, 1239, -675, 848, -1084, 469, -1222, -415, -1196, -563, -1141, -607, -942, -792, -695, -1271, -537, -1492, -31, -1277, 537, -903, 840, -729, 1035, -618, 1304, -364, 1144, -172, 1341, 106, 1463, 282, 1377, 415, 1237)
+
 [node name="Decor" type="Node2D" parent="." unique_id=1374383082]
 z_index = 10
 script = ExtResource("3_decor")
-
-[node name="Area2D" type="Area2D" parent="." unique_id=324723878]
-
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Area2D" unique_id=2020580074]
-polygon = PackedVector2Array(-633, -1121, -150, -1241, -2, -1280, 36, -1855, -1299, -2034, -1880, -1951, -2015, -1080, -1878, 48, -1556, 2, -1356, -188, -1276, -577, -1040, -642, -724, -756)

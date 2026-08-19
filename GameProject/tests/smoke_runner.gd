@@ -15,6 +15,7 @@ class_name SmokeRunner
 ## M0：注册表为空，仅跑脚手架自检（autoload 四件套），空注册表也算 OK。
 
 const HarnessScript: GDScript = preload("res://tests/scenarios/_harness.gd")
+const LevelGeometryScript: GDScript = preload("res://logic/level_geometry.gd")
 
 ## 已注册的 smoke 场景（一章一个 .gd）。按原型线性执行顺序共享同一个 game。
 const SCENARIO_PATHS: Array[String] = [
@@ -101,6 +102,7 @@ func _run_scaffold_checks() -> void:
     _check_rng()
     _check_meta_save()
     _check_events()
+    _check_walkable_boundary()
 
 
 # CONFIG 抽样：与 BALANCE.md / js/config.js 对照。
@@ -184,6 +186,24 @@ func _check_events() -> void:
         "player_level_up", "wave_banner", "announcement", "sfx_requested",
     ]:
         check(Events.has_signal(signal_name), "[M0] Events declares signal '%s'" % signal_name)
+
+
+
+
+# 可行走区域登记（RULES.md §3.6）：与 game_view 同构 —— 读取场景 WalkableBoundary
+# 注入逻辑层，保证 headless 与画面共享同一几何真值（场景节点是唯一编辑入口）。
+func _check_walkable_boundary() -> void:
+    var scene: PackedScene = load("res://scenes/game/meadow_level.tscn")
+    check(scene != null, "[M0] 草甸关卡场景应可加载")
+    if scene == null:
+        return
+    var level: Node = scene.instantiate()
+    var boundary := level.get_node_or_null("WalkableBoundary") as Polygon2D
+    check(boundary != null, "[M0] 可行走区域节点 WalkableBoundary 应存在")
+    if boundary != null:
+        var points: Array = LevelGeometryScript.points_from_polygon(boundary.polygon, boundary.transform)
+        check(LevelGeometryScript.set_walkable_polygon(points), "[M0] 可行走区域多边形应登记成功（至少 3 个顶点）")
+    level.free()
 
 
 # 确定性序列源：供 Rng.set_source 注入（测试专用）。

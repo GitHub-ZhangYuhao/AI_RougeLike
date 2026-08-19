@@ -178,6 +178,12 @@ player.speed = 230 × mods.moveSpeedMult × playerMoveSpeedBonusMult()
 - 玩家与敌方弹道的圆形范围一旦接触/越过边界即销毁。
 - 随机任务信标、护送目的地、悬赏目标和拦截者生成点至少内收 80px。
 - 地形贴图内的石块属于可行走细节；后续独立树木、岩石障碍必须在逻辑层登记几何，场景碰撞节点不能成为玩法真值。
+- 草甸关卡在矩形边界之上叠加不规则可行走区域限制玩家移动。几何唯一真值是 `scenes/game/meadow_level.tscn` 的 `WalkableBoundary`（`Polygon2D`）节点：顶点可在编辑器直接拖动，也支持整体移动/缩放节点（登记时按节点 transform 换算世界坐标）。`clamp_walkable_circle()` 把玩家圆钳制在多边形内部（圆心与任意边保持至少 `radius` 距离），`point_in_walkable()` 判定内外。
+- 可行走区域登记链路：运行时 `game_view._ready()` 与 headless smoke 脚手架阶段分别读取同一个 `WalkableBoundary` 节点，经 `points_from_polygon()` 换算后由 `set_walkable_polygon()` 注入逻辑层；边界判定仍全部由 `logic/level_geometry.gd` 完成，不使用物理节点。`WALKABLE_DEFAULT_POLYGON` 仅是未登记时的兜底形状，不是编辑入口。
+- 多边形修改约束：出生点（世界原点）及其周边必须保持在区域内（[2] 章节断言原点与原点右侧 300px 可行走、从该处向右移动 1 秒不出界）；顶点按序连线、不得自交。
+- 任务点位生成（`_point_around`：任务信标、护送目的地、悬赏目标与拦截者生成点）在矩形边界钳制后再钳制进可行走区域内部（内收 `TASK_INSET`），保证任务目标始终位于玩家可达范围。
+- 已知局限：敌人、经验宝石、掉落物与弹道只受矩形边界约束，可能出现在可行走区域之外；可行走区域自带淡暖色半透明视觉提示（WalkableBoundary 节点本身），不需要时把节点设为不可见。
+- 可行走区域属于 Godot 正式化扩展，HTML5 原型不存在该限制（保持无限世界）。
 
 ---
 

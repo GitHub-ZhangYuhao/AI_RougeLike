@@ -50,10 +50,11 @@ static func _random_int(source: Callable, minimum: int, maximum: int) -> int:
 
 static func _point_around(origin, distance: float, source: Callable) -> Dictionary:
     var angle: float = _random_range(source, 0.0, TAU)
-    return LevelGeometryScript.clamp_point({
+    var point: Dictionary = LevelGeometryScript.clamp_point({
         "x": origin.x + cos(angle) * distance,
         "y": origin.y + sin(angle) * distance,
     }, LevelGeometryScript.TASK_INSET)
+    return LevelGeometryScript.clamp_walkable_circle(point["x"], point["y"], LevelGeometryScript.TASK_INSET)
 
 
 static func _tier_value(values: Array, tier: int):

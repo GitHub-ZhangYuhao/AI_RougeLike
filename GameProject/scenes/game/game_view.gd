@@ -2,6 +2,7 @@ extends Node2D
 ## Godot 输入 → InputState；60Hz 累加器驱动纯逻辑；正式美术表现层只读取运行状态。
 const GameRunScript: GDScript = preload('res://logic/game_run.gd')
 const UiLayoutScript: GDScript = preload('res://logic/ui_layout.gd')
+const LevelGeometryScript: GDScript = preload('res://logic/level_geometry.gd')
 const STEP: float = 1.0 / 60.0
 const CAMERA_ZOOM: float = UiLayoutScript.CAMERA_ZOOM
 const CAMERA_VISUAL_OFFSET_Y: float = -18.0
@@ -31,7 +32,21 @@ func _ready() -> void:
 	AudioManager.bind_run(run)
 	_prev_view_wave = run.waveDirector.wave
 	_prev_view_state = run.state
+	_register_walkable_boundary()
 	_sync_views(get_viewport_rect().size)
+
+
+
+
+## 从关卡场景读取可行走区域多边形并登记进逻辑层（RULES.md §3.6）：
+## WalkableBoundary 顶点可在编辑器拖动，登记时按节点 transform 换算世界坐标。
+func _register_walkable_boundary() -> void:
+	var boundary := meadow_level.get_node_or_null("WalkableBoundary") as Polygon2D
+	if boundary == null:
+		return
+	LevelGeometryScript.set_walkable_polygon(
+		LevelGeometryScript.points_from_polygon(boundary.polygon, boundary.transform)
+	)
 
 
 func _input(event: InputEvent) -> void:

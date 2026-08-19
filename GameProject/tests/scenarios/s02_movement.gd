@@ -43,15 +43,25 @@ func run(runner) -> void:
     runner.check(clamped["x"] == LevelGeometryScript.RIGHT - game.player.radius, "[2] 关卡右边界碰撞")
     runner.check(clamped["y"] == LevelGeometryScript.TOP + game.player.radius, "[2] 关卡上边界碰撞")
     runner.check(LevelGeometryScript.is_outside_circle(LevelGeometryScript.RIGHT - 2.0, 0.0, 5.0), "[2] 弹道接触关卡边界应出界")
+    runner.check(LevelGeometryScript.point_in_walkable(0.0, 0.0), "[2] 出生点应在可行走区域内")
+    runner.check(LevelGeometryScript.point_in_walkable(300.0, 0.0), "[2] 可行走区域应覆盖出生点右侧")
+    runner.check(not LevelGeometryScript.point_in_walkable(9999.0, 0.0), "[2] 远离关卡的点应判为可行走区域外")
+    var walkable_clamped: Dictionary = LevelGeometryScript.clamp_walkable_circle(9999.0, 0.0, game.player.radius)
+    runner.check(LevelGeometryScript.point_in_walkable(walkable_clamped["x"], walkable_clamped["y"]), "[2] 区域外的圆应被钳制回可行走区域")
+    var walkable_again: Dictionary = LevelGeometryScript.clamp_walkable_circle(walkable_clamped["x"], walkable_clamped["y"], game.player.radius)
+    runner.check(walkable_again["x"] == walkable_clamped["x"] and walkable_again["y"] == walkable_clamped["y"], "[2] 可行走钳制结果应幂等")
+    var camera_clamped: Dictionary = LevelGeometryScript.clamp_camera(LevelGeometryScript.RIGHT + 500.0, 0.0, 1280.0, 720.0)
+    runner.check(camera_clamped["x"] == LevelGeometryScript.RIGHT - 640.0, "[2] 相机不能越出正式关卡")
     var old_x: float = game.player.x
     var old_y: float = game.player.y
-    game.player.x = LevelGeometryScript.RIGHT - game.player.radius - LevelGeometryScript.PLAYER_INSET - 1.0
+    game.player.x = 300.0
     game.player.y = 0.0
+    game.camera.snap_to(game.player)
     runner.harness.key_down("KeyD")
     runner.harness.pump(60)
+    runner.check(game.player.x > 320.0, "[2] 玩家应能沿可行走区域边界滑动")
     runner.harness.key_up("KeyD")
-    runner.check(game.player.x == LevelGeometryScript.RIGHT - game.player.radius - LevelGeometryScript.PLAYER_INSET, "[2] 玩家不能越出正式关卡")
-    runner.check(game.camera.x <= LevelGeometryScript.RIGHT - 640.0, "[2] 相机不能越出正式关卡")
+    runner.check(LevelGeometryScript.point_in_walkable(game.player.x, game.player.y), "[2] 玩家不能越出可行走区域")
     game.player.x = old_x
     game.player.y = old_y
     game.camera.snap_to(game.player)
