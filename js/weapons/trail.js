@@ -1,4 +1,4 @@
-﻿import { WeaponBase } from './base.js';
+import { WeaponBase } from './base.js';
 import { dist2 } from '../utils.js';
 
 const LOOP_MIN_LENGTH = 260;
@@ -619,7 +619,7 @@ export const CARD = {
     { damage: 14, radius: 48, life: 5.5, dropInterval: 0.18, burn: true, burnDps: 14 },
     { damage: 16, radius: 52, life: 7.0, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true, furnaceLife: 6 },
     { damage: 21, radius: 57, life: 8.5, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true, enhancedFurnace: true, furnaceLife: 7.5 },
-    { damage: 26, radius: 62, life: 10.0, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true, enhancedFurnace: true, nineTurn: true, furnaceLife: 9, hotZoneLife: 5 },
+    { damage: 28, radius: 62, life: 10.0, dropInterval: 0.18, burn: true, burnDps: 14, furnace: true, enhancedFurnace: true, nineTurn: true, furnaceLife: 9, hotZoneLife: 5 },
   ],
   create() { return new TrailWeapon(this); },
 };

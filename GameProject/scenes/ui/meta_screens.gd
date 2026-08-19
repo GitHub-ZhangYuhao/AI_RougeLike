@@ -535,6 +535,7 @@ func _row_style() -> StyleBoxFlat:
 
 func _on_start_pressed() -> void:
 	start_requested.emit()
+	Events.sfx_requested.emit("sfx_ui_click", {})
 	if run != null and run.state == "menu":
 		run._start_run()
 	_last_signature = ""
@@ -543,6 +544,7 @@ func _on_start_pressed() -> void:
 
 func _on_shop_pressed() -> void:
 	shop_requested.emit()
+	Events.sfx_requested.emit("sfx_ui_click", {})
 	if run != null:
 		run.open_shop()
 	_last_signature = ""
@@ -551,6 +553,7 @@ func _on_shop_pressed() -> void:
 
 func _on_storage_pressed() -> void:
 	storage_requested.emit()
+	Events.sfx_requested.emit("sfx_ui_click", {})
 	if run != null:
 		run.open_storage()
 	_last_signature = ""
@@ -559,6 +562,7 @@ func _on_storage_pressed() -> void:
 
 func _on_back_pressed() -> void:
 	menu_requested.emit()
+	Events.sfx_requested.emit("sfx_ui_click", {})
 	if run != null:
 		run.back_to_menu()
 	_last_signature = ""
@@ -566,6 +570,7 @@ func _on_back_pressed() -> void:
 
 
 func _on_sell_all_pressed() -> void:
+	Events.sfx_requested.emit("sfx_ui_click", {})
 	request_sell_all()
 
 

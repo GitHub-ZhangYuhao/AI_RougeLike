@@ -1,5 +1,7 @@
 ﻿# 实现方案：Boss 撤离 + 局外商城（一期完整闭环）
 
+> **2026-08-19 复核注记**：文内「待实现」状态已过时——本方案已完整落地（原型 `562bdb4`/`76004d0`，Godot M5 `00a224a`）。实现真值见 `GameProject/RULES.md`。
+
 > 状态：设计已拍板，待实现
 > 日期：2026-08-12
 > 关联文档：Notion《AI Rogue Like Design》→「Boss 撤离与局外商城系统（已拍板 · 一期）」；`Docs/boss-extraction-shop-dynamic-tasks.md`（原始设计稿）

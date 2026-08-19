@@ -1,0 +1,81 @@
+{
+  "1": {
+    "_meta": { "title": "加载 Stable Audio 3 Small-SFX 检查点 (提供 MODEL + VAE)" },
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "stable_audio_3_small_sfx.safetensors"
+    }
+  },
+  "2": {
+    "_meta": { "title": "加载文本编码器 t5gemma (stable_audio 类型)" },
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "t5gemma_b_b_ul2.safetensors",
+      "type": "stable_audio"
+    }
+  },
+  "3": {
+    "_meta": { "title": "正向提示词 - 描述你想要的音效 (SFX类别)" },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": ["2", 0],
+      "text": "sharp metallic sword clash, steel blade impact, ringing resonance, battle combat sound effect, high quality foley. Length: 2 seconds"
+    }
+  },
+  "4": {
+    "_meta": { "title": "负向提示词" },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": ["2", 0],
+      "text": "low quality, noisy, distorted, speech, vocals, dialogue, music, ambient"
+    }
+  },
+  "5": {
+    "_meta": { "title": "空白音频 Latent (2秒)" },
+    "class_type": "EmptyLatentAudio",
+    "inputs": {
+      "seconds": 2.0,
+      "batch_size": 1
+    }
+  },
+  "6": {
+    "_meta": { "title": "KSampler 采样 (lcm + simple 调度)" },
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["1", 0],
+      "positive": ["3", 0],
+      "negative": ["4", 0],
+      "latent_image": ["5", 0],
+      "seed": 42,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler_name": "lcm",
+      "scheduler": "simple",
+      "denoise": 1.0
+    }
+  },
+  "7": {
+    "_meta": { "title": "VAE 解码音频" },
+    "class_type": "VAEDecodeAudio",
+    "inputs": {
+      "samples": ["6", 0],
+      "vae": ["1", 2]
+    }
+  },
+  "8": {
+    "_meta": { "title": "预览音频" },
+    "class_type": "PreviewAudio",
+    "inputs": {
+      "audio": ["7", 0]
+    }
+  },
+  "9": {
+    "_meta": { "title": "保存音频为 FLAC" },
+    "class_type": "SaveAudioAdvanced",
+    "inputs": {
+      "audio": ["7", 0],
+      "filename_prefix": "audio/stable_audio_3_sfx",
+      "format": "flac"
+    }
+  }
+}

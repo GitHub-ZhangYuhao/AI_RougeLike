@@ -261,7 +261,7 @@ func run(runner) -> void:
 
     var trail = WeaponFactoryScript.create_weapon("trail")
     var curve: Array = trail.card["levels"].map(func(level_stats: Dictionary): return level_stats["damage"])
-    runner.check(curve == [7, 10, 14, 16, 21, 26], "[6] trail damage nerf curve changed unexpectedly")
+    runner.check(curve == [7, 10, 14, 16, 21, 28], "[6] trail damage nerf curve changed unexpectedly")
     trail.level = 6
     var trail_world: Dictionary = _base_world()
     trail_world.player.x = 60.0

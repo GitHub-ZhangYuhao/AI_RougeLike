@@ -1,0 +1,136 @@
+{
+  "1": {
+    "_meta": { "title": "加载 LTX-2 扩散模型（从 checkpoints 目录）" },
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "ltx-2.3-22b-distilled-fp8.safetensors"
+    }
+  },
+  "2": {
+    "_meta": { "title": "加载 LTXV 文本编码器 + 音频 VAE (Gemma 3 12B + Vocoder)" },
+    "class_type": "LTXAVTextEncoderLoader",
+    "inputs": {
+      "text_encoder": "gemma-3-12b-it-ablit-norms-biproj-fp8mixed.safetensors",
+      "ckpt_name": "ltx-av-step-1751000_vocoder_24K.safetensors",
+      "device": "default"
+    }
+  },
+  "3": {
+    "_meta": { "title": "加载 LTXV 音频 VAE" },
+    "class_type": "LTXVAudioVAELoader",
+    "inputs": {
+      "ckpt_name": "ltx-av-step-1751000_vocoder_24K.safetensors"
+    }
+  },
+  "4": {
+    "_meta": { "title": "正向提示词 - 描述想要的音效/音乐" },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "epic dark fantasy background music, Chinese traditional instruments, erhu and guzheng, mysterious night atmosphere, soft percussion, ambient drone, game soundtrack loop",
+      "clip": ["2", 0]
+    }
+  },
+  "5": {
+    "_meta": { "title": "负向提示词" },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "low quality, noisy, distorted, clip, popping, static, speech, vocals, dialogue",
+      "clip": ["2", 0]
+    }
+  },
+  "6": {
+    "_meta": { "title": "虚拟视频 Latent（音频模式下不使用）" },
+    "class_type": "LTXVAudioOnlyEmptyVideoLatent"
+  },
+  "7": {
+    "_meta": { "title": "空白音频 Latent（97帧@25fps ≈ 3.88秒）" },
+    "class_type": "LTXVEmptyLatentAudio",
+    "inputs": {
+      "frames_number": 97,
+      "frame_rate": 25.0,
+      "batch_size": 1,
+      "audio_vae": ["3", 0]
+    }
+  },
+  "8": {
+    "_meta": { "title": "合并视频+音频 Latent" },
+    "class_type": "LTXVConcatAVLatent",
+    "inputs": {
+      "video_latent": ["6", 0],
+      "audio_latent": ["7", 0]
+    }
+  },
+  "9": {
+    "_meta": { "title": "切换到纯音频生成模式" },
+    "class_type": "LTXVAudioOnlyModel",
+    "inputs": {
+      "model": ["1", 0]
+    }
+  },
+  "10": {
+    "_meta": { "title": "LTXV 模型采样配置" },
+    "class_type": "ModelSamplingLTXV",
+    "inputs": {
+      "model": ["9", 0],
+      "max_shift": 2.05,
+      "base_shift": 0.95,
+      "latent": ["8", 0]
+    }
+  },
+  "11": {
+    "_meta": { "title": "LTXV 条件（帧率）" },
+    "class_type": "LTXVConditioning",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "frame_rate": 25.0
+    }
+  },
+  "12": {
+    "_meta": { "title": "KSampler 采样" },
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["10", 0],
+      "positive": ["11", 0],
+      "negative": ["11", 1],
+      "latent_image": ["8", 0],
+      "seed": 42,
+      "steps": 20,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1.0
+    }
+  },
+  "13": {
+    "_meta": { "title": "分离视频和音频 Latent" },
+    "class_type": "LTXVSeparateAVLatent",
+    "inputs": {
+      "av_latent": ["12", 0]
+    }
+  },
+  "14": {
+    "_meta": { "title": "解码音频 Latent 为波形" },
+    "class_type": "LTXVAudioVAEDecode",
+    "inputs": {
+      "samples": ["13", 1],
+      "audio_vae": ["3", 0]
+    }
+  },
+  "15": {
+    "_meta": { "title": "预览音频" },
+    "class_type": "PreviewAudio",
+    "inputs": {
+      "audio": ["14", 0]
+    }
+  },
+  "16": {
+    "_meta": { "title": "保存音频为 FLAC" },
+    "class_type": "SaveAudioAdvanced",
+    "inputs": {
+      "audio": ["14", 0],
+      "filename_prefix": "audio/LTX_Audio",
+      "format": "flac"
+    }
+  }
+}

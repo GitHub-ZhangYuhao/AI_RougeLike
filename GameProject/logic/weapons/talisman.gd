@@ -1,5 +1,5 @@
 extends "res://logic/weapons/weapon_base.gd"
-## ← js/weapons/talisman.js：单发雷弹、逐目标引雷计数与闪电链。
+## ← js/weapons/talisman.js：多发雷弹（count 指向最近的 count 个不同目标）、逐目标引雷计数与闪电链。
 
 const ProjectileScript: GDScript = preload("res://logic/projectile.gd")
 const BaseScript: GDScript = preload("res://logic/weapons/weapon_base.gd")
@@ -8,12 +8,12 @@ const CHAIN_RADIUS: float = 160.0
 const THUNDER_AOE_RADIUS: float = 80.0
 
 const CARD: Dictionary = {"id": "talisman", "kind": "weapon", "name": "雷符咒", "maxLevel": 6, "levels": [
-    {"damage": 12, "interval": 1.0, "speed": 460, "range": 520},
-    {"damage": 15, "interval": 0.95, "speed": 460, "range": 520, "thunder": true},
-    {"damage": 19, "interval": 0.88, "speed": 460, "range": 520, "thunder": true},
-    {"damage": 23, "interval": 0.81, "speed": 460, "range": 520, "thunder": true, "chain": true, "chainBounces": 2},
-    {"damage": 27, "interval": 0.75, "speed": 460, "range": 520, "thunder": true, "chain": true, "chainBounces": 2},
-    {"damage": 31, "interval": 0.70, "speed": 490, "range": 550, "thunder": true, "thunderFirst": true, "thunderAoE": true, "chain": true, "chainBounces": 3},
+    {"damage": 12, "interval": 1.0, "speed": 460, "range": 520, "count": 4},
+    {"damage": 15, "interval": 0.95, "speed": 460, "range": 520, "count": 4, "thunder": true},
+    {"damage": 19, "interval": 0.88, "speed": 460, "range": 520, "count": 4, "thunder": true},
+    {"damage": 23, "interval": 0.81, "speed": 460, "range": 520, "count": 2, "thunder": true, "chain": true, "chainBounces": 2},
+    {"damage": 27, "interval": 0.75, "speed": 460, "range": 520, "count": 2, "thunder": true, "chain": true, "chainBounces": 2},
+    {"damage": 31, "interval": 0.70, "speed": 490, "range": 550, "count": 1, "thunder": true, "thunderFirst": true, "thunderAoE": true, "chain": true, "chainBounces": 3},
 ]}
 
 var thunder_counters: Dictionary = {}
@@ -37,21 +37,23 @@ func update(dt: float, current_world) -> void:
     if timer > 0.0:
         return
     var s: Dictionary = stats
-    var target = BaseScript.nearest_enemy(current_world.enemies, current_world.player.x, current_world.player.y, s["range"] * s["range"])
-    if target == null:
+    var targets: Array = BaseScript.nearest_n(current_world.enemies, current_world.player.x, current_world.player.y,
+        int(s.get("count", 1)), s["range"] * s["range"])
+    if targets.is_empty():
         timer = 0.0
         return
     timer = s["interval"]
     attack_seq += 1
-    var angle: float = atan2(target.y - current_world.player.y, target.x - current_world.player.x)
-    var projectile = ProjectileScript.new(current_world.player.x, current_world.player.y, angle, {
-        "speed": s["speed"], "radius": 5.0, "damage": s["damage"] * current_world.mods["damageMult"],
-        "lifetime": float(s["range"]) / float(s["speed"]) + 0.3,
-        "damageOptions": {"sourceWeaponId": "talisman", "sourceAction": "projectile", "sourceTags": ["lightning", "projectile"]},
-    })
-    projectile.attackSeq = attack_seq
-    projectile.onHit = Callable(self, "_on_projectile_hit").bind(projectile)
-    current_world.projectiles.append(projectile)
+    for target in targets:
+        var angle: float = atan2(target.y - current_world.player.y, target.x - current_world.player.x)
+        var projectile = ProjectileScript.new(current_world.player.x, current_world.player.y, angle, {
+            "speed": s["speed"], "radius": 5.0, "damage": s["damage"] * current_world.mods["damageMult"],
+            "lifetime": float(s["range"]) / float(s["speed"]) + 0.3,
+            "damageOptions": {"sourceWeaponId": "talisman", "sourceAction": "projectile", "sourceTags": ["lightning", "projectile"]},
+        })
+        projectile.attackSeq = attack_seq
+        projectile.onHit = Callable(self, "_on_projectile_hit").bind(projectile)
+        current_world.projectiles.append(projectile)
 
 
 func _clean_counters(enemies: Array) -> void:

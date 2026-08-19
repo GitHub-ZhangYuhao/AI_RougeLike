@@ -43,6 +43,8 @@ func _update_normal_wave(dt: float, game, camera, view_w: float, view_h: float) 
         var elite = game.spawner.spawn_type("shield", game.elapsed, game.enemies, camera, view_w, view_h,
             {"wave": wave, "spawnedByType": spawnedByType})
         if elite != null:
+            # 盾兵基础 rank 为 normal，仅精英波生成路径赋 elite rank（驱动稀有物掉落与精英视觉）
+            elite.rank = "elite"
             eliteSpawned = true
             spawned += 1
             game.spawner.timer = spawnInterval

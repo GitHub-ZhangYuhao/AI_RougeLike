@@ -1,6 +1,7 @@
 extends Node2D
 
 const ArtCatalog: GDScript = preload('res://scenes/art_catalog.gd')
+const FlipbookScript: GDScript = preload('res://logic/systems/flipbook.gd')
 const RareItemsScript: GDScript = preload('res://logic/rare_items.gd')
 const UI_FONT: Font = preload('res://assets/fonts/ui_font_round.tres')
 const WEAPON_COLORS: Dictionary = {
@@ -29,6 +30,10 @@ const DAMAGE_NUMBER_OFFSETS: Array[Vector2] = [
 	Vector2(-2.0, 0.0), Vector2(2.0, 0.0), Vector2(0.0, -2.0), Vector2(0.0, 2.0),
 	Vector2(-1.5, -1.5), Vector2(1.5, -1.5), Vector2(-1.5, 1.5), Vector2(1.5, 1.5),
 ]
+# 序列帧图集常量（规格见 logic/systems/flipbook.gd 与 PRODUCTION_REPORT.md）
+const FLAME_FPS: float = 4.8387
+const FLAME_LOOP_FRAMES: int = 24
+const BURST_FRAME_COUNT: int = 25
 
 var run = null
 var animation_time: float = 0.0
@@ -225,7 +230,12 @@ func _draw_weapon_zones() -> void:
 				var shock_alpha: float = 1.0 - progress
 				var shock_radius: float = shock['max_r'] * progress
 				var tint := Color(1.0, 0.92, 0.62, shock_alpha) if enhanced else Color(1.0, 1.0, 1.0, shock_alpha)
-				_draw_sprite(ArtCatalog.VFX_TEXTURES['cloakFireBurst'], shock_position, shock_radius * 2.1, 0.0, false, tint)
+				var burst_texture: Texture2D = ArtCatalog.VFX_TEXTURES.get('cloakFireBurstAnim')
+				if burst_texture != null:
+					var burst_frame: int = FlipbookScript.frame_for_progress(progress, BURST_FRAME_COUNT)
+					_draw_sprite_region(burst_texture, FlipbookScript.frame_region(burst_frame), shock_position, shock_radius * 2.1, 0.0, tint)
+				else:
+					_draw_sprite(ArtCatalog.VFX_TEXTURES['cloakFireBurst'], shock_position, shock_radius * 2.1, 0.0, false, tint)
 				if enhanced:
 					draw_circle(shock_position, shock_radius, Color(1.0, 0.35, 0.08, shock_alpha * 0.08))
 					draw_arc(shock_position, shock_radius, 0.0, TAU, 72, Color(1.0, 0.92, 0.52, shock_alpha * 0.92), 4.5)
@@ -263,7 +273,7 @@ func _draw_weapon_zones() -> void:
 		elif id == 'trail':
 			for zone: Dictionary in weapon.furnaces:
 				_draw_zone(zone, Color(1.0, 0.2, 0.04, 0.1), Color('ff7043'))
-				_draw_sprite(ArtCatalog.VFX_TEXTURES['furnaceFlame'], _point(zone['center']), 78.0, 0.0, false, Color(1.0, 1.0, 1.0, _zone_alpha(zone)))
+				_draw_flame_anim(_point(zone['center']), 78.0, Color(1.0, 1.0, 1.0, _zone_alpha(zone)))
 				_draw_furnace_open_effect(zone)
 			for zone: Dictionary in weapon.hot_zones:
 				_draw_zone(zone, Color(1.0, 0.65, 0.12, 0.1), Color('ffca28'))
@@ -443,8 +453,7 @@ func _draw_furnace_open_effect(zone: Dictionary) -> void:
 	var burst_radius: float = visual_radius * (0.25 + progress * 0.9)
 	draw_arc(center, burst_radius, 0.0, TAU, 72, ring_color, 5.0)
 	draw_arc(center, burst_radius * 0.72, 0.0, TAU, 64, Color(1.0, 0.96, 0.72, alpha * 0.62), 2.5)
-	_draw_sprite(ArtCatalog.VFX_TEXTURES['explosion'], center, maxf(80.0, visual_radius * (1.1 + progress * 0.45)),
-		animation_time * 0.45, false, Color(1.0, 0.86, 0.58, alpha * 0.88))
+	_draw_flame_anim(center, maxf(80.0, visual_radius * (1.1 + progress * 0.45)), Color(1.0, 0.86, 0.58, alpha * 0.88), animation_time * 0.45)
 
 
 func _zone_alpha(zone: Dictionary) -> float:
@@ -457,7 +466,7 @@ func _draw_trails() -> void:
 			continue
 		var alpha: float = clampf(trail['life'] / trail['maxLife'], 0.0, 1.0)
 		var trail_position := Vector2(trail['x'], trail['y'])
-		_draw_sprite(ArtCatalog.VFX_TEXTURES['furnaceFlame'], trail_position, trail['radius'] * 2.1, 0.0, false, Color(1.0, 1.0, 1.0, alpha * 0.55))
+		_draw_flame_anim(trail_position, trail['radius'] * 2.1, Color(1.0, 1.0, 1.0, alpha * 0.55))
 
 
 func _draw_gems() -> void:
@@ -619,6 +628,14 @@ func _draw_enemies() -> void:
 			draw_arc(pos, r + 9.0, 0.0, TAU, 24, Color('80cbc4'), 2.0)
 		if enemy.type == 'charger' and 'state' in enemy and (enemy.state == 'windup' or enemy.state == 'dash'):
 			_draw_charge_indicator(pos, r, enemy)
+		if enemy.type == 'bomber' and 'state' in enemy and enemy.state == 'windup':
+			_draw_bomber_windup_warning(pos, r, enemy)
+		if enemy.type == 'enhanced_chaser' and 'warningTimer' in enemy and enemy.warningTimer > 0.0 and not enemy.enraged:
+			_draw_chaser_enrage_warning(pos, r, enemy)
+		if is_boss and 'state' in enemy and enemy.state == 'windup':
+			_draw_boss_windup_warning(pos, r, enemy)
+		if enemy.type == 'ranged' and 'fireCooldown' in enemy:
+			_draw_ranged_charge_warning(pos, r, enemy)
 		if _has_active_enemy_dot(enemy.dots):
 			var detailed_dot: bool = is_budget_sample(dot_enemy_index, dot_enemy_total, DETAILED_DOT_BUDGET)
 			_draw_enemy_dots(pos, r, enemy.dots, pulse, detailed_dot)
@@ -1050,7 +1067,7 @@ func _draw_weapon_evolution(effect: Dictionary, alpha: float) -> void:
 			for flame_index in (9 if ultimate else 6):
 				var angle: float = float(flame_index) * TAU / float(9 if ultimate else 6) - animation_time * 0.4
 				var flame_position := position + Vector2.RIGHT.rotated(angle) * radius * 0.5
-				_draw_sprite(ArtCatalog.VFX_TEXTURES['furnaceFlame'], flame_position, core_size * 0.72, angle, false, Color(1.0, 0.72, 0.3, alpha))
+				_draw_flame_anim(flame_position, core_size * 0.72, Color(1.0, 0.72, 0.3, alpha), angle)
 		'ring':
 			for ring_index in (8 if ultimate else 5):
 				var angle: float = float(ring_index) * TAU / float(8 if ultimate else 5) + animation_time * 0.8
@@ -1278,6 +1295,86 @@ func _draw_ellipse_shape(center: Vector2, radii: Vector2, color: Color) -> void:
 	draw_set_transform(center, 0.0, radii)
 	draw_circle(Vector2.ZERO, 1.0, color)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+# ---------- 序列帧（flipbook）绘制 ----------
+
+## 从图集中裁出 region 区域、以 center 为中心绘制；display_size 为 region 长边的显示尺寸，rotation 绕中心。
+func _draw_sprite_region(texture: Texture2D, region: Rect2, center: Vector2, display_size: float, texture_rotation: float = 0.0, tint: Color = Color.WHITE) -> void:
+	if texture == null or display_size <= 0.0 or region.size.x <= 0.0 or region.size.y <= 0.0:
+		return
+	var factor: float = display_size / maxf(region.size.x, region.size.y)
+	var rect_size := region.size * factor
+	draw_set_transform(center, texture_rotation, Vector2.ONE)
+	draw_texture_rect_region(texture, Rect2(-rect_size * 0.5, rect_size), region, tint)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## 循环火焰动画（丹火炉 / trail 火苗 / 丹火核心共用）：帧 = floor(animation_time × FLAME_FPS) % 24，
+## 叠加世界坐标导出的位置相位，避免所有火焰同一步调。
+func _draw_flame_anim(center: Vector2, display_size: float, tint: Color = Color.WHITE, rotation: float = 0.0) -> void:
+	var texture: Texture2D = ArtCatalog.VFX_TEXTURES.get('furnaceFlameAnim')
+	if texture == null:
+		_draw_sprite(ArtCatalog.VFX_TEXTURES['furnaceFlame'], center, display_size, rotation, false, tint)
+		return
+	var phase: float = fposmod(center.x * 0.031 + center.y * 0.017, 1.0) * float(FLAME_LOOP_FRAMES)
+	var frame: int = int(floor(animation_time * FLAME_FPS + phase)) % FLAME_LOOP_FRAMES
+	_draw_sprite_region(texture, FlipbookScript.frame_region(frame), center, display_size, rotation, tint)
+
+
+# ---------- 敌人攻击预警（纯显示，不改逻辑与数值） ----------
+
+## bomber 自爆蓄力：红色光晕随进度加速闪烁 + 圆环从爆炸半径向本体收缩，预告 blastRadius 爆炸区。
+func _draw_bomber_windup_warning(enemy_position: Vector2, radius: float, enemy) -> void:
+	var duration: float = maxf(enemy.windupDuration, 0.001)
+	var progress: float = clampf(enemy.windupTimer / duration, 0.0, 1.0)
+	var blast_radius: float = maxf(enemy.blastRadius, radius * 1.2)
+	# 闪烁频率 6Hz→16Hz 随进度加速，直观读出“接近起爆”
+	var flash: float = 0.5 + sin(animation_time * TAU * (6.0 + progress * 10.0)) * 0.5
+	draw_circle(enemy_position, blast_radius * (0.55 + progress * 0.45),
+		Color(1.0, 0.16, 0.08, (0.06 + progress * 0.12) * (0.35 + flash * 0.65)))
+	var ring_radius: float = lerpf(blast_radius, radius * 1.15, progress)
+	draw_arc(enemy_position, ring_radius, 0.0, TAU, 48, Color(1.0, 0.24, 0.1, 0.35 + progress * 0.45), 2.5 + progress * 2.0)
+
+
+## enhanced_chaser 狂暴前预警（warningTimer > 0）：红色脉动光环 + 旋转断口描边，与狂暴后的完整表现区分。
+func _draw_chaser_enrage_warning(enemy_position: Vector2, radius: float, enemy) -> void:
+	var duration: float = maxf(enemy.warningDuration, 0.001)
+	var progress: float = clampf(1.0 - enemy.warningTimer / duration, 0.0, 1.0)
+	var pulse: float = 0.5 + sin(animation_time * TAU * 5.0) * 0.5
+	var intensity: float = 0.35 + progress * 0.4
+	draw_circle(enemy_position, radius * (1.5 + pulse * 0.14), Color(1.0, 0.12, 0.1, intensity * 0.14))
+	draw_arc(enemy_position, radius * 1.25 + pulse * 3.0, 0.0, TAU, 36,
+		Color(1.0, 0.2, 0.14, intensity * (0.55 + pulse * 0.35)), 2.5)
+	# 两段旋转断口外描边：区别于狂暴状态
+	var spin: float = animation_time * 3.0
+	draw_arc(enemy_position, radius * 1.6, spin, spin + PI * 0.8, 20, Color(1.0, 0.32, 0.18, intensity * 0.7), 2.0)
+	draw_arc(enemy_position, radius * 1.6, spin + PI, spin + PI * 1.8, 20, Color(1.0, 0.32, 0.18, intensity * 0.7), 2.0)
+
+
+## boss 弹幕蓄力：预警环随进度向外扩张暗示环形弹幕，另有贴身蓄力倒计时弧。
+func _draw_boss_windup_warning(enemy_position: Vector2, radius: float, enemy) -> void:
+	var windup_total: float = maxf(float(Config.CONFIG['enemyTypes']['boss'].get('windup', 0.85)), 0.001)
+	var progress: float = clampf(enemy.windupTimer / windup_total, 0.0, 1.0)
+	var pulse: float = 0.5 + sin(animation_time * TAU * 4.0) * 0.5
+	var ring_radius: float = radius * (1.3 + progress * 2.2)
+	draw_arc(enemy_position, ring_radius, 0.0, TAU, 56,
+		Color(1.0, 0.3, 0.25, (0.3 + progress * 0.5) * (0.6 + pulse * 0.4)), 3.0 + progress * 2.5)
+	draw_arc(enemy_position, radius * 1.9, -PI * 0.5, -PI * 0.5 + TAU * progress, 40, Color(1.0, 0.62, 0.3, 0.75), 4.0)
+
+
+## ranged 枪口蓄力点：无 windup 状态，fireCooldown < fireInterval×25% 时画渐亮蓄力光点。
+func _draw_ranged_charge_warning(enemy_position: Vector2, radius: float, enemy) -> void:
+	var threshold: float = maxf(enemy.fireInterval, 0.001) * 0.25
+	if enemy.fireCooldown >= threshold:
+		return
+	var charge: float = clampf(1.0 - enemy.fireCooldown / threshold, 0.0, 1.0)
+	var pulse: float = 0.5 + sin(animation_time * TAU * 6.0) * 0.5
+	var glow_alpha: float = charge * (0.5 + pulse * 0.3)
+	draw_circle(enemy_position, radius * (0.7 + charge * 0.5), Color(1.0, 0.42, 0.12, glow_alpha * 0.22))
+	var muzzle: Vector2 = enemy_position + Vector2.RIGHT.rotated(enemy.aimAngle) * (radius + 4.0)
+	draw_circle(muzzle, 2.5 + charge * 4.5, Color(1.0, 0.85, 0.45, glow_alpha * 0.9))
+
 
 
 func _draw_sprite(texture: Texture2D, center: Vector2, display_size: float, texture_rotation: float = 0.0, flip_h: bool = false, tint: Color = Color.WHITE) -> void:

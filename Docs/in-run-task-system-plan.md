@@ -1,5 +1,7 @@
 ﻿# 局内动态任务系统规划
 
+> **2026-08-19 复核注记**：本系统已实现（原型 `19a33fc`/`f7fc83b`，Godot M5 `00a224a`）。实现真值见 `GameProject/RULES.md`，本文档保留为设计依据。
+
 > **更新日期**：2026-08-13
 > **状态**：核心规则已确认，奖励持续时间等少量细节仍可调
 > **关联文档**：`Docs/boss-extraction-shop-dynamic-tasks.md`、`Docs/extraction-shop-implementation-plan.md`

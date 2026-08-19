@@ -108,4 +108,4 @@ world 契约（消费方，假设 M1 API：`game_run._world()` 按 RULES §12.0 
 - [ ] `tests/scenarios/s06_weapon_mechanics.gd` 注册进 SCENARIO_PATHS，断言文案带 `[6]` 前缀，跨脚本引用全部 preload。
 - [ ] `GameEngine\Godot.exe --headless --path GameProject --script res://tools/run_smoke.gd` 全绿（含 M1 章节无回归）。
 - [ ] `npm run smoke` 无回归。
-- [ ] 未修改 GameProject/ 内本计划范围外的文件；未触碰根目录 js/、DESIGN.md、Docs/。
+- [ ] 未修改 GameProject/ 内本计划范围外的文件；未触碰根目录 js/、DESIGN.md（2026-08-19 已删除）、Docs/。

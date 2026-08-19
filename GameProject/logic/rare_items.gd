@@ -12,6 +12,14 @@ const RARE_ITEM_BY_ID: Dictionary = {
     "warRune": RARE_ITEMS[0], "bloodJade": RARE_ITEMS[1], "magnetCore": RARE_ITEMS[2],
     "spiritBook": RARE_ITEMS[3], "windFeather": RARE_ITEMS[4],
 }
+## 乘法类稀有物加成硬上限：前 3 次叠加完整生效，超出后向硬上限截断。
+## 掉落源收敛后单局上限约 10~12 件，无上限乘法叠加仍会滚雪球。
+const RARE_BONUS_CAPS: Dictionary = {
+    "damageMult": 1.8,
+    "xpMult": 2.0,
+    "moveSpeedMult": 1.35,
+    "magnetRadiusBonus": 240.0,
+}
 
 static func roll_rare_item() -> Dictionary:
     return RARE_ITEMS[floori(Rng.next() * RARE_ITEMS.size())]
@@ -26,11 +34,15 @@ static func apply_rare_item(game, pickup) -> Dictionary:
     if not RARE_ITEM_BY_ID.has(id):
         return {}
     match id:
-        "warRune": game.rareBonuses["damageMult"] *= 1.2
+        "warRune":
+            game.rareBonuses["damageMult"] = minf(game.rareBonuses["damageMult"] * 1.2, RARE_BONUS_CAPS["damageMult"])
         "bloodJade": game.increase_max_hp(25.0, 25.0)
-        "magnetCore": game.rareBonuses["magnetRadiusBonus"] += 80.0
-        "spiritBook": game.rareBonuses["xpMult"] *= 1.25
-        "windFeather": game.rareBonuses["moveSpeedMult"] *= 1.1
+        "magnetCore":
+            game.rareBonuses["magnetRadiusBonus"] = minf(game.rareBonuses["magnetRadiusBonus"] + 80.0, RARE_BONUS_CAPS["magnetRadiusBonus"])
+        "spiritBook":
+            game.rareBonuses["xpMult"] = minf(game.rareBonuses["xpMult"] * 1.25, RARE_BONUS_CAPS["xpMult"])
+        "windFeather":
+            game.rareBonuses["moveSpeedMult"] = minf(game.rareBonuses["moveSpeedMult"] * 1.1, RARE_BONUS_CAPS["moveSpeedMult"])
     game.rareInventory[id] = game.rareInventory.get(id, 0) + 1
     game.recompute_mods()
     return RARE_ITEM_BY_ID[id]

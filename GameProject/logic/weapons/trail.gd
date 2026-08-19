@@ -19,7 +19,7 @@ const CARD: Dictionary = {"id": "trail", "kind": "weapon", "name": "丹火", "ma
     {"damage": 14, "radius": 48, "life": 5.5, "dropInterval": 0.18, "burn": true, "burnDps": 14},
     {"damage": 16, "radius": 52, "life": 7.0, "dropInterval": 0.18, "burn": true, "burnDps": 14, "furnace": true, "furnaceLife": 6, "furnaceAreaScale": 1.0, "furnacePull": 25.0, "furnaceTickMult": 1.25, "furnaceOpenMult": 6.0},
     {"damage": 21, "radius": 57, "life": 8.5, "dropInterval": 0.18, "burn": true, "burnDps": 14, "furnace": true, "enhancedFurnace": true, "furnaceLife": 7.5, "furnaceAreaScale": 1.15, "furnacePull": 35.0, "furnaceTickMult": 1.5, "furnaceOpenMult": 7.0},
-    {"damage": 26, "radius": 62, "life": 10.0, "dropInterval": 0.18, "burn": true, "burnDps": 14, "furnace": true, "enhancedFurnace": true, "nineTurn": true, "furnaceLife": 9, "hotZoneLife": 5, "furnaceAreaScale": 1.15, "furnacePull": 35.0, "furnaceTickMult": 1.5, "furnaceOpenMult": 7.0},
+    {"damage": 28, "radius": 62, "life": 10.0, "dropInterval": 0.18, "burn": true, "burnDps": 14, "furnace": true, "enhancedFurnace": true, "nineTurn": true, "furnaceLife": 9, "hotZoneLife": 5, "furnaceAreaScale": 1.15, "furnacePull": 35.0, "furnaceTickMult": 1.5, "furnaceOpenMult": 7.0},
 ]}
 
 var path_points: Array = []

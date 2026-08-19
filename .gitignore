@@ -14,3 +14,7 @@ Experimental/
 
 # Local gpt-image credentials
 /.agents/skills/gpt-image/.env
+
+# Local agent/tool state
+.claude/
+tools/AudioWorkflows/.cache/

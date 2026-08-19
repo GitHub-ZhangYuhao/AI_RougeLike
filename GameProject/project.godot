@@ -20,7 +20,12 @@ Config="*res://autoload/config.gd"
 Rng="*res://autoload/rng.gd"
 Events="*res://autoload/events.gd"
 MetaSave="*res://autoload/meta_save.gd"
+AudioManager="*res://autoload/audio_manager.gd"
 MCPRuntime="*res://addons/godot_mcp/runtime/mcp_runtime.gd"
+
+[audio]
+
+default_bus_layout="res://assets/audio/default_bus_layout.tres"
 
 [display]
 

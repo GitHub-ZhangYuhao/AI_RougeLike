@@ -205,4 +205,4 @@ func _apply_death_loss() -> void:
 - [ ] 8 个场景（s08/s09/s10/s11/s12/s13/s14/s17）注册进 SCENARIO_PATHS 且按原型线性顺序；断言文案带 `[N]` 前缀；全部 preload。
 - [ ] `GameEngine\Godot.exe --headless --path GameProject --script res://tools/run_smoke.gd` 全绿（含 M1/M2 章节无回归）。
 - [ ] `npm run smoke` 无回归。
-- [ ] 未修改 GameProject/ 内本计划范围外的文件（M1 文件的增量修改除外）；未触碰根目录 js/、DESIGN.md、Docs/。
+- [ ] 未修改 GameProject/ 内本计划范围外的文件（M1 文件的增量修改除外）；未触碰根目录 js/、DESIGN.md（2026-08-19 已删除）、Docs/。

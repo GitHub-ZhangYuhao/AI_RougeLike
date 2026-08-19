@@ -7,7 +7,7 @@
 > - RULES.md 只保留规则与公式（§7/§8 等），不再重复数值表；原 RULES.md 附录 A 于 2026-08-15 全量并入本文件。
 > - 表中 `INF` 表示无穷大（js 的 Infinity）。
 
-## 调参历史（2026-08-15 至 2026-08-18，五轮）
+## 调参历史（2026-08-15 至 2026-08-18，六轮）
 
 **第一轮**（手感：人物偏大、镜头偏近、敌人偏小、怪物偏快/偏厚/偏少，裁决见 RULES.md 附录 B #9）：
 `enemy.speed` 85→76、`enemy.hp` 50→45、`spawner.startMaxAlive` 20→30、`spawner.maxAlivePerWave` 8→10、`spawner.maxAliveCap` 140→180、`waves.baseQuota` 16→24、`waves.quantityPerWave` 0.5→0.8。
@@ -26,22 +26,61 @@
 让「已进入拾取范围」可见。同轮修正 `logic/weapons/sword.gd` 的道剑 Lv2–5 `maxHits` 2/2/2/4 → 全部 `INF`，
 恢复与原型 `js/weapons/sword.js` 的一致（原型 smoke 一直断言全等级无限贯穿），该项属移植缺陷修复而非平衡调整。
 
-## 待校准项（2026-08-18 复核提出，尚未处理）
+**第六轮**（数值审计修复 + 武器强度重排，2026-08-18；「待校准项」#1/#2/#3 本轮全部解决）：
+
+**6a. 稀有物掉落源收敛**：`logic/enemies/shield.gd` 盾兵基础 `rank` `"elite"` → `"normal"`（`js/enemies/shield.js` 同步）；
+elite rank 改由精英波生成路径赋予（`logic/systems/waves.gd` / `js/systems/waves.js` 在 eliteEvery 保底刷出后 `elite.rank = "elite"`）。
+常规刷新的盾兵不再掉稀有物；「每 3 波精英必掉 1 件」「Boss 掉 2 件」规则保留（RULES.md §7.5 / §8.2 同步）。
+单局稀有物来源收敛为上界 8 只波精英（w3/6/…/24）+ 5 Boss × 2 = 18 件，消除了 180 秒后常规盾兵持续掉落的无上限通道。
+
+**6b. rareBonuses 硬上限**：`logic/rare_items.gd` / `js/rare-items.js`（同构，导出 `RARE_BONUS_CAPS`）对四项加成截断：
+`damageMult ≤ 1.8`、`xpMult ≤ 2.0`、`moveSpeedMult ≤ 1.35`、`magnetRadiusBonus ≤ 240`（前几次叠加完整生效，超出后向硬上限截断）。
+选硬上限而非加法递减：保留道具文案与乘法手感、结果确定、与项目既有 clamp 风格一致；加法递减需要重写全部 5 条道具描述。
+
+**6c. `pickups.rarePickupRadius` 58 → 40**（js 原型保持 30）：掉落源收敛后稀有物数量与分布密度显著下降，
+中间值即可保证拾取容错；s05 断言同步。
+
+**6d. 六武器强度重排（数据驱动）**：新增确定性对比 harness `tools/weapon_balance.gd`（+ `weapon_balance_impl.gd`）。
+调整：`talisman` Lv1–3 `count` 1→4（`[4,4,4,2,2,1]`，多发弹道分别指向最近的 count 个不同目标）、`trail` Lv6 `damage` 26→28；
+道剑不回调（数据未显支配）、staff/ring Lv6 不补偿（强度带已收敛，最小改动原则）。
+RULES.md §12.3 / §12.4、双侧 smoke 的曲线断言同步。
+
+**第六轮武器强度 harness 方法与数据**：
+
+- 方法：固定 wave 11（中期敌群档位）、chaser ×40（pool HP 3780）；玩家无敌 + `xpMult = 0`（杜绝升级选卡干扰）；
+  KeyD/KeyA 每 60 帧换向的固定巡逻；每武器每等级 1800 帧（30s）。LCG seed 987654321，每个测试前重置；
+  两次运行输出逐字一致（确定性验证）。指标：总伤害 / 击杀数 / 清场时间 / DPS；强度带判据 best/worst ≤ 1.5x。
+  运行命令：`GameEngine\Godot.exe --headless --path GameProject --script res://tools/weapon_balance.gd`。
+- 基线问题：第五轮道剑 `maxHits` 恢复 `INF` 后其 Lv3 DPS 138.7 处头部但未支配（1.18x 带内）；真正的离群是 talisman Lv3 仅 30.1 DPS（单发弹道只打最前一只，吞吐≈单体）。
+
+| 武器 | Lv3 DPS 前 | Lv3 DPS 后 | Lv6 DPS 前 | Lv6 DPS 后 |
+| --- | --- | --- | --- | --- |
+| sword | 138.7 | 138.7 | 164.8 | 164.8 |
+| trail | 135.9 | 135.9 | 141.4 | **152.1** |
+| ring | 133.3 | 133.3 | 149.3 | 149.3 |
+| staff | 128.7 | 128.7 | 148.5 | 148.5 |
+| cloak | 127.0 | 127.0 | 165.6 | 165.6 |
+| talisman | 30.1（仅 4 杀） | **117.8** | 161.7 | 161.7 |
+| **spread** | **4.61x** | **1.18x** | **1.17x** | **1.12x** |
+
+- 决策记录：纯 damage/interval 补偿 talisman 会让已有 chain + thunderAoE 的 Lv6 爆表，故选前置 count 曲线（低阶数量铺开、高阶机制接管）。
+- 被否方案：talisman count `[3,3,3,2,2,1]`（Lv3 仅 89.6 DPS，spread 1.55x 不达标）；trail Lv6 radius 62→66 + burnDps 14→16（仅 +0.5 DPS，已回退）。
+- 遗留的两侧不一致已修复（2026-08-19，提交 `0e89026`）：js talisman thunderAoE 半径 95 → 80，与 Godot `THUNDER_AOE_RADIUS` 对齐，第六轮无遗留。
+
+## 待校准项（2026-08-18 复核提出）
 
 按优先级排列。每项都要走「改 `autoload/config.gd` → 同步本表 → 跑 headless smoke」流程，
 背景与依据见 `OPTIMIZATION_TRACKER.md` §第八轮候选。
 
-1. **六武器强度重排（高）**：第五轮把道剑 Lv2–5 `maxHits` 恢复为 `INF` 后，道剑在密集波次的实际 DPS
-   明显上升，其余五把未做任何补偿。需要一轮同条件对比（固定波次 / 固定敌群）再决定是补强其他武器
-   还是回调道剑的伤害或间隔。
-2. **稀有物无上限乘法叠加（高）**：`logic/rare_items.gd` 的 `rareBonuses["damageMult"] *= 1.2`
-   等四项均为乘法且**没有上限**。更关键的是掉落源比设计预期宽——`logic/enemies/shield.gd`
-   把**所有**盾兵的 `rank` 都设为 `"elite"`，而盾兵在 `enemyTypes.shield` 里有 `weight 4`、
-   `unlockAt 180`、`maxAlive 1`，属于常规刷新单位，`game_run.gd` 里每个 elite 击杀都会
-   `create_rare_pickup`。一局 25 分钟可能累积 20+ 个永久乘区，形成指数级 power creep。
-   处理方向二选一：给 `rareBonuses` 加 cap / 改为加法递减，或把稀有物掉落限定在波次精英与 Boss。
-3. **`pickups.rarePickupRadius` 58 是否过头（中）**：js 原值 30，第五轮按体验反馈提到 58。
-   与上一条叠加后稀有物几乎不会漏捡，建议连同掉落源一起校准。
+1. **六武器强度重排（高）** — **已解决（第六轮）**：harness 方法与前后数据见「调参历史」第六轮。
+   结论：talisman count `[4,4,4,2,2,1]`、trail Lv6 damage 28；强度带收敛至 Lv3 1.18x / Lv6 1.12x（判据 ≤1.5x）；
+   道剑数据未显支配，不回调。
+2. **稀有物无上限乘法叠加（高）** — **已解决（第六轮）**：双管齐下——① 掉落源收敛：盾兵基础 rank 改 normal，
+   elite rank 仅由精英波生成路径赋予，常规盾兵不再掉稀有物，「每 3 波精英必掉 / Boss 掉 2」保留；
+   ② rareBonuses 加硬上限（damageMult ≤1.8、xpMult ≤2.0、moveSpeedMult ≤1.35、magnetRadiusBonus ≤240），
+   选硬上限以保留文案与确定性。
+3. **`pickups.rarePickupRadius` 58 是否过头（中）** — **已解决（第六轮）**：58 → 40（js 保持 30），
+   掉落源收敛后稀有物数量下降，中间值足够。
 4. **W25 Boss 弹 161 原始伤害（中）**：本文件「第三轮后曲线速览」已自标需要实机与受击遥测校准，至今未做。
 5. **单局 25 分钟时长（低）**：已由 90s/波压到 60s/波，是否继续压缩取决于单局时长目标。
 
@@ -173,7 +212,7 @@
 | quantityWaveCap | **14** | 11.25 | 普通波配额倍率封顶 |
 | restDuration | 3.5 | | 波间休息时长（秒） |
 | bossEvery | 5 | | Boss 波间隔 |
-| eliteEvery | 3 | | 精英（shield）保底间隔 |
+| eliteEvery | 3 | | 精英（shield）保底间隔；盾兵基础 rank 为 normal，仅精英波生成路径赋 elite rank（第六轮） |
 | bannerDuration | 2.4 | | 波次横幅时长（秒） |
 
 > 公式：普通波 `quota = round(baseQuota × min(quantityWaveCap, 1+(wave−1)×quantityPerWave))`（w12+ 达 420/波）；Boss 波配额 = 1+增援数（5/7/9/11/13，与 baseQuota 无关）。详见 RULES.md §8.2。
@@ -238,7 +277,7 @@
 | corpses | cap | 80 | 尸体上限 |
 | pickups | hpValue | 15 | 血包回复量 |
 | pickups | pickupRadius | 30（js 原值 22） | 普通拾取半径 |
-| pickups | rarePickupRadius | 58（js 原值 30） | 稀有拾取半径 |
+| pickups | rarePickupRadius | **40**（js 原值 30） | 稀有拾取半径 |
 | pickups | maxAlive | 5 | 血包场上上限 |
 | hud | font | `16px "Segoe UI", "Microsoft YaHei", sans-serif` | HUD 字体（非数值） |
 

@@ -350,21 +350,43 @@
 
 ---
 
+## 第八轮：音频框架与数值审计（2026-08-18/19）
+
+> 处理「第八轮候选」中优先级最高的三类缺口：音频、数值、序列帧。
+> 相关提交：`4cf0420`（音频框架）、`250a430`（数值收敛）、`0e89026`（js/Godot 对齐）、`671cea9`（序列帧图集）、`cbab517`（序列帧接入 + 4 类敌人预警）、`ff44fac`（21 SFX + 3 BGM 入库）、`12b1180`（披风火焰爆燃重抠像）。
+
+| # | 项目 | 状态 | 说明 |
+|---|------|------|------|
+| 1 | AudioManager autoload 框架 | ✅ 完成 | `autoload/audio_manager.gd`：SFX 8 路池 + 节流 + 音高抖动、BGM 双播放器交叉淡入、按 game_run 状态自动切歌、监听 `Events.sfx_requested`；game_view/meta_screens 完成接线；`default_bus_layout.tres` 总线布局；新增 s22 音频冒烟章节，Godot smoke 415 项 / 24 场景与原型 smoke 双绿 |
+| 2 | 首批技能音效 | ✅ 完成 | 视频生成音频转制 `sfx_cloak_burst` / `sfx_trail_blaze`（ogg 入 `assets/audio/sfx/weapon/`，WAV 母带存 `ArtAsset/Audio/sfx/`） |
+| 3 | 数值三项待校准 | ✅ 完成 | 武器强度重排、稀有物叠加与掉落源收敛、rarePickupRadius 复核全部解决；方法与数据见 `BALANCE.md` 调参历史第六轮；新增确定性校准工具 `tools/weapon_balance.gd`（双进程跑分逐字一致） |
+| 4 | 两套 25 帧序列帧 | ✅ 完成 | `cloak_fire_burst_anim` / `furnace_flame_anim`（5×5 网格、384px/帧）已入库并完成运行时裁帧接入（`cbab517`：`flipbook.gd` 纯函数裁帧、披风 Lv6 爆发一次性播放、丹炉/余烬/丹火循环火焰 + 世界坐标相位）；`12b1180` 披风火焰爆燃完成亮度阿尔法重抠像（覆盖率弧线蓄力 53–72% → 爆发 82–88% → 单调消散）；生产归档 `ArtAsset/Image/VFX/gen_20260818_anim/`、`gen_20260819_anim/` |
+
+资源进度：音频 SFX 24 条入库（覆盖 `SFX_PATHS` 全部 23 键，部分键共用文件）、BGM 3/6（menu/battle/boss；rest/extraction/summary 缺）；SFX 键位重映射与 BGM 音量/交叉淡化参数在工作区 WIP 待落库（缺口台账见 `ART_ASSET_CONFIG.md` §9）。
+
+---
+
 ## 第八轮候选：待办清单（2026-08-19 起）
 
 > 下列条目均为 2026-08-18 复核代码时确认存在的缺口，附依据文件/配置键，便于开工时直接定位。
 > 归属其他台账的条目只在此处交叉引用，不重复维护：性能与音频见 `PROGRESS.md` §2 当前焦点，
 > 资源缺口见 `ART_ASSET_CONFIG.md` §9，数值待校准见 `BALANCE.md` §待校准项。
+>
+> **2026-08-19 状态更新**（执行记录见上文「第八轮：音频框架与数值审计」节）：
+> - 「音频完全空缺」→ 🟨 进行中：AudioManager 框架已落地，SFX 24 条入库覆盖 SFX_PATHS 全部 23 键、BGM 3/6；剩余 BGM 3 条 + 键位重映射 WIP 落库（`ff44fac`）。
+> - 「两套 25 帧序列帧」→ ✅ 完成：图集入库并完成运行时裁帧接入（`cbab517`），披风火焰爆燃完成一轮亮度重抠像（`12b1180`）。
+> - 「统一敌人预警层」→ 🟨 部分完成：bomber/enhanced_chaser/Boss/ranged 4 类预警已补（`cbab517`），仅剩盾兵攻防相位。
+> - 数值表三项（武器强度重排 / 稀有物叠加与掉落源 / rarePickupRadius）→ ✅ 已解决，见 `BALANCE.md` 第六轮。
 
 ### 美术效果与资源
 
 | 优先 | 项目 | 依据 |
 |------|------|------|
-| 高 | **音频完全空缺** | `assets/audio/` 不存在；`PROGRESS.md` §2 焦点 2。目前全程零音效，感官落差大于任何贴图重绘 |
+| 高 | ~~**音频完全空缺**~~ 🟨 进行中 | `ff44fac` 入库 21 SFX + 3 BGM：磁盘 SFX 24 条覆盖 SFX_PATHS 全部 23 键、BGM 3/6；剩余 BGM 3 条（rest/extraction/summary）与键位重映射 WIP 落库 |
 | 高 | **盾兵攻防窗口无表现** | `shield.gd` 有 `phase: shielded(3s) / open(1.5s)`、受伤 0.35× vs 1.25×，但 `world_art_view.gd` 中 `enemy.type == 'shield'` 仅用于放大尺寸——该敌人的全部机制不可见，玩家无法卡输出窗口 |
 | 高 | **自爆兵无引爆预警** | `bomber.gd`：`triggerDistance 58`、`windup 0.9`、`blastRadius 88`。爆炸半径大于触发距离，进圈近乎必吃；且击杀不引爆（RULES §7.6），预警直接决定该敌人是否存在玩法。渲染层无任何绘制 |
 | 中 | 精英狂暴无预警 | `enhancedChaser` 有 `enrageHpRatio 0.5`、`warningDuration 0.45`；渲染层只用到 Boss 的 `bossEnraged` |
-| 中 | 两套 25 帧序列帧 | `furnace_flame_anim` / `cloak_fire_burst_anim`，需 ComfyUI + MiniMax H3 视频管线 → `.agents/skills/video-to-alpha-flipbook/` |
+| 中 | ~~两套 25 帧序列帧~~ ✅ 完成 | 已入库并完成运行时裁帧接入（`cbab517`）；披风火焰爆燃完成亮度重抠像（`12b1180`），归档 `ArtAsset/Image/VFX/gen_20260818_anim/`、`gen_20260819_anim/` |
 | 低 | 敌人受击/死亡补帧 | 目前仅 walk sheet + Boss idle，受击只有 tint |
 | 低 | 死资源清理 | `hostile_projectile_v2` / `task_beacon` / `charge_indicator` / `sword_projectile_v2` 已无运行时引用 |
 
@@ -372,7 +394,7 @@
 
 | 优先 | 项目 | 依据 |
 |------|------|------|
-| 高 | **统一敌人预警层** | 第七轮只补了冲撞兵。盾兵、自爆兵、精英狂暴、Boss 齐射（`windup 0.85`、12 发）都缺。建议抽通用 telegraph 层，避免每种敌人各写一份绘制代码 |
+| 高 | **统一敌人预警层** | `cbab517` 已补 bomber/enhanced_chaser/Boss/ranged 4 类预警（world_art_view 内各自绘制，尚未抽通用层）；仅剩盾兵攻防相位 |
 | 中 | 稀有物缺机制型选项 | `rare_items.gd` 5 种全是纯数值乘区（伤害 ×1.2 / 回血 / 磁吸 +80 / 经验 ×1.25 / 移速 ×1.1），没有改变行为的遗物，构筑深度最易补 |
 | 中 | 任务节奏固定 | `tasks.waves = [3,8,13,18,23]`、`triggerWindow [35,45]`、3 种类型；25 分钟仅 5 次任务且类型可能重复 |
 | 中 | 180 敌人对象池与降级策略 | `PROGRESS.md` §2 焦点 1，M6 唯一未完成技术项；分离算法 O(n²) 卡住 `maxAliveCap` |
@@ -390,6 +412,6 @@
 
 ### 建议起手三件
 
-1. **盾兵 phase + 自爆兵引信预警**：两个敌人的核心机制当前完全不可见，投入小、体感提升最直接。
-2. **稀有物掉落源与叠加上限**（连带复核道剑穿透后的武器强度）：目前最可能让曲线崩掉的数值问题。
-3. **接入音频层**：即便先只做攻击/受击/拾取三个音效，感官提升也超过任何贴图重绘。
+1. **盾兵 phase + 自爆兵引信预警** → 完成 1/2：自爆兵预警已由 `cbab517` 补齐（加速闪烁+收缩环），盾兵攻防相位仍缺。
+2. ~~**稀有物掉落源与叠加上限**~~ ✅ 已完成（2026-08-19，`BALANCE.md` 第六轮；含武器强度重排与 rarePickupRadius 复核）。
+3. **接入音频层** → 🟨 框架已落地（AudioManager + s22 冒烟）：剩余为资源补齐（SFX 3/23、BGM 0/6），按 `ART_ASSET_CONFIG.md` §9 清单推进。

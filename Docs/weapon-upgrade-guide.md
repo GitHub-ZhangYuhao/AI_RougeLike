@@ -1,5 +1,8 @@
 # 武器升级系统 · SubAgent 实现规范
 
+> **状态**：历史契约文档（原型期，2026-08-12）｜6 武器 Lv1–6 均已实现，本文件仅作实现依据存档，勿据此发起新实现。
+> **真值指针**：武器数值真值见 `GameProject/RULES.md` 与 `GameProject/BALANCE.md`。（复核：2026-08-19）
+
 > 项目：暗夜幸存者（Vampire Survivors-like）。纯 HTML5 Canvas + 原生 JS（ES Modules，零依赖零构建）。
 > 本文件是 6 个武器实现 Agent 的唯一契约。**每个 Agent 只允许修改自己的武器文件** `js/weapons/<id>.js`，禁止改任何其他文件。
 

@@ -379,7 +379,7 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   assert(game.killLog.at(-1).blazed, '[6] trail blaze was not recorded');
 
   // Trail Lv4 creates a furnace from a valid loop; Lv6 opening creates a hot zone.
-  assert(CARD_BY_ID.get('trail').levels.map((level) => level.damage).join(',') === '7,10,14,16,21,26',
+  assert(CARD_BY_ID.get('trail').levels.map((level) => level.damage).join(',') === '7,10,14,16,21,28',
     '[6] trail damage nerf curve changed unexpectedly');
   const trailWeapon = CARD_BY_ID.get('trail').create();
   trailWeapon.level = 6;
@@ -526,7 +526,7 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
     '[8] 自爆怪应只爆炸并伤害一次');
 
   const shield = new ShieldEnemy(0, 0, 0);
-  assert(shield instanceof EnemyBase && shield.rank === 'elite', '[8] 护盾怪档位错误');
+  assert(shield instanceof EnemyBase && shield.rank === 'normal', '[8] 护盾怪档位错误');
   assert(Math.abs(shield.modifyIncomingDamage(10) - 10 * CONFIG.enemyTypes.shield.shieldDamageMult) < 1e-6,
     '[8] 护盾期减伤错误');
   shield.update({ x: 100, y: 0 }, CONFIG.enemyTypes.shield.shieldDuration + 0.01, {});
@@ -611,7 +611,7 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
     spawner: {
       timer: 0,
       spawnType(type, elapsed, enemies) {
-        const enemy = { type, rank: type === 'shield' ? 'elite' : type === 'boss' ? 'boss' : 'normal', dead: false };
+        const enemy = { type, rank: type === 'shield' ? 'normal' : type === 'boss' ? 'boss' : 'normal', dead: false };
         enemies.push(enemy);
         return enemy;
       },
@@ -686,7 +686,14 @@ assert(game.state === 'choice', '[4] 升级后应进入选卡界面，实际 ' +
   assert(bossShots.length === CONFIG.enemyTypes.boss.projectileCount, '[9] Boss 环形弹幕数量错误');
 
   // 精英标记绘制不应依赖具体精英类，并且精英死亡必掉一个稀有物品。
+  // 掉落源修复：普通盾兵（rank normal）不掉稀有物
+  const normalShield = new ShieldEnemy(game.player.x, game.player.y, game.elapsed);
+  const normalDropCount = game.pickups.length;
+  game.damageEnemy(normalShield, normalShield.maxHp * 10);
+  assert(game.pickups.length === normalDropCount,
+    '[9] 普通盾兵不应掉落稀有物品');
   const elite = new ShieldEnemy(game.player.x, game.player.y, game.elapsed);
+  elite.rank = 'elite'; // 精英波路径赋值（与 js/systems/waves.js 同构）
   drawEnemy(ctxStub, elite);
   const pickupCount = game.pickups.length;
   game.damageEnemy(elite, elite.maxHp * 10);

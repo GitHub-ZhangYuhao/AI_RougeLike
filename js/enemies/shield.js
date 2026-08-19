@@ -6,7 +6,7 @@ export class ShieldEnemy extends EnemyBase {
     const config = CONFIG.enemyTypes.shield;
     super(x, y, elapsed, {
       type: 'shield',
-      rank: 'elite',
+      rank: 'normal',
       hpMult: config.hpMult,
       speedMult: config.speedMult,
       damageMult: config.damageMult,
