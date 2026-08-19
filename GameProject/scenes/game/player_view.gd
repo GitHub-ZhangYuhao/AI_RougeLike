@@ -1,7 +1,8 @@
 extends Node2D
 
 const PlayerSpriteFramesScript: GDScript = preload('res://scenes/game/player_sprite_frames.gd')
-const WALK_SCALE: float = 0.14
+# 行走图 atlas 已从 4096² 压到 2048²，帧像素减半，故 scale 翻倍保持屏幕尺寸不变
+const WALK_SCALE: float = 0.28
 const IDLE_SCALE: float = 0.262
 const FALLBACK_SCALE: float = 0.156
 const SPRITE_FOOT_OFFSET: float = -22.0
