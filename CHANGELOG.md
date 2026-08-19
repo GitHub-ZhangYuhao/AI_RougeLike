@@ -100,3 +100,4 @@
 
 - chore(scene)：草地关卡 Ground 缩放 0.5→0.861 并平移居中，背景色块收缩至 ±1763 恰好适配缩放后地面显示区域；新增 CollisionPolygon2D 关卡边界。
 - chore(export)：新增 Windows Desktop 导出预设 export_presets.cfg（x86_64、嵌入 PCK，输出路径 build/windows/aigame.exe）。
+- chore(scene)：草地关卡边界碰撞改挂 Area2D（裸 CollisionPolygon2D 在 Node2D 下不生效）并精调多边形范围；双冒烟 440 项 / 25 场景全绿。

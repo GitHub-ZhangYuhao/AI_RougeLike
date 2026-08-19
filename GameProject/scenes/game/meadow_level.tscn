@@ -28,5 +28,7 @@ uv = PackedVector2Array(0, 0, 2048, 0, 2048, 2048, 0, 2048)
 z_index = 10
 script = ExtResource("3_decor")
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=2062722249]
-polygon = PackedVector2Array(-361, -1130, -91, -1263, 187, -1243, 371, -1848, -1891, -1845, -1925, -18, -1621, -18, -1424, -219, -1310, -621, -957, -656, -759, -751, -756, -1001)
+[node name="Area2D" type="Area2D" parent="." unique_id=324723878]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Area2D" unique_id=2020580074]
+polygon = PackedVector2Array(-633, -1121, -150, -1241, -2, -1280, 36, -1855, -1299, -2034, -1880, -1951, -2015, -1080, -1878, 48, -1556, 2, -1356, -188, -1276, -577, -1040, -642, -724, -756)
