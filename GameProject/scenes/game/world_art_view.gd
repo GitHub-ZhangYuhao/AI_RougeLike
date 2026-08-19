@@ -294,7 +294,7 @@ func _draw_weapon_zones() -> void:
 				draw_circle(mid, zone['width'] * 0.8 * (0.6 + flicker * 0.4), Color(1.0, 0.7, 0.2, alpha * 0.5))
 
 
-# ?????????????????????????
+# ---------- 武器装载（loadout）绘制 ----------
 
 
 func _draw_weapon_loadout() -> void:
@@ -677,7 +677,7 @@ func _draw_enemies() -> void:
 # 使用缓存，避免每帧每个敌人创建新的 AtlasTexture 对象
 
 # Returns an AtlasTexture for the current animation frame from a sprite sheet
-# ????????????????? AtlasTexture ??
+# 使用缓存，避免每帧每个敌人创建新的 AtlasTexture 对象
 
 
 func _get_animated_frame(sheet: Texture2D, enemy_key: String) -> AtlasTexture:
@@ -1346,7 +1346,7 @@ func _draw_flame_anim(center: Vector2, display_size: float, tint: Color = Color.
 		return
 	var phase: float = fposmod(center.x * 0.031 + center.y * 0.017, 1.0) * float(FLAME_LOOP_FRAMES)
 	var frame: int = int(floor(animation_time * FLAME_FPS + phase)) % FLAME_LOOP_FRAMES
-	_draw_sprite_region(texture, FlipbookScript.frame_region(frame), center, display_size, rotation, tint)
+	_draw_sprite_region(texture, FlipbookScript.frame_region(frame, 5, 2048, 393, 8), center, display_size, rotation, tint)
 
 
 # ---------- 敌人攻击预警（纯显示，不改逻辑与数值） ----------
