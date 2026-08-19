@@ -21,3 +21,6 @@ tools/AudioWorkflows/.cache/
 
 # Production source frames (too large for GitHub, 88MB+)
 ArtAsset/Flipbook/
+
+# Godot MCP tool cache (screenshots, generated intermediates)
+GameProject/addons/godot_mcp/cache/
