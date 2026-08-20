@@ -20,6 +20,7 @@
 | `extraction-shop-implementation-plan.md` | Boss 撤离 + 局外商城实现方案 | 已实现（原型 `76004d0` / Godot M5 `00a224a`） |
 | `boss-extraction-shop-dynamic-tasks.md` | Boss 撤离/局外商城/动态任务原始设计稿 | 历史草稿，以实现方案为准 |
 | `research/minigame-publish-research.md` | 微信/抖音小游戏打包发布调研（引擎路线/包体预算/合规流程） | 定稿 v1（2026-08-20） |
+| `research/minigame-release-checklist.md` | 微信/抖音小游戏发布准备清单（实测包体/三阶段优化路线/合规 checklist） | 定稿 v1（2026-08-20） |
 
 ## GameProject/ 文档（同仓库真值层）
 

@@ -49,7 +49,7 @@
 
 ### 路线 C：godothub/godot-minigame（社区 C++ 插件 + 预编译模板，MIT）
 - **来源**：github.com/godothub/godot-minigame。Release 按引擎版本分桶：4.3.0 / 4.4.0 / 4.5.1 / 4.6.2 / **4.7**（2026-07-22 发布）。
-- **模板**：`versions.yaml` 显示 4.7 桶模板 `minigame4.7.0.5.tpz` 由 tag **4.7**（即 4.7.0）构建，**11MB**（内含 wasm.br，br 不可再压缩 ⇒ wasm.br ≈ 10MB）。模板匹配规则"回退到 ≤ 目标版本"，4.7.1 项目会命中 4.7 模板（patch 级差异，pck 格式不变，风险低但非精确匹配）。
+- **模板**：`versions.yaml` 显示 4.7 桶模板 `minigame4.7.0.5.tpz` 由 tag **4.7**（即 4.7.0）构建，**11MB**（内含 wasm.br，br 不可再压缩 ? wasm.br ≈ 10MB）。模板匹配规则"回退到 ≤ 目标版本"，4.7.1 项目会命中 4.7 模板（patch 级差异，pck 格式不变，风险低但非精确匹配）。
 - **内置补丁**：fetch 分块 write_offset 修复、iOS 关 SIMD、音频/显示/输入清理（contextPool、getWindowInfo、showKeyboard）——都是小游戏环境实打实的坑。
 - **代价**：C++ 插件需源码编译（godot-cpp + `build_win.bat`）；`skills/` 配套工具链锁在 Godot 4.6 分支 commit `a16e481cf4`（bundle id `godot-4.6.2-rc-a16e481cf4`），自编引擎时用。
 - **评价**：**唯一能保持本项目 4.7.1 大体不动的方案**（模板 4.7.0 与 4.7.1 差一个 patch）。社区项目无官方背书，需 spike 验证。
@@ -75,7 +75,7 @@
 
 | 类别 | 大小 | 处置 |
 | --- | --- | --- |
-| PNG 纹理（175 张，含 2048²×8 向行走图集、2048² 地形） | **131.9 MB** | 全部 CDN；导出时走纹理压缩可再降 |
+| PNG 纹理（175 张，含 20482×8 向行走图集、20482 地形） | **131.9 MB** | 全部 CDN；导出时走纹理压缩可再降 |
 | OGG 音频（27 个：24 SFX + 3 BGM） | 2.3 MB | 可进包（两平台白名单均含 .ogg）或 CDN |
 | TTF 字体（2 个，子集化后） | 0.9 MB | 可进包或 CDN |
 | GDScript（106 个）+ 场景/资源/配置 | ≈1.2 MB | 进包（代码 pck） |
@@ -83,8 +83,8 @@
 
 **预算结论**：
 
-- **微信**：主包 ≤4MB（game.js/adapter）+ 分包（wasm.br ≈10MB + 代码 pck ≈1.5MB + 音频 2.3MB + 字体 0.9MB ≈ 14.7MB）⇒ 总计 ≈15–19MB < 30MB ✅ 余量充足。
-- **抖音**：整包 ≤20MB：wasm.br ≈10MB + 主包 js ≈1MB + pck/音频/字体 ≈4.7MB ⇒ ≈16–17MB < 20MB ✅ 可行但紧张，BGM 建议也走 CDN。
+- **微信**：主包 ≤4MB（game.js/adapter）+ 分包（wasm.br ≈10MB + 代码 pck ≈1.5MB + 音频 2.3MB + 字体 0.9MB ≈ 14.7MB）? 总计 ≈15–19MB < 30MB ? 余量充足。
+- **抖音**：整包 ≤20MB：wasm.br ≈10MB + 主包 js ≈1MB + pck/音频/字体 ≈4.7MB ? ≈16–17MB < 20MB ? 可行但紧张，BGM 建议也走 CDN。
 - **CDN 侧**：纹理裸 131.9MB；按 Android 导出先例（ETC2 压缩后 APK 121MB）估计压缩纹理后 40–80MB 量级，需导出后实测。CDN 资源走 HTTP 运行时下载，不受包内白名单限制。
 - **注意**：`.pck` 不在两平台白名单——微信侧改名 `.zip`/`.bin` 上传；抖音 TTSDK 导出自动改名（代码里仍按 `.pck` 加载）。
 

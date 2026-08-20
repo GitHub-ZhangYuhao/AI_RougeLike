@@ -125,3 +125,11 @@
 - chore(export)：导出预设 exclude_filter（Windows/Android 双预设）排除死资产——全仓无任何引用（无 .uid、无路径引用）的 4 张 ground_*_crisp.webp（APK 内约 35 MB）与仅自引用的预览场景 art_ground_preview.tscn 及其独占贴图 amber_starlight_sanctuary_2048.png（约 4.9 MB）；源文件保留在仓库，仅不进包。
 - feat(export)：生成 release keystore（RSA 2048、10000 天、alias aigame）并写入 Android 预设 keystore/release*；keystore 文件在 %APPDATA%\Godot\keystores\release.keystore，口令与备份在 Experimental\backup_release_keystore\（均不入库）。--export-release 出正式签名 build/android/aigame.apk：174.4 MB（debug）→121.2 MB（release），<150 MB 目标达成；aapt2 校验包名 com.aigame.app、minSdk 24 / targetSdk 36、已签名。
 - 已知遗留：未设置项目图标（导出日志报 No project icon，不影响签名与安装）；微信/抖音小游戏需另走 Web 导出链路。双冒烟 459 项 / 26 场景全绿。
+
+## 2026-08-20 · 微信小游戏导出链路打通（feat/minigame-publish）
+
+- feat(export)：Godot 引擎 4.5.1 并存（GameEngine/4.5/，4.7.1 保留不动），project.godot features 4.7→4.5（godothub 模板与抖音官方 TTSDK 当前均认证 4.5）。装入 godothub/godot-minigame 社区插件（addons/godot-minigame，注入「小游戏」导出平台），模板 minigame4.5.1.tpz 预置插件离线缓存目录，离线可导出。
+- feat(export)：新增导出预设「微信小游戏」（全量）与「微信小游戏-精简量尺寸」（排除全部美术目录）。--export-release headless 导出 EXIT=0：产出完整微信小游戏工程（game.json landscape、project.config.json、引擎分包）。实测全量产物 142.6MB（pck 136.23MB）、精简 10.74MB（pck 4.36MB）——全量美术装不进任何一端包体（微信 30MB / 抖音 20MB），需「精简首包 + 重美术 CDN 化」策略。
+- feat(tools)：新增 pck_size_report.gd / pck_top_files.gd 包体审计工具（--main-pack 绝对路径 pck）。审计结论：pck 97% 为无损纹理（200 张 compress/mode=0），切 ETC2 是最大免费减重杠杆。
+- docs：新增 Docs/research/minigame-release-checklist.md（实测包体 / 三阶段优化路线 / 微信与抖音发布合规 checklist），修复调研报告中文编码损坏并在 Docs/README.md 登记。双 smoke 459 项 / 26 场景全绿。
+- 已知遗留：AppID 为插件 demo 值待替换；发布前需移除 MCPRuntime autoload；抖音横屏需真机验证（详见清单）。
