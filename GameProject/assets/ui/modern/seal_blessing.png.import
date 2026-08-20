@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c0mn86je4fe1v"
-path="res://.godot/imported/seal_blessing.png-de793e4b5e6d6bfe28d6c494b2f57a8f.ctex"
+path.s3tc="res://.godot/imported/seal_blessing.png-de793e4b5e6d6bfe28d6c494b2f57a8f.s3tc.ctex"
+path.etc2="res://.godot/imported/seal_blessing.png-de793e4b5e6d6bfe28d6c494b2f57a8f.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/modern/seal_blessing.png"
-dest_files=["res://.godot/imported/seal_blessing.png-de793e4b5e6d6bfe28d6c494b2f57a8f.ctex"]
+dest_files=["res://.godot/imported/seal_blessing.png-de793e4b5e6d6bfe28d6c494b2f57a8f.s3tc.ctex", "res://.godot/imported/seal_blessing.png-de793e4b5e6d6bfe28d6c494b2f57a8f.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

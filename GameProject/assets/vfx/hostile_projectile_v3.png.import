@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d1rj2kc0iiij3"
-path="res://.godot/imported/hostile_projectile_v3.png-572a5d5169191840769d0021dab3670c.ctex"
+path.s3tc="res://.godot/imported/hostile_projectile_v3.png-572a5d5169191840769d0021dab3670c.s3tc.ctex"
+path.etc2="res://.godot/imported/hostile_projectile_v3.png-572a5d5169191840769d0021dab3670c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/vfx/hostile_projectile_v3.png"
-dest_files=["res://.godot/imported/hostile_projectile_v3.png-572a5d5169191840769d0021dab3670c.ctex"]
+dest_files=["res://.godot/imported/hostile_projectile_v3.png-572a5d5169191840769d0021dab3670c.s3tc.ctex", "res://.godot/imported/hostile_projectile_v3.png-572a5d5169191840769d0021dab3670c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

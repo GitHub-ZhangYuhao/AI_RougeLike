@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://r1hv1h18iww"
-path="res://.godot/imported/night_ground.png-52c772be08493b3dd1addfa634d5cf8c.ctex"
+path.s3tc="res://.godot/imported/night_ground.png-52c772be08493b3dd1addfa634d5cf8c.s3tc.ctex"
+path.etc2="res://.godot/imported/night_ground.png-52c772be08493b3dd1addfa634d5cf8c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/terrain/night_ground.png"
-dest_files=["res://.godot/imported/night_ground.png-52c772be08493b3dd1addfa634d5cf8c.ctex"]
+dest_files=["res://.godot/imported/night_ground.png-52c772be08493b3dd1addfa634d5cf8c.s3tc.ctex", "res://.godot/imported/night_ground.png-52c772be08493b3dd1addfa634d5cf8c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

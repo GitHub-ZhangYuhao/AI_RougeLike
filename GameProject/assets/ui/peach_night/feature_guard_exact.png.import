@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c5fcmmmgmwwj6"
-path="res://.godot/imported/feature_guard_exact.png-a371ff58885ce0e14702f539da23d2c5.ctex"
+path.s3tc="res://.godot/imported/feature_guard_exact.png-a371ff58885ce0e14702f539da23d2c5.s3tc.ctex"
+path.etc2="res://.godot/imported/feature_guard_exact.png-a371ff58885ce0e14702f539da23d2c5.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/peach_night/feature_guard_exact.png"
-dest_files=["res://.godot/imported/feature_guard_exact.png-a371ff58885ce0e14702f539da23d2c5.ctex"]
+dest_files=["res://.godot/imported/feature_guard_exact.png-a371ff58885ce0e14702f539da23d2c5.s3tc.ctex", "res://.godot/imported/feature_guard_exact.png-a371ff58885ce0e14702f539da23d2c5.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

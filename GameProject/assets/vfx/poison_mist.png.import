@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bakmag5dqsoc4"
-path="res://.godot/imported/poison_mist.png-fdc2afcb5a03d49fff1b57206064cf1b.ctex"
+path.s3tc="res://.godot/imported/poison_mist.png-fdc2afcb5a03d49fff1b57206064cf1b.s3tc.ctex"
+path.etc2="res://.godot/imported/poison_mist.png-fdc2afcb5a03d49fff1b57206064cf1b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/vfx/poison_mist.png"
-dest_files=["res://.godot/imported/poison_mist.png-fdc2afcb5a03d49fff1b57206064cf1b.ctex"]
+dest_files=["res://.godot/imported/poison_mist.png-fdc2afcb5a03d49fff1b57206064cf1b.s3tc.ctex", "res://.godot/imported/poison_mist.png-fdc2afcb5a03d49fff1b57206064cf1b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

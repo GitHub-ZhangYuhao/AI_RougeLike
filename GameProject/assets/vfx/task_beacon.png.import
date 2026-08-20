@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bqd2me2kiks8i"
-path="res://.godot/imported/task_beacon.png-99e8270c3087d5fb5d2e2b163190a325.ctex"
+path.s3tc="res://.godot/imported/task_beacon.png-99e8270c3087d5fb5d2e2b163190a325.s3tc.ctex"
+path.etc2="res://.godot/imported/task_beacon.png-99e8270c3087d5fb5d2e2b163190a325.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/vfx/task_beacon.png"
-dest_files=["res://.godot/imported/task_beacon.png-99e8270c3087d5fb5d2e2b163190a325.ctex"]
+dest_files=["res://.godot/imported/task_beacon.png-99e8270c3087d5fb5d2e2b163190a325.s3tc.ctex", "res://.godot/imported/task_beacon.png-99e8270c3087d5fb5d2e2b163190a325.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

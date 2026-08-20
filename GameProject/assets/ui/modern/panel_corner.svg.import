@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bmd6vrk1eyslk"
-path="res://.godot/imported/panel_corner.svg-409c30ce151ee35c370e7a8263b3fd54.ctex"
+path.s3tc="res://.godot/imported/panel_corner.svg-409c30ce151ee35c370e7a8263b3fd54.s3tc.ctex"
+path.etc2="res://.godot/imported/panel_corner.svg-409c30ce151ee35c370e7a8263b3fd54.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/modern/panel_corner.svg"
-dest_files=["res://.godot/imported/panel_corner.svg-409c30ce151ee35c370e7a8263b3fd54.ctex"]
+dest_files=["res://.godot/imported/panel_corner.svg-409c30ce151ee35c370e7a8263b3fd54.s3tc.ctex", "res://.godot/imported/panel_corner.svg-409c30ce151ee35c370e7a8263b3fd54.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

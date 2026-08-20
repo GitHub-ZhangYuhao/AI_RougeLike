@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bu6yamh8m8wu5"
-path="res://.godot/imported/button_start_exact.png-df81530c65808dc03f79e868daff4e00.ctex"
+path.s3tc="res://.godot/imported/button_start_exact.png-df81530c65808dc03f79e868daff4e00.s3tc.ctex"
+path.etc2="res://.godot/imported/button_start_exact.png-df81530c65808dc03f79e868daff4e00.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/peach_night/button_start_exact.png"
-dest_files=["res://.godot/imported/button_start_exact.png-df81530c65808dc03f79e868daff4e00.ctex"]
+dest_files=["res://.godot/imported/button_start_exact.png-df81530c65808dc03f79e868daff4e00.s3tc.ctex", "res://.godot/imported/button_start_exact.png-df81530c65808dc03f79e868daff4e00.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

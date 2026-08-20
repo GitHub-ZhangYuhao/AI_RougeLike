@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b6he10ywrsxlb"
-path="res://.godot/imported/hud_corner_tl.png-a470058a2f6a11b9e8d67059bf9ab94c.ctex"
+path.s3tc="res://.godot/imported/hud_corner_tl.png-a470058a2f6a11b9e8d67059bf9ab94c.s3tc.ctex"
+path.etc2="res://.godot/imported/hud_corner_tl.png-a470058a2f6a11b9e8d67059bf9ab94c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/peach_night/atomic/hud_corner_tl.png"
-dest_files=["res://.godot/imported/hud_corner_tl.png-a470058a2f6a11b9e8d67059bf9ab94c.ctex"]
+dest_files=["res://.godot/imported/hud_corner_tl.png-a470058a2f6a11b9e8d67059bf9ab94c.s3tc.ctex", "res://.godot/imported/hud_corner_tl.png-a470058a2f6a11b9e8d67059bf9ab94c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

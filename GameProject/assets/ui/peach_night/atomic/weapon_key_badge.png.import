@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://05mctuepfgdl"
-path="res://.godot/imported/weapon_key_badge.png-538474f72367554b9bf8317964ac2b24.ctex"
+path.s3tc="res://.godot/imported/weapon_key_badge.png-538474f72367554b9bf8317964ac2b24.s3tc.ctex"
+path.etc2="res://.godot/imported/weapon_key_badge.png-538474f72367554b9bf8317964ac2b24.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/peach_night/atomic/weapon_key_badge.png"
-dest_files=["res://.godot/imported/weapon_key_badge.png-538474f72367554b9bf8317964ac2b24.ctex"]
+dest_files=["res://.godot/imported/weapon_key_badge.png-538474f72367554b9bf8317964ac2b24.s3tc.ctex", "res://.godot/imported/weapon_key_badge.png-538474f72367554b9bf8317964ac2b24.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

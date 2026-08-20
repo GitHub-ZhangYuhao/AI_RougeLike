@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bm7x8lkyfxi4f"
-path="res://.godot/imported/boulder_cluster.png-25a2a6de07739f1070d0ff97ec32f259.ctex"
+path.s3tc="res://.godot/imported/boulder_cluster.png-25a2a6de07739f1070d0ff97ec32f259.s3tc.ctex"
+path.etc2="res://.godot/imported/boulder_cluster.png-25a2a6de07739f1070d0ff97ec32f259.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/environment/boulder_cluster.png"
-dest_files=["res://.godot/imported/boulder_cluster.png-25a2a6de07739f1070d0ff97ec32f259.ctex"]
+dest_files=["res://.godot/imported/boulder_cluster.png-25a2a6de07739f1070d0ff97ec32f259.s3tc.ctex", "res://.godot/imported/boulder_cluster.png-25a2a6de07739f1070d0ff97ec32f259.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

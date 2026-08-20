@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://xb2y0l7guubx"
-path="res://.godot/imported/icon_pause.svg-aff368f29ac2db45146d2733c19928ee.ctex"
+path.s3tc="res://.godot/imported/icon_pause.svg-aff368f29ac2db45146d2733c19928ee.s3tc.ctex"
+path.etc2="res://.godot/imported/icon_pause.svg-aff368f29ac2db45146d2733c19928ee.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/peach_night/atomic/clean/icon_pause.svg"
-dest_files=["res://.godot/imported/icon_pause.svg-aff368f29ac2db45146d2733c19928ee.ctex"]
+dest_files=["res://.godot/imported/icon_pause.svg-aff368f29ac2db45146d2733c19928ee.s3tc.ctex", "res://.godot/imported/icon_pause.svg-aff368f29ac2db45146d2733c19928ee.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

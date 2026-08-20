@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://43hs7ddqoivb"
-path="res://.godot/imported/seal_weapon.svg-0533fb0907136095842b01338a0e4ffe.ctex"
+path.s3tc="res://.godot/imported/seal_weapon.svg-0533fb0907136095842b01338a0e4ffe.s3tc.ctex"
+path.etc2="res://.godot/imported/seal_weapon.svg-0533fb0907136095842b01338a0e4ffe.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/modern/seal_weapon.svg"
-dest_files=["res://.godot/imported/seal_weapon.svg-0533fb0907136095842b01338a0e4ffe.ctex"]
+dest_files=["res://.godot/imported/seal_weapon.svg-0533fb0907136095842b01338a0e4ffe.s3tc.ctex", "res://.godot/imported/seal_weapon.svg-0533fb0907136095842b01338a0e4ffe.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

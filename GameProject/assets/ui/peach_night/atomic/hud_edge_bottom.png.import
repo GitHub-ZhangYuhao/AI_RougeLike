@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bspd0m34q11od"
-path="res://.godot/imported/hud_edge_bottom.png-2cb2caca43926f27ec3026c5a1819361.ctex"
+path.s3tc="res://.godot/imported/hud_edge_bottom.png-2cb2caca43926f27ec3026c5a1819361.s3tc.ctex"
+path.etc2="res://.godot/imported/hud_edge_bottom.png-2cb2caca43926f27ec3026c5a1819361.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/peach_night/atomic/hud_edge_bottom.png"
-dest_files=["res://.godot/imported/hud_edge_bottom.png-2cb2caca43926f27ec3026c5a1819361.ctex"]
+dest_files=["res://.godot/imported/hud_edge_bottom.png-2cb2caca43926f27ec3026c5a1819361.s3tc.ctex", "res://.godot/imported/hud_edge_bottom.png-2cb2caca43926f27ec3026c5a1819361.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

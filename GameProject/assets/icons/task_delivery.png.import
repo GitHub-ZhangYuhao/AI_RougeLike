@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b2j2exspnjwp0"
-path="res://.godot/imported/task_delivery.png-f38bd2b065ef04a4eea0c8db68809104.ctex"
+path.s3tc="res://.godot/imported/task_delivery.png-f38bd2b065ef04a4eea0c8db68809104.s3tc.ctex"
+path.etc2="res://.godot/imported/task_delivery.png-f38bd2b065ef04a4eea0c8db68809104.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/icons/task_delivery.png"
-dest_files=["res://.godot/imported/task_delivery.png-f38bd2b065ef04a4eea0c8db68809104.ctex"]
+dest_files=["res://.godot/imported/task_delivery.png-f38bd2b065ef04a4eea0c8db68809104.s3tc.ctex", "res://.godot/imported/task_delivery.png-f38bd2b065ef04a4eea0c8db68809104.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

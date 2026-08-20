@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c3f8coawaq7pw"
-path="res://.godot/imported/wildflowers.png-674efc276c426d6c5e45beb4d3de2b6c.ctex"
+path.s3tc="res://.godot/imported/wildflowers.png-674efc276c426d6c5e45beb4d3de2b6c.s3tc.ctex"
+path.etc2="res://.godot/imported/wildflowers.png-674efc276c426d6c5e45beb4d3de2b6c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/environment/wildflowers.png"
-dest_files=["res://.godot/imported/wildflowers.png-674efc276c426d6c5e45beb4d3de2b6c.ctex"]
+dest_files=["res://.godot/imported/wildflowers.png-674efc276c426d6c5e45beb4d3de2b6c.s3tc.ctex", "res://.godot/imported/wildflowers.png-674efc276c426d6c5e45beb4d3de2b6c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

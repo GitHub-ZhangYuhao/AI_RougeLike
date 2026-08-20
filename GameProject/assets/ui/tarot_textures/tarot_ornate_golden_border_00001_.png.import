@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bvf8vdd1wkxlr"
-path="res://.godot/imported/tarot_ornate_golden_border_00001_.png-6a9b820add40b08d6046585f9a0bc73b.ctex"
+path.s3tc="res://.godot/imported/tarot_ornate_golden_border_00001_.png-6a9b820add40b08d6046585f9a0bc73b.s3tc.ctex"
+path.etc2="res://.godot/imported/tarot_ornate_golden_border_00001_.png-6a9b820add40b08d6046585f9a0bc73b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/tarot_textures/tarot_ornate_golden_border_00001_.png"
-dest_files=["res://.godot/imported/tarot_ornate_golden_border_00001_.png-6a9b820add40b08d6046585f9a0bc73b.ctex"]
+dest_files=["res://.godot/imported/tarot_ornate_golden_border_00001_.png-6a9b820add40b08d6046585f9a0bc73b.s3tc.ctex", "res://.godot/imported/tarot_ornate_golden_border_00001_.png-6a9b820add40b08d6046585f9a0bc73b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

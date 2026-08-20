@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://py7dlea4dnpt"
-path="res://.godot/imported/icon_crystal.svg-154abeb12d705b1168b4c749afb1ec95.ctex"
+path.s3tc="res://.godot/imported/icon_crystal.svg-154abeb12d705b1168b4c749afb1ec95.s3tc.ctex"
+path.etc2="res://.godot/imported/icon_crystal.svg-154abeb12d705b1168b4c749afb1ec95.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/peach_night/atomic/clean/icon_crystal.svg"
-dest_files=["res://.godot/imported/icon_crystal.svg-154abeb12d705b1168b4c749afb1ec95.ctex"]
+dest_files=["res://.godot/imported/icon_crystal.svg-154abeb12d705b1168b4c749afb1ec95.s3tc.ctex", "res://.godot/imported/icon_crystal.svg-154abeb12d705b1168b4c749afb1ec95.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

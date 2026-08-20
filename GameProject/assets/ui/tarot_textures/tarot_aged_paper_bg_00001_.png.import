@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bpqx5uu8fidyk"
-path="res://.godot/imported/tarot_aged_paper_bg_00001_.png-0eb0ec8ead25597a7f14d7feeca9b0e3.ctex"
+path.s3tc="res://.godot/imported/tarot_aged_paper_bg_00001_.png-0eb0ec8ead25597a7f14d7feeca9b0e3.s3tc.ctex"
+path.etc2="res://.godot/imported/tarot_aged_paper_bg_00001_.png-0eb0ec8ead25597a7f14d7feeca9b0e3.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/tarot_textures/tarot_aged_paper_bg_00001_.png"
-dest_files=["res://.godot/imported/tarot_aged_paper_bg_00001_.png-0eb0ec8ead25597a7f14d7feeca9b0e3.ctex"]
+dest_files=["res://.godot/imported/tarot_aged_paper_bg_00001_.png-0eb0ec8ead25597a7f14d7feeca9b0e3.s3tc.ctex", "res://.godot/imported/tarot_aged_paper_bg_00001_.png-0eb0ec8ead25597a7f14d7feeca9b0e3.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

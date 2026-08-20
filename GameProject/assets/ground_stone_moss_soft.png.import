@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b2jwura2bvb03"
-path="res://.godot/imported/ground_stone_moss_soft.png-cbd67ce5f10d48364ef8f9cf15c835d0.ctex"
+path.s3tc="res://.godot/imported/ground_stone_moss_soft.png-cbd67ce5f10d48364ef8f9cf15c835d0.s3tc.ctex"
+path.etc2="res://.godot/imported/ground_stone_moss_soft.png-cbd67ce5f10d48364ef8f9cf15c835d0.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ground_stone_moss_soft.png"
-dest_files=["res://.godot/imported/ground_stone_moss_soft.png-cbd67ce5f10d48364ef8f9cf15c835d0.ctex"]
+dest_files=["res://.godot/imported/ground_stone_moss_soft.png-cbd67ce5f10d48364ef8f9cf15c835d0.s3tc.ctex", "res://.godot/imported/ground_stone_moss_soft.png-cbd67ce5f10d48364ef8f9cf15c835d0.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

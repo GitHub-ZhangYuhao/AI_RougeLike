@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bfbygoedc1upq"
-path="res://.godot/imported/jade_ring_trail.png-583029b6a443fcbaf7770030274a2efe.ctex"
+path.s3tc="res://.godot/imported/jade_ring_trail.png-583029b6a443fcbaf7770030274a2efe.s3tc.ctex"
+path.etc2="res://.godot/imported/jade_ring_trail.png-583029b6a443fcbaf7770030274a2efe.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/vfx/jade_ring_trail.png"
-dest_files=["res://.godot/imported/jade_ring_trail.png-583029b6a443fcbaf7770030274a2efe.ctex"]
+dest_files=["res://.godot/imported/jade_ring_trail.png-583029b6a443fcbaf7770030274a2efe.s3tc.ctex", "res://.godot/imported/jade_ring_trail.png-583029b6a443fcbaf7770030274a2efe.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

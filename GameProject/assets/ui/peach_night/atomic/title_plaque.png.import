@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://l4lijcye3ie1"
-path="res://.godot/imported/title_plaque.png-b1e8c5cc7a38dee8f2fd7b0900b5a68e.ctex"
+path.s3tc="res://.godot/imported/title_plaque.png-b1e8c5cc7a38dee8f2fd7b0900b5a68e.s3tc.ctex"
+path.etc2="res://.godot/imported/title_plaque.png-b1e8c5cc7a38dee8f2fd7b0900b5a68e.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/peach_night/atomic/title_plaque.png"
-dest_files=["res://.godot/imported/title_plaque.png-b1e8c5cc7a38dee8f2fd7b0900b5a68e.ctex"]
+dest_files=["res://.godot/imported/title_plaque.png-b1e8c5cc7a38dee8f2fd7b0900b5a68e.s3tc.ctex", "res://.godot/imported/title_plaque.png-b1e8c5cc7a38dee8f2fd7b0900b5a68e.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

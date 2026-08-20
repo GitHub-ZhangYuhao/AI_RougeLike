@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://rm5ok6p03ms7"
-path="res://.godot/imported/currency_frame.png-e53ca4641c6832c3a048946373c692c9.ctex"
+path.s3tc="res://.godot/imported/currency_frame.png-e53ca4641c6832c3a048946373c692c9.s3tc.ctex"
+path.etc2="res://.godot/imported/currency_frame.png-e53ca4641c6832c3a048946373c692c9.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/peach_night/atomic/currency_frame.png"
-dest_files=["res://.godot/imported/currency_frame.png-e53ca4641c6832c3a048946373c692c9.ctex"]
+dest_files=["res://.godot/imported/currency_frame.png-e53ca4641c6832c3a048946373c692c9.s3tc.ctex", "res://.godot/imported/currency_frame.png-e53ca4641c6832c3a048946373c692c9.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

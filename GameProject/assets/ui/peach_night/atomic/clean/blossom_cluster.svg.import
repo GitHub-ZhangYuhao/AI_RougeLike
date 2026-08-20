@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://drtopi3fv2nf1"
-path="res://.godot/imported/blossom_cluster.svg-eee44cb03f897a250b387a3e60c741bf.ctex"
+path.s3tc="res://.godot/imported/blossom_cluster.svg-eee44cb03f897a250b387a3e60c741bf.s3tc.ctex"
+path.etc2="res://.godot/imported/blossom_cluster.svg-eee44cb03f897a250b387a3e60c741bf.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ui/peach_night/atomic/clean/blossom_cluster.svg"
-dest_files=["res://.godot/imported/blossom_cluster.svg-eee44cb03f897a250b387a3e60c741bf.ctex"]
+dest_files=["res://.godot/imported/blossom_cluster.svg-eee44cb03f897a250b387a3e60c741bf.s3tc.ctex", "res://.godot/imported/blossom_cluster.svg-eee44cb03f897a250b387a3e60c741bf.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

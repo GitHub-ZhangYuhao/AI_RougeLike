@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://pfm7avawhvlk"
-path="res://.godot/imported/night_meadow_ground_1024.png-b8f1803896525acdf26b4c9edb4222bd.ctex"
+path.s3tc="res://.godot/imported/night_meadow_ground_1024.png-b8f1803896525acdf26b4c9edb4222bd.s3tc.ctex"
+path.etc2="res://.godot/imported/night_meadow_ground_1024.png-b8f1803896525acdf26b4c9edb4222bd.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/terrain/night_meadow_ground_1024.png"
-dest_files=["res://.godot/imported/night_meadow_ground_1024.png-b8f1803896525acdf26b4c9edb4222bd.ctex"]
+dest_files=["res://.godot/imported/night_meadow_ground_1024.png-b8f1803896525acdf26b4c9edb4222bd.s3tc.ctex", "res://.godot/imported/night_meadow_ground_1024.png-b8f1803896525acdf26b4c9edb4222bd.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

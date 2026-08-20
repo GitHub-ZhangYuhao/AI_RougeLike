@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dv4wln34i44gl"
-path="res://.godot/imported/staff_spirit_bolt.png-d667e9cff20d379167f44388c24a5822.ctex"
+path.s3tc="res://.godot/imported/staff_spirit_bolt.png-d667e9cff20d379167f44388c24a5822.s3tc.ctex"
+path.etc2="res://.godot/imported/staff_spirit_bolt.png-d667e9cff20d379167f44388c24a5822.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/vfx/staff_spirit_bolt.png"
-dest_files=["res://.godot/imported/staff_spirit_bolt.png-d667e9cff20d379167f44388c24a5822.ctex"]
+dest_files=["res://.godot/imported/staff_spirit_bolt.png-d667e9cff20d379167f44388c24a5822.s3tc.ctex", "res://.godot/imported/staff_spirit_bolt.png-d667e9cff20d379167f44388c24a5822.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

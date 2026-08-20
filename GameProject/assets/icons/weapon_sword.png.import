@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cohms7krowg2f"
-path="res://.godot/imported/weapon_sword.png-b6d4b24ef41fb42c5b5ffaa11a6e3f1c.ctex"
+path.s3tc="res://.godot/imported/weapon_sword.png-b6d4b24ef41fb42c5b5ffaa11a6e3f1c.s3tc.ctex"
+path.etc2="res://.godot/imported/weapon_sword.png-b6d4b24ef41fb42c5b5ffaa11a6e3f1c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/icons/weapon_sword.png"
-dest_files=["res://.godot/imported/weapon_sword.png-b6d4b24ef41fb42c5b5ffaa11a6e3f1c.ctex"]
+dest_files=["res://.godot/imported/weapon_sword.png-b6d4b24ef41fb42c5b5ffaa11a6e3f1c.s3tc.ctex", "res://.godot/imported/weapon_sword.png-b6d4b24ef41fb42c5b5ffaa11a6e3f1c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

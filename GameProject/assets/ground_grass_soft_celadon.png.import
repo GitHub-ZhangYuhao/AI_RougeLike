@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d0omokymo6687"
-path="res://.godot/imported/ground_grass_soft_celadon.png-67408ac9703e461a00fd91c0949ac16d.ctex"
+path.s3tc="res://.godot/imported/ground_grass_soft_celadon.png-67408ac9703e461a00fd91c0949ac16d.s3tc.ctex"
+path.etc2="res://.godot/imported/ground_grass_soft_celadon.png-67408ac9703e461a00fd91c0949ac16d.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/ground_grass_soft_celadon.png"
-dest_files=["res://.godot/imported/ground_grass_soft_celadon.png-67408ac9703e461a00fd91c0949ac16d.ctex"]
+dest_files=["res://.godot/imported/ground_grass_soft_celadon.png-67408ac9703e461a00fd91c0949ac16d.s3tc.ctex", "res://.godot/imported/ground_grass_soft_celadon.png-67408ac9703e461a00fd91c0949ac16d.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
