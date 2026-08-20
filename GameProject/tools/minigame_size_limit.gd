@@ -32,7 +32,7 @@ const RULES_SLIM: Array = [
 	["res://assets/sprites/", 256],
 	["res://assets/vfx/", 256],
 	["res://assets/terrain/", 512],
-	["res://assets/environment/", 512],
+	["res://assets/environment/", 384],
 	["res://assets/ui/", 512],
 ]
 
