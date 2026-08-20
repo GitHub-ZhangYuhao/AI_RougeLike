@@ -40,6 +40,8 @@
 | 全量档（preset.2） | **29.05 MB** | 22.68 MB | ✅ 余量 0.95 MB | ❌ 超 9.05 MB |
 | 精简档（preset.3 slim 尺寸档） | **20.69 MB** | 14.31 MB | ✅ 余量 9.31 MB | ❌ 微超 0.69 MB |
 
+> 复核注记（2026-08-20 当日）：slim 档收紧（`assets/environment/` 长边 512→384，其余组不变）后 preset.3 复测 **总包 19.37 MB / pck 13.00 MB**（ctex 10.24 MB）：**抖音 ✅ 达标，余量 0.63 MB**，微信 ✅ 余量 10.63 MB。表内为收紧前首次实测值。
+
 插件产物分包结构（`build/minigame/wx/`，两档结构相同）：
 
 - 主包 ≈0.09 MB：game.js / godot-loader.js / weapp-adapter.js / images —— 远小于 4MB 主包上限 ✅
@@ -51,9 +53,12 @@ pck 构成审计（v2，ETC2 后，两档均 432 文件）：
 
 - 全量档 pck 22.68 MB：ctex 19.92 MB（v1 lossless 时 132.27 MB，ETC2 降 85%）、ogg 1.52 MB（BGM 重编码较 v1 省 ≈0.9 MB）、字体 0.63 MB、gdc 0.32 MB
 - 精简档 pck 14.31 MB：ctex 11.55 MB（slim 尺寸档：sprites/vfx 长边 256、terrain/env/ui 长边 512），音频/字体/脚本与全量档相同
+  - 复核注记（当日）：env 长边收紧 512→384 后复测 pck 13.00 MB（ctex 10.24 MB）；现行 slim 档 = sprites/vfx 256、terrain/ui 512、env 384
 - 两档文件数相同（432）：排除清单只排无引用的死资产，slim 档只改导入尺寸、不改内容集
 
 结论：**微信端全量档即可直接发布**（29.05 ≤ 30 MB，无需 CDN）；**抖音端 slim 档仍微超 ≈0.7 MB**，需补齐差额或重美术走 CDN（见第三节路线）。
+
+> 复核注记（2026-08-20 当日）：抖音差额已由 slim 收紧补齐（总包 19.37 MB ≤ 20 MB），**两端均无需 CDN**；上文为 v2 首次结论。
 
 ## 三、包体优化路线（按序执行，每步实测）
 
@@ -65,7 +70,7 @@ pck 构成审计（v2，ETC2 后，两档均 432 文件）：
 ### 阶段 2：死资产排除 + preset.3 重设计——✅ 已完成
 - preset.2 / preset.3 现共用同一份 78 条 `exclude_filter` 清单（APK 瘦身经验复用 + `tools/minigame_unused_scan.mjs` 无引用扫描 + `tools/minigame_exclude_check.mjs` 误杀检查；检查已知噪音 18 条：TestShader / ground_* / terrain 引用链与 tests/tools 自引用，无真冲突）。
 - **preset.3 重设计**：v1 的「排除全部美术目录」（13 条整目录排除）会令 preload() 美术的脚本 parse 失败，已废弃；现在 preset.3 = 同一份排除清单 + 更紧的导入尺寸档（slim profile）。
-- slim 档由 `tools/minigame_size_limit.gd` 管理（default/slim 两档：slim 为 sprites/vfx 长边 256、terrain/env/ui 长边 512），`tools/minigame_export.ps1` 自动完成「快照全部 .import → slim apply → --import → 导出 → 恢复快照 → --import」，仓库恒回默认档。
+- slim 档由 `tools/minigame_size_limit.gd` 管理（default/slim 两档：slim 为 sprites/vfx 长边 256、terrain/ui 长边 512、env 长边 384（2026-08-20 当日由 512 收紧）），`tools/minigame_export.ps1` 自动完成「快照全部 .import → slim apply → --import → 导出 → 恢复快照 → --import」，仓库恒回默认档。
 - 实测：slim 档 ctex 19.92 → 11.55 MB，总包 29.05 → 20.69 MB（省 8.36 MB）；两档 pck `--main-pack --quit-after 30` 运行时验证零脚本错误。
 
 ### 阶段 3：重美术 CDN 化——微信已不需要；仅抖音补差额时启用
@@ -73,6 +78,7 @@ pck 构成审计（v2，ETC2 后，两档均 432 文件）：
 - 抖音：slim 档 20.69 MB 微超 20 MB 限额 ≈0.7 MB，两条路：(a) 继续瘦 pck 补齐差额（更紧尺寸档 / 音频再压 / 排除清单扩列）；(b) 重美术走 CDN：`HTTPRequest` 下载 + `user://` 缓存 + `ProjectSettings.load_resource_pack()` 热载（CDN 资源运行时下载，不受包内文件白名单限制）。
 - 插件侧已具备多 pck 基础：`GODOTSDK.load_pack1` 手动加载分包 pck、`GODOTSDK.releasePck()` 卸载——CDN 化时可按关卡/场景拆 pck。
 - 附加工作（若走 CDN）：资源版本化 / 缓存失效、首次进入的下载进度 UI、弱网降级——这是改造量大头。
+- 复核注记（2026-08-20 当日）：抖音差额已由 slim 收紧补齐（19.37 MB ≤ 20 MB），阶段 3 未启用，仅保留为后续内容增量时的后备手段。
 
 ## 四、微信小游戏发布清单（IAA 路线，个人主体可行）
 
@@ -116,7 +122,7 @@ pck 构成审计（v2，ETC2 后，两档均 432 文件）：
 2. [ ] 替换微信 AppID（见第四节；preset.2 / preset.3 两处的 `wxf40904ea6120ad08` 均为插件 demo 值）
 3. [ ] 配置启动封面背景图 / logo（预设「资源信息」选项，当前为空）
 4. [x] ~~执行第三节阶段 1（ETC2 重导入）~~ —— ✅ 已完成并实测（ctex 132.27 → 19.92 MB，见第二、三节）
-5. [ ] 抖音端：slim 档微超 20MB 限额 ≈0.7 MB，补齐差额（继续瘦 pck）或走 CDN；产物与横屏真机验证后决定是否接入 TTSDK / 做竖屏适配
+5. [x] ~~抖音端：slim 档微超 20MB 限额 ≈0.7 MB，补齐差额（继续瘦 pck）或走 CDN~~ —— ✅ 已解决（2026-08-20）：slim 档收紧 env 长边 512→384（12 张环境贴图 512²→384²），pck 14.31→13.00 MB、总包 19.37 MB ≤ 20 MB 达标（余量 0.63 MB），UI/角色贴图未动；TTSDK / 横屏真机验证仍为后续项（见第五节）
 6. [ ] 正式提审前重跑双 smoke 与两端导出（4.5.1 基线：459 项 / 26 场景）
 
 ## 七、参考资料

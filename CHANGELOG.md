@@ -142,3 +142,11 @@
 - chore(export)：微信小游戏总包实测——全量档 29.05 MB（pck 22.68 MB）达标微信 30MB 总包限额（主包 ≈0.09MB、engine 分包 = wasm.br 5.88MB + js 0.39MB + pck，微信单分包无独立上限、无需再拆）；slim 档 20.69 MB（pck 14.31 MB、ctex 11.55 MB），距抖音 20MB 限额微超 ≈0.7 MB 待补。两档 pck --main-pack 运行时验证零脚本错误。
 - docs：minigame-release-checklist.md 升 v2（平台限额口径修订、v2 实测数字、preset.3 重设计与工具链登记），PROGRESS.md §2/§6 同步。双 smoke 459 项 / 26 场景全绿。
 - 已知遗留：微信 AppID 为插件 demo 值待替换；启动封面/logo 未配置；抖音需补 0.7MB 差额（或 CDN）+ TTSDK 路线与横屏真机验证。
+
+## 2026-08-20 · 抖音小游戏包体达标：slim 档收紧（perf/minigame-etc2）
+
+- perf(export)：minigame_size_limit.gd RULES_SLIM 收紧——assets/environment/ 长边 512→384（12 张环境贴图 512²→384²，单张 0.25→0.14MB）；其余组不变（sprites/vfx 256、terrain/ui 512），UI SVG 保持 512 防糊。
+- chore(export)：抖音小游戏总包复测——slim 档 20.69→**19.37 MB**（pck 14.31→13.00 MB，ctex 11.55→10.24 MB），达标抖音 20MB 整包限额、余量 0.63 MB；微信/抖音两端均无需 CDN 即达标。
+- verify：slim pck `--main-pack --quit-after 30` 运行时验证零脚本错误；仓库恢复默认档（.import 抽查 menu_bg_exact=1024 / bomber_sheet=512 / env=0）；双 smoke 全绿（Godot 459 项 / 26 场景 + 原型 21 章）。
+- docs：minigame-release-checklist.md 追加复核注记（slim 收紧后新数字、抖音转 ✅、阶段 3 CDN 不启用），PROGRESS.md §2/§6 同步，清单 §6 TODO #5 完结。
+- 已知遗留：同上轮——微信 AppID 为插件 demo 值待替换；启动封面/logo 未配置；抖音 TTSDK 路线与横屏真机验证（最大返工风险项）。
