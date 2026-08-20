@@ -27,7 +27,7 @@
 
 1. **180 敌人性能与对象池**：逻辑侧空间网格 + 弹道对象池已落地（`3b47af2`，基准 harness `17720a5`）；剩余为 `WorldArtView` 实体/VFX 视图侧池化、VFX 预算与压力场景检查。
 2. **正式音频**：AudioManager 框架已落地（`autoload/audio_manager.gd` + s22 冒烟章节），SFX 24 条 ogg 入库（覆盖 `SFX_PATHS` 全部 23 键），BGM 3/6（menu/battle/boss）；剩余：BGM 3 条（rest/extraction/summary）；SFX 事件映射与 BGM 音量/交叉淡化参数已落库（`0bc9de9`），音频层保持单向读取逻辑状态。
-3. **最终回归与导出检查**：完成全量 verify、键鼠/UI 流程复核和 Windows 导出验收。
+3. **最终回归与导出检查**：微信小游戏打包达标（全量档总包 29.05MB ≤ 30MB 限额，分支 perf/minigame-etc2）；剩余：全量 verify / 键鼠 UI 流程复核、抖音 slim 档 0.7MB 差额、两端真机验证与提审准备。
 
 > 打磨类待办（敌人预警、稀有物数值、序列帧、死资源等）不占用上面三项焦点，
 > 清单维护在 `OPTIMIZATION_TRACKER.md` §第八轮候选，数值待校准项在 `BALANCE.md` §待校准项。
@@ -194,3 +194,4 @@
 | 2026-08-20 | M6 | Android 导出链路：Android 导出预设 + ETC2 纹理压缩打包环境落地；release APK 瘦身至 121 MB（地形图 2048²、死资产排除、正式签名打包） | d00814d / 744bc3e |
 | 2026-08-20 | — | 复核注记：§6 变更历史自 `12b1180` 起约 30 个提交未随提交同步登记，本批为集中补录；§1/§4 同步修正 smoke 基线为 459 项 / 26 场景，§2 焦点与 M6 任务状态按已提交事实更正 | （本次补录） |
 | 2026-08-20 | M6 | 小游戏导出链路：Godot 4.5.1 并存 + godothub godot-minigame 插件；新增「微信小游戏」导出预设两个（全量/精简量尺寸），headless 导出 EXIT=0（全量 142.6MB / 精简 10.74MB）；新增 pck 体积审计工具（97% 为无损纹理）与发布准备清单文档 | 1de5bb4 |
+| 2026-08-20 | M6 | 小游戏包体达标与打包工具链：全纹理切 ETC2（ctex 132.27→19.92MB，-85%）+ BGM 重编码（音频 2.41→1.52MB）+ 双预设统一 78 条死资产排除；preset.3 由「排除全部美术目录」重设计为 slim 导入尺寸档（整目录排除破坏 preload()，废弃）；新增 minigame_export.ps1（自动剥离/恢复 MCPRuntime + slim 档 .import 快照舞）/ minigame_size_limit.gd（default/slim 两档）/ exclude_check 与 unused_scan 工具；实测全量档总包 29.05MB（微信 30MB 达标）/ slim 档 20.69MB（抖音 20MB 微超 0.7MB），两档 pck 运行时验证零错误，双 smoke 459 项 / 26 场景全绿 | （本次提交） |
