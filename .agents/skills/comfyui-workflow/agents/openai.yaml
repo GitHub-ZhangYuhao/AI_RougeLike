@@ -1,4 +1,4 @@
 interface:
   display_name: "ComfyUI Workflow"
-  short_description: "Krea-2 文生图、Qwen-Image-Edit 人设 pose 变体、MiniMax H3 首尾帧生视频与 FLUX Kontext 纹理外扩的 ComfyUI 工作流模板"
-  default_prompt: "Use $comfyui-workflow to load the Krea-2 text-to-image, Qwen-Image-Edit pose-variation, MiniMax H3 first/last-frame-to-video, or FLUX Kontext texture-outpainting workflow into ComfyUI."
+  short_description: "Krea-2 文生图、Qwen 编辑、MiniMax H3 视频、ACE-Step 音频与四向同步控制的 FLUX Kontext 外扩工作流"
+  default_prompt: "Use $comfyui-workflow to load the Krea-2 image, Qwen edit, MiniMax H3 video, ACE-Step audio, or FLUX Kontext texture-outpainting workflow; for outpainting, set the shared left/top/right/bottom INTConstant nodes."

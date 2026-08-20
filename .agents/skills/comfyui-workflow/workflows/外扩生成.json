@@ -1,8 +1,8 @@
 {
   "id": "44d0e04a-93ef-4621-a3a2-e112dcefea2a",
   "revision": 0,
-  "last_node_id": 41,
-  "last_link_id": 84,
+  "last_node_id": 48,
+  "last_link_id": 93,
   "nodes": [
     {
       "id": 1,
@@ -38,7 +38,7 @@
         "Node name for S&R": "LoadImage"
       },
       "widgets_values": [
-        "amber_starlight_sanctuary_2048 copy (2).png",
+        "Outpaint_Composite_00001_.png",
         "image"
       ]
     },
@@ -46,15 +46,15 @@
       "id": 2,
       "type": "ImagePadForOutpaint",
       "pos": [
-        186.8239502303636,
-        331.9222652570493
+        246.4148329189993,
+        243.7277588778685
       ],
       "size": [
         280,
         218
       ],
       "flags": {},
-      "order": 4,
+      "order": 9,
       "mode": 0,
       "showAdvanced": true,
       "inputs": [
@@ -62,6 +62,38 @@
           "name": "image",
           "type": "IMAGE",
           "link": 25
+        },
+        {
+          "name": "left",
+          "type": "INT",
+          "widget": {
+            "name": "left"
+          },
+          "link": 86
+        },
+        {
+          "name": "top",
+          "type": "INT",
+          "widget": {
+            "name": "top"
+          },
+          "link": 87
+        },
+        {
+          "name": "right",
+          "type": "INT",
+          "widget": {
+            "name": "right"
+          },
+          "link": 88
+        },
+        {
+          "name": "bottom",
+          "type": "INT",
+          "widget": {
+            "name": "bottom"
+          },
+          "link": 89
         }
       ],
       "outputs": [
@@ -137,7 +169,7 @@
         54
       ],
       "flags": {},
-      "order": 7,
+      "order": 13,
       "mode": 0,
       "inputs": [
         {
@@ -240,10 +272,10 @@
       ],
       "size": [
         340,
-        138
+        162
       ],
       "flags": {},
-      "order": 6,
+      "order": 8,
       "mode": 0,
       "inputs": [
         {
@@ -295,7 +327,7 @@
         140
       ],
       "flags": {},
-      "order": 12,
+      "order": 11,
       "mode": 0,
       "inputs": [
         {
@@ -332,7 +364,7 @@
         294
       ],
       "flags": {},
-      "order": 15,
+      "order": 18,
       "mode": 0,
       "inputs": [
         {
@@ -371,7 +403,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 16,
+      "order": 20,
       "mode": 0,
       "inputs": [
         {
@@ -414,7 +446,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 13,
+      "order": 12,
       "mode": 0,
       "inputs": [
         {
@@ -451,7 +483,7 @@
         118
       ],
       "flags": {},
-      "order": 14,
+      "order": 19,
       "mode": 0,
       "inputs": [
         {
@@ -501,7 +533,7 @@
         494
       ],
       "flags": {},
-      "order": 17,
+      "order": 21,
       "mode": 0,
       "inputs": [
         {
@@ -559,7 +591,7 @@
         54
       ],
       "flags": {},
-      "order": 18,
+      "order": 22,
       "mode": 0,
       "inputs": [
         {
@@ -600,7 +632,7 @@
         34
       ],
       "flags": {},
-      "order": 10,
+      "order": 16,
       "mode": 0,
       "inputs": [
         {
@@ -633,7 +665,7 @@
         302
       ],
       "flags": {},
-      "order": 20,
+      "order": 24,
       "mode": 0,
       "inputs": [
         {
@@ -668,7 +700,7 @@
         302
       ],
       "flags": {},
-      "order": 21,
+      "order": 25,
       "mode": 0,
       "inputs": [
         {
@@ -695,15 +727,15 @@
       "id": 35,
       "type": "PreviewImage",
       "pos": [
-        1043.1628936535276,
-        18.35291171393476
+        1036.0119877308912,
+        29.07927059788915
       ],
       "size": [
         225,
         266
       ],
       "flags": {},
-      "order": 8,
+      "order": 14,
       "mode": 0,
       "inputs": [
         {
@@ -736,7 +768,7 @@
         138
       ],
       "flags": {},
-      "order": 9,
+      "order": 15,
       "mode": 0,
       "inputs": [
         {
@@ -783,7 +815,7 @@
         78
       ],
       "flags": {},
-      "order": 19,
+      "order": 23,
       "mode": 0,
       "inputs": [
         {
@@ -823,7 +855,7 @@
         291.4375
       ],
       "flags": {},
-      "order": 11,
+      "order": 17,
       "mode": 0,
       "inputs": [
         {
@@ -858,7 +890,7 @@
         218
       ],
       "flags": {},
-      "order": 5,
+      "order": 10,
       "mode": 0,
       "showAdvanced": true,
       "inputs": [
@@ -866,6 +898,38 @@
           "name": "image",
           "type": "IMAGE",
           "link": 81
+        },
+        {
+          "name": "left",
+          "type": "INT",
+          "widget": {
+            "name": "left"
+          },
+          "link": 90
+        },
+        {
+          "name": "top",
+          "type": "INT",
+          "widget": {
+            "name": "top"
+          },
+          "link": 91
+        },
+        {
+          "name": "right",
+          "type": "INT",
+          "widget": {
+            "name": "right"
+          },
+          "link": 92
+        },
+        {
+          "name": "bottom",
+          "type": "INT",
+          "widget": {
+            "name": "bottom"
+          },
+          "link": 93
         }
       ],
       "outputs": [
@@ -892,6 +956,146 @@
         0,
         0
       ]
+    },
+    {
+      "id": 45,
+      "type": "INTConstant",
+      "pos": [
+        197.99524334874084,
+        610.6743724388429
+      ],
+      "size": [
+        225,
+        86
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "INT",
+          "links": [
+            86,
+            90
+          ]
+        }
+      ],
+      "title": "左",
+      "properties": {
+        "Node name for S&R": "INTConstant"
+      },
+      "widgets_values": [
+        1024
+      ],
+      "color": "#1b4669",
+      "bgcolor": "#29699c"
+    },
+    {
+      "id": 46,
+      "type": "INTConstant",
+      "pos": [
+        198.60248634741038,
+        733.198048440617
+      ],
+      "size": [
+        225,
+        86
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "INT",
+          "links": [
+            87,
+            91
+          ]
+        }
+      ],
+      "title": "上",
+      "properties": {
+        "Node name for S&R": "INTConstant"
+      },
+      "widgets_values": [
+        0
+      ],
+      "color": "#1b4669",
+      "bgcolor": "#29699c"
+    },
+    {
+      "id": 47,
+      "type": "INTConstant",
+      "pos": [
+        201.28877707717584,
+        855.8719917665835
+      ],
+      "size": [
+        225,
+        86
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "INT",
+          "links": [
+            88,
+            92
+          ]
+        }
+      ],
+      "title": "右",
+      "properties": {
+        "Node name for S&R": "INTConstant"
+      },
+      "widgets_values": [
+        0
+      ],
+      "color": "#1b4669",
+      "bgcolor": "#29699c"
+    },
+    {
+      "id": 48,
+      "type": "INTConstant",
+      "pos": [
+        201.28877707717584,
+        979.4413653358052
+      ],
+      "size": [
+        225,
+        86
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "INT",
+          "links": [
+            89,
+            93
+          ]
+        }
+      ],
+      "title": "下",
+      "properties": {
+        "Node name for S&R": "INTConstant"
+      },
+      "widgets_values": [
+        0
+      ],
+      "color": "#1b4669",
+      "bgcolor": "#29699c"
     }
   ],
   "links": [
@@ -1110,16 +1314,80 @@
       18,
       0,
       "IMAGE"
+    ],
+    [
+      86,
+      45,
+      0,
+      2,
+      1,
+      "INT"
+    ],
+    [
+      87,
+      46,
+      0,
+      2,
+      2,
+      "INT"
+    ],
+    [
+      88,
+      47,
+      0,
+      2,
+      3,
+      "INT"
+    ],
+    [
+      89,
+      48,
+      0,
+      2,
+      4,
+      "INT"
+    ],
+    [
+      90,
+      45,
+      0,
+      41,
+      1,
+      "INT"
+    ],
+    [
+      91,
+      46,
+      0,
+      41,
+      2,
+      "INT"
+    ],
+    [
+      92,
+      47,
+      0,
+      41,
+      3,
+      "INT"
+    ],
+    [
+      93,
+      48,
+      0,
+      41,
+      4,
+      "INT"
     ]
   ],
   "groups": [],
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.8390545288824064,
+      "scale": 0.9229599817706503,
       "offset": [
-        -1853.2411688677782,
-        793.9902365319874
+        375.590039284674,
+        132.2647209698784
       ]
     },
     "frontendVersion": "1.48.7",

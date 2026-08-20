@@ -41,7 +41,7 @@ description: ComfyUI 工作流模板：Krea-2 Turbo 文生图（text-to-image，
 ### 地形 / 贴图纹理外扩
 
 1. 用 `外扩生成.json` 的 LoadImage 载入已有贴图（即中间图）。
-2. 节点 2 ImagePadForOutpaint 设置 left / top / right / bottom 四个方向要扩展的像素数（如向左扩展 1024），节点 41 的四个方向必须与节点 2 保持一致。
+2. 在方向常量节点 45「左」/ 46「上」/ 47「右」/ 48「下」设置四个方向要扩展的像素数（如向左扩展 1024）；四个值会同时驱动节点 2 和节点 41，无需再手工同步两组参数。
 3. 提示词默认 `Outpaint the image.`（LoRA 官方推荐写法），可追加扩展区域的内容描述。
 4. `Output_Outpainting` 只输出新扩展出的区域；`so_up2_canvas_comp` 输出完整画布（原图+扩展），用于检查接缝或作为下一轮外扩的输入。
 
@@ -219,9 +219,13 @@ low quality, noisy, distorted, speech, dialogue, sound effects
 ### 节点管线
 
 ```text
+INTConstant：左 (#45) / 上 (#46) / 右 (#47) / 下 (#48)
+    ├── 同步驱动 ImagePadForOutpaint (#2, feathering=128)
+    └── 同步驱动 ImagePadForOutpaint (#41, feathering=0，裁剪遮罩)
+
 LoadImage (#1, 中间图)
     ↓ IMAGE
-ImagePadForOutpaint (#2, left/top/right/bottom + feathering=128)
+ImagePadForOutpaint (#2)
     ├── IMAGE → VAEEncode (#4) → ReferenceLatent (#10.latent)
     └── IMAGE → GetImageSize (#37) → EmptyLatentImage (#12, 尺寸自动跟随填充后画布)
 
@@ -240,9 +244,9 @@ KSampler (#13, 28 步 / CFG 1.0 / euler / simple / denoise 1.0)
 | 参数 | 说明 |
 |---|---|
 | LoadImage (#1) | 中间图（已有贴图） |
-| ImagePadForOutpaint (#2) `left/top/right/bottom` | 四个方向各扩展多少像素，0 表示该方向不扩展 |
-| ImagePadForOutpaint (#2) `feathering` | 遮罩边缘羽化，默认 128，让新旧区域过渡更自然 |
-| ImagePadForOutpaint (#41) | 四个方向必须与节点 2 一致（feathering=0），生成用于裁剪新区域的遮罩 |
+| INTConstant (#45/#46/#47/#48) | 依次控制左/上/右/下扩展像素；默认 `1024/0/0/0`，0 表示该方向不扩展；一组值同时连接节点 2 与 41 |
+| ImagePadForOutpaint (#2) `feathering` | 生成用遮罩边缘羽化，默认 128，让新旧区域过渡更自然；方向值由节点 45–48 输入 |
+| ImagePadForOutpaint (#41) | 裁剪遮罩，feathering=0；方向值同样由节点 45–48 输入，自动与节点 2 保持一致 |
 | CLIPTextEncode (#8) | 提示词；默认 `Outpaint the image.`（LoRA 官方写法），可追加扩展区域的内容描述 |
 | LoraLoader (#7) | SuperOutpainting LoRA 强度，默认 1.0 / 1.0 |
 | KSampler (#13) `seed` | 随机种子 |
@@ -256,8 +260,8 @@ KSampler (#13, 28 步 / CFG 1.0 / euler / simple / denoise 1.0)
 
 ### 四边扩展用法
 
-- 一次扩四边：节点 2 同时设置 left/top/right/bottom，一次运行完成（画布尺寸 = 原图 + 四边扩展量，注意显存）。
-- 逐边扩展：每次只扩一条边，下一轮把完整画布输出作为新的中间图继续扩；省显存，且每轮都能检查接缝。
+- 一次扩四边：同时修改节点 45/46/47/48，一次运行完成（画布尺寸 = 原图 + 四边扩展量，注意显存）。
+- 逐边扩展：每次只让节点 45–48 中一个值大于 0，下一轮把完整画布输出作为新的中间图继续扩；省显存，且每轮都能检查接缝。
 - 扩展像素数建议取 16 的倍数（FLUX VAE 16 倍下采样），否则编解码会报尺寸错误。
 - FP8 模型约需 12 GB 显存，可跑 1MP 级画布，仅供参考。
 
@@ -291,6 +295,6 @@ KSampler (#13, 28 步 / CFG 1.0 / euler / simple / denoise 1.0)
 - 报缺模型：核对文件名与目录是否与上表一致。
 - Desktop/Cloud 版可能落后于 nightly，模型支持不全时先更新 ComfyUI。
 - ACE-Step 1.5 必须用 `EmptyAceStep1.5LatentAudio` 节点（不是 `EmptyAceStepLatentAudio`，后者是 1.0 版本的，latent 维度不兼容）。
-- 外扩时节点 2 / 41 的 ImagePadForOutpaint 四个方向必须保持一致，否则裁剪出的新区域会与生成区域不吻合。
+- 外扩方向统一在节点 45–48 修改；如果手动断开连线或改回节点 2 / 41 内部控件，必须保证两组方向完全一致，否则裁剪出的新区域会与生成区域不吻合。
 - 外扩的扩展像素数应取 16 的倍数（FLUX VAE 16 倍下采样），否则 VAEEncode / VAEDecode 会报尺寸错误。
 - 运行时错误反馈到 comfyanonymous/ComfyUI issues；前端问题反馈到 Comfy-Org/ComfyUI_frontend issues。
