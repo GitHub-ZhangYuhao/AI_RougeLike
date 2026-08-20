@@ -150,3 +150,9 @@
 - verify：slim pck `--main-pack --quit-after 30` 运行时验证零脚本错误；仓库恢复默认档（.import 抽查 menu_bg_exact=1024 / bomber_sheet=512 / env=0）；双 smoke 全绿（Godot 459 项 / 26 场景 + 原型 21 章）。
 - docs：minigame-release-checklist.md 追加复核注记（slim 收紧后新数字、抖音转 ✅、阶段 3 CDN 不启用），PROGRESS.md §2/§6 同步，清单 §6 TODO #5 完结。
 - 已知遗留：同上轮——微信 AppID 为插件 demo 值待替换；启动封面/logo 未配置；抖音 TTSDK 路线与横屏真机验证（最大返工风险项）。
+
+## 2026-08-21 · 交接落档（perf/minigame-etc2）
+
+- docs：新增 Docs/research/minigame-handoff.md 交接快照——停在哪（微信全量档 29.05MB / 抖音 slim 档 19.37MB 双达标、打包工具链就位）、续作 TODO 8 项（首要：替换微信 AppID 重导出 → 微信开发者工具导入 build/minigame/wx/）、常用命令块与 shell 环境注记；一次性快照，随发布工作完成作废，长期真值仍在 Docs/research/minigame-release-checklist.md。
+- docs：Docs/README.md 地图登记 handoff 快照、发布清单状态改「定稿 v2（含复核注记）」；GameProject/AGENTS.md 经验沉淀追加 2026-08-21 四条（slim 导出舞由 minigame_export.ps1 快照/恢复、--main-pack 必须绝对路径、--quit-after 退出泄漏警告属正常噪音、小游戏端只留 ETC2）；PROGRESS.md §6 同步并回填上轮提交哈希 8a86e46 / 45a6886。
+- 本轮无代码/资产改动，双 smoke 沿用上轮全绿基线（Godot 459 项 / 26 场景 + 原型 21 章）。

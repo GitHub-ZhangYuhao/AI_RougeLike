@@ -1,6 +1,6 @@
 # Docs/ — 文档地图与更新纪律
 
-> 状态：维护中 ｜ 更新：2026-08-20
+> 状态：维护中 ｜ 更新：2026-08-21
 > 本目录存放策划/设计文档。**玩法规则真值在 `GameProject/RULES.md`**：本文档与 RULES.md 冲突时一律以 RULES.md 为准。
 
 ## 更新纪律
@@ -20,7 +20,8 @@
 | `extraction-shop-implementation-plan.md` | Boss 撤离 + 局外商城实现方案 | 已实现（原型 `76004d0` / Godot M5 `00a224a`） |
 | `boss-extraction-shop-dynamic-tasks.md` | Boss 撤离/局外商城/动态任务原始设计稿 | 历史草稿，以实现方案为准 |
 | `research/minigame-publish-research.md` | 微信/抖音小游戏打包发布调研（引擎路线/包体预算/合规流程） | 定稿 v1（2026-08-20） |
-| `research/minigame-release-checklist.md` | 微信/抖音小游戏发布准备清单（实测包体/三阶段优化路线/合规 checklist） | 定稿 v1（2026-08-20） |
+| `research/minigame-release-checklist.md` | 微信/抖音小游戏发布准备清单（实测包体/三阶段优化路线/合规 checklist） | 定稿 v2（2026-08-20，含 08-21 复核注记） |
+| `research/minigame-handoff.md` | 小游戏发布交接快照（停在哪/剩什么/命令怎么跑；一次性，随发布工作完成作废） | 快照（2026-08-21） |
 
 ## GameProject/ 文档（同仓库真值层）
 

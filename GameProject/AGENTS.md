@@ -138,3 +138,10 @@
    会被 `direction.angle()` 旋转的贴图（弹道、预警箭头）一律画成朝右（+X）。
 5. **新贴图必须连 `.import` 一起入库**：只提交 PNG 时 `preload('res://assets/...')` 解析不到；
    补救是 `Godot --headless --path GameProject --import`，然后把生成的 `.import` 一并提交。
+
+### 2026-08-21 ｜ M6
+
+1. **slim 导出档是临时 .import 状态，仓库恒回默认档**：slim 导出舞（快照 → 应用 slim 尺寸限制 → 重导入 → 导出 → 恢复 → 重导入）由 `tools/minigame_export.ps1` 一条龙完成；不要手工改 `tools/minigame_size_limit.gd` 或 .import 后直接提交。每次导出后必须抽查恢复结果（menu_bg_exact=1024、bomber_sheet=512、env 无尺寸限制）。
+2. **`--main-pack` 必须传绝对路径**：pck 审计与运行时验证（`tools/pck_size_report.gd` / `Godot --main-pack xxx.pck --quit-after 30`）传相对路径时 Godot 会静默回退、用项目默认资源启动本体游戏，验证对象就跑偏了。
+3. **`--quit-after` 退出时的 ObjectDB/资源泄漏警告是本项目正常噪音**：强制提前退出会打断未播完的 Ogg 等播放链而报泄漏；运行时验证的判据是**零 SCRIPT ERROR**，不要用退出警告误判回归。
+4. **小游戏端只留 ETC2**：project.godot `import_etc2_astc=true`、`import_s3tc_bptc=false`（微信/抖音小游戏运行在移动端 GPU 路径，桌面 S3TC 无用）。未来若恢复桌面导出发现纹理缺失，先查这一项。
