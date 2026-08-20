@@ -1,5 +1,15 @@
 # 仓库规范
 
+## 当前工作焦点（临时节，发布工作完成后删除本节）
+
+> 更新 2026-08-21 ｜ 分支 `perf/minigame-etc2`
+
+微信/抖音小游戏打包发布。现状：包体双达标（微信全量档总包 29.05MB ≤ 30MB、抖音 slim 档总包 19.37MB ≤ 20MB，均无需 CDN）；Godot 4.5.1（`GameEngine/4.5/`，4.7.1 保留不动）+ godothub godot-minigame 插件导出链路就绪；产物在 `GameProject/build/minigame/wx/`（微信）与 `wx-slim/`（抖音）。
+
+续作时先读 `Docs/research/minigame-handoff.md` 交接快照（状态/TODO/命令/环境注记），长期真值在 `Docs/research/minigame-release-checklist.md`。TODO 首要：替换微信 AppID（`GameProject/export_presets.cfg` preset.2/3 两处插件 demo 值）→ 重导出两档 → 微信开发者工具导入验证；最大返工风险是抖音横屏（官方当前仅竖屏，TTSDK 1.0.2+ 有横屏导出，需真机验证）。
+
+关键纪律：slim 导出档是临时 .import 状态，仓库恒回默认导入档，导出必须走 `GameProject/tools/minigame_export.ps1`（详见 `GameProject/AGENTS.md` 经验沉淀 2026-08-21 条）。
+
 ## 项目结构与模块组织
 
 本仓库是一款类吸血鬼幸存者游戏，包含两部分：
