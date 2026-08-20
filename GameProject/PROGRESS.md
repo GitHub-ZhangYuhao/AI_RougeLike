@@ -20,13 +20,13 @@
 状态图例：⬜ 未开始 ｜ 🟨 进行中 ｜ ✅ 完成 ｜ ⛔ 受阻（必须同步登记到 §5）
 
 - 里程碑完成度：**6 / 7**
-- smoke 章节移植：**25 / 25**（矩阵见 §4，含 Godot 侧新增的 [22] 音频章节与 [24] 序列帧章节）
+- smoke 章节移植：**26 / 26**（矩阵见 §4，含 Godot 侧新增的 [22] 音频、[23] 触屏选卡与 [24] 序列帧章节）
 - 每次全绿检查：Godot smoke 与根目录 `npm run smoke` 必须双绿。
 
 ## 2. 当前焦点（最多 3 项，随进度滚动）
 
-1. **180 敌人性能与对象池**：评估 `WorldArtView` 实体/VFX 分配，补齐压力场景和必要的降级策略。
-2. **正式音频**：AudioManager 框架已落地（`autoload/audio_manager.gd` + s22 冒烟章节），SFX 24 条 ogg 入库（覆盖 `SFX_PATHS` 全部 23 键），BGM 3/6（menu/battle/boss）；剩余：BGM 3 条（rest/extraction/summary）、SFX 键位重映射与音量/交叉淡化参数落库（工作区 WIP），并保持音频层单向读取逻辑状态。
+1. **180 敌人性能与对象池**：逻辑侧空间网格 + 弹道对象池已落地（`3b47af2`，基准 harness `17720a5`）；剩余为 `WorldArtView` 实体/VFX 视图侧池化、VFX 预算与压力场景检查。
+2. **正式音频**：AudioManager 框架已落地（`autoload/audio_manager.gd` + s22 冒烟章节），SFX 24 条 ogg 入库（覆盖 `SFX_PATHS` 全部 23 键），BGM 3/6（menu/battle/boss）；剩余：BGM 3 条（rest/extraction/summary）；SFX 事件映射与 BGM 音量/交叉淡化参数已落库（`0bc9de9`），音频层保持单向读取逻辑状态。
 3. **最终回归与导出检查**：完成全量 verify、键鼠/UI 流程复核和 Windows 导出验收。
 
 > 打磨类待办（敌人预警、稀有物数值、序列帧、死资源等）不占用上面三项焦点，
@@ -86,7 +86,7 @@
 - [x] `tests/scenarios/`：[15][16][21]
 
 ### M6 调试 / 性能 / 打磨 ｜ 🟨 进行中
-验收：Godot 侧 [Debug] 绿 + 全部 24 章节回归绿。
+验收：Godot 侧 [Debug] 绿 + 全部 26 章节回归绿。
 - [x] 玩家动画状态机恢复：主游戏重新接入 `AnimatedSprite2D` / `player_sprite_frames.gd`，支持 Idle、Move、Dead 与八方向动画映射；正左方向镜像、左上/左下独立图集，`player_static.png` 保留为资源缺失回退
 - [x] 正式草甸关卡：节点式地形材质挂载 `main.tscn`，预览场景保留为材质调试工具
 - [x] 关卡边界逻辑：玩家/敌人/弹道/相机/刷怪点/任务点统一约束，玩家保留视觉安全边距
@@ -100,8 +100,8 @@
 - [x] 正式中文字体：`Noto Sans SC` 与 OFL 许可进入工程，应用于游戏内 UI 和 Meta UI
 - [x] `logic/debug_runtime.gd`（跨 reset 存活 + serialize）
 - [x] `scenes/game/debug_overlay.gd`（右上角常驻“调试台 F2”入口；面板打开时暂停世界，支持按钮/F2/Esc/遮罩关闭，并完整保留倍率、生命、刷怪、波次、武器与配置存取功能）
-- [ ] 实体视图对象池、VFX 预算与性能检查（180 存活上限）
-- [ ] 正式音频资源与音频表现层（AudioManager 框架已落地，SFX 24 条覆盖 23 键、BGM 3/6；缺 BGM 3 条 + 键位重映射 WIP 落库，清单见 ART_ASSET_CONFIG.md §9）
+- [ ] 实体视图对象池、VFX 预算与性能检查（180 存活上限；逻辑侧空间网格 + 弹道池已落地 `3b47af2`，确定性基准 harness `17720a5`）
+- [ ] 正式音频资源与音频表现层（AudioManager 框架已落地，SFX 24 条覆盖 23 键、BGM 3/6；SFX 事件映射与 BGM 音量/交叉淡化参数已落库 `0bc9de9`，仅剩 BGM 3 条 rest/extraction/summary，清单见 ART_ASSET_CONFIG.md §9）
 - [ ] Windows 导出与最终人工回归
 
 ## 4. smoke 章节移植矩阵
@@ -132,6 +132,7 @@
 | [20] | Build batch 3 | M4 | ✅ |
 | [21] | 局内随机任务与奖励 | M5 | ✅ |
 | [22] | 音频系统（AudioManager） | M6 | ✅ |
+| [23] | 触屏选卡（触摸→鼠标桥接） | M6 | ✅ |
 | [24] | 序列帧图集裁帧（flipbook） | M6 | ✅ |
 
 ## 5. 阻塞问题与风险登记
@@ -181,3 +182,14 @@
 | 2026-08-19 | M6 | 序列帧运行时接入：新增 flipbook.gd 纯函数裁帧；cloakFireBurstAnim/furnaceFlameAnim 入库（VFX_TEXTURES 22→24），披风 Lv6 爆发一次性播放 + 丹炉/余烬/丹火循环火焰（世界坐标相位）；另补 4 类敌人预警（bomber 自爆蓄力/enhanced_chaser 狂暴前/Boss 弹幕蓄力/ranged 枪口蓄力点）；新增 s24_flipbook 章节，Godot smoke 436 项 / 25 场景与原型 smoke 双绿（文档补录） | cbab517 |
 | 2026-08-19 | M6 | 音频资源批量入库：21 条 SFX + 3 条 BGM（battle/boss/menu），磁盘 SFX 24 条覆盖 SFX_PATHS 全部 23 键（部分键共用文件）、BGM 3/6；s22 抽查通过（文档补录） | ff44fac |
 | 2026-08-19 | M6 | 披风火焰爆燃序列帧重抠像：BiRefNet 抠像侵蚀弥散火焰，改亮度阿尔法重键（remat_luma.py），图集原位重建、硬规格不变，覆盖率弧线恢复蓄力 53–72% → 爆发 82–88% → 单调消散；资产零回归（文档补录） | 12b1180 |
+| 2026-08-19 | — | 仓库基建：引入 `.agents/skills` 本地化游戏开发 toolkit 并移除不适用的引擎/类型技能（非里程碑任务，outpaint 控件同步见 `2f48fe6`） | 7f31bfa / 42d58e4 |
+| 2026-08-19 | M6 | 逻辑侧性能：空间网格邻域查询 + 弹道对象池打通 180 存活上限瓶颈（game_run/enemy/projectile/武器侧接入）；另新增确定性 spatial-grid 基准 harness | 3b47af2 / 17720a5 |
+| 2026-08-19 | M6 | 音频事件映射落库：AudioManager 改听 Events.sfx_requested 与武器计数变化，BGM_VOLUME/BGM_CROSSFADE 参数入库；同提交火球序列帧图集；披风爆燃图集重抠像与 .uid 补齐 | 0bc9de9 / 4d6b7c9 |
+| 2026-08-19 | M6 | 丹炉火焰 flipbook 图集重制（Krea-2 + MiniMax H3 + BiRefNet）、编码损坏修复与丹火绘制对齐 2048 新图集、行走 trail 火焰换用新图集；Lv6 武器蜕变 VFX 设计与音频收尾文档同步 | a260d55 / 095bef1 / e0f5ee6 / bae597e |
+| 2026-08-19 | M6 | 草地关卡地面缩放与背景适配、边界碰撞改挂 Area2D 并精调多边形；新增 Windows Desktop 导出预设；gitignore Godot MCP 缓存目录 | 0687c04 / 31165e4 / 2f9da1f / 7b18faa |
+| 2026-08-20 | M6 | 触屏输入：触屏点击桥接鼠标语义、支持直接点选卡牌；新增 s23_touch_choice 冒烟章节（Godot smoke 自此 26 场景）；smoke 退出前延长 10 帧回收窗口消除 Ogg 播放链误报泄漏 | bf81834 / 8efd960 / f970ccc |
+| 2026-08-20 | M6 | 导出卫生与关卡编辑：导出排除 tests/tools/markdown；可行走边界改为场景多边形节点驱动、支持编辑器可视化拖动 | 22562f9 / d002290 |
+| 2026-08-20 | M6 | 资产瘦身：行走图 atlas 分四批降至 2048²（8 方向）、WALK_SCALE 0.14→0.28 补偿视觉尺寸；中文字体子集化与子集再生工具 | 4fd5e98…ea2287d / 6b406d8 |
+| 2026-08-20 | M6 | 草地地形贴图外扩至 4096² 并接入场景（同日为 APK 瘦身又收敛至 2048²，见 `744bc3e`） | c8c5e76 |
+| 2026-08-20 | M6 | Android 导出链路：Android 导出预设 + ETC2 纹理压缩打包环境落地；release APK 瘦身至 121 MB（地形图 2048²、死资产排除、正式签名打包） | d00814d / 744bc3e |
+| 2026-08-20 | — | 复核注记：§6 变更历史自 `12b1180` 起约 30 个提交未随提交同步登记，本批为集中补录；§1/§4 同步修正 smoke 基线为 459 项 / 26 场景，§2 焦点与 M6 任务状态按已提交事实更正 | （本次补录） |
