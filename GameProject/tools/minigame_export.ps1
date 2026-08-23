@@ -83,6 +83,78 @@ function Export-Preset([int]$idx) {
         if ($hit) { Write-Host "[minigame_export] WARNING: MCPRuntime still referenced in $pck" }
         else { Write-Host '[minigame_export] OK: no MCPRuntime reference in pck' }
     }
+
+    # --- godot-minigame 4.7+ template ships a "subpack runtime" boot path: ---
+    # engine/game.js hardcodes `const pack = '/engine/empty-tips.bin'` (a stub
+    # demo project bundled by the template itself) and expects the real game
+    # content to be loaded later via addons/godot_subpack_runtime, which this
+    # project does not use. Our actual exported content lands untouched in
+    # engine/demo-pck.bin (Godot's normal main-pack name) and is simply never
+    # referenced. Patch game.js to boot straight into demo-pck.bin (matching
+    # the pre-4.7 template behavior) and drop the now-unreferenced stub pack
+    # to reclaim ~3MB of budget. Confirmed via VConsole real-device test that
+    # the default (unpatched) boot path black-screens on the empty stub.
+    $gameJsPath = Join-Path $buildDir 'engine\game.js'
+    $emptyTipsPath = Join-Path $buildDir 'engine\empty-tips.bin'
+    if (Test-Path $gameJsPath) {
+        $js = [System.IO.File]::ReadAllText($gameJsPath, [System.Text.Encoding]::UTF8)
+        $jsPatched = $js -replace 'empty-tips\.bin', 'demo-pck.bin'
+        if ($jsPatched -ne $js) {
+            [System.IO.File]::WriteAllText($gameJsPath, $jsPatched, $utf8NoBom)
+            Write-Host '[minigame_export] patched game.js: boot pack empty-tips.bin -> demo-pck.bin'
+        }
+    }
+    if (Test-Path $emptyTipsPath) {
+        [System.IO.File]::Delete($emptyTipsPath)
+        Write-Host '[minigame_export] removed unused engine/empty-tips.bin stub (~3MB reclaimed)'
+    }
+
+    # --- touch/mouse position comes back NaN on WeChat: canvas.getBoundingClientRect()
+    # doesn't populate .x/.y on WeChat's minigame canvas (spec allows it, since DOMRect.x/y
+    # are read-only getters; WeChat's shim leaves them undefined). godot.js's shared
+    # GodotInput.computePosition() reads rect.x/rect.y directly, so evt.clientX - undefined
+    # = NaN for every touch AND mouse event position on this platform, breaking all
+    # pointer-based UI (card choice hit-testing, virtual joystick drag, everything that
+    # reads InputState.mouse_x/mouse_y). The template already has a rect.x=0/rect.y=0
+    # "workaround" right before this call, but that's a no-op: assigning to a getter-only
+    # DOMRect property silently fails. Fix at the source: use rect.left/rect.top, which are
+    # always populated per spec and numerically identical to .x/.y on every environment
+    # that implements them correctly.
+    $godotJsPath = Join-Path $buildDir 'engine\godot.js'
+    if (Test-Path $godotJsPath) {
+        $gjs = [System.IO.File]::ReadAllText($godotJsPath, [System.Text.Encoding]::UTF8)
+        $gjsPatched = $gjs.Replace(
+            'const x=(evt.clientX-rect.x)*rw;const y=(evt.clientY-rect.y)*rh;',
+            'const x=(evt.clientX-rect.left)*rw;const y=(evt.clientY-rect.top)*rh;')
+        if ($gjsPatched -ne $gjs) {
+            [System.IO.File]::WriteAllText($godotJsPath, $gjsPatched, $utf8NoBom)
+            Write-Host '[minigame_export] patched godot.js: GodotInput.computePosition uses rect.left/top (fixes NaN touch/mouse position on WeChat)'
+        } else {
+            Write-Host '[minigame_export] WARNING: computePosition patch target not found in godot.js (template may have changed) - touch/mouse position may be NaN on WeChat'
+        }
+    }
+
+    # --- patch game.json: plugin template hardcodes iOSHighPerformance(+) = true ---
+    # regardless of platform, but these require manual opt-in via the WeChat minigame
+    # backend ("游戏能力地图 -> 研发能力 -> 生成提效包 -> 高性能模式"). Leaving them true
+    # without that opt-in appears to load a mismatched WAGamePerformanceUtilsSDK
+    # instrumentation layer that crashes real-device runs inside compressedTexImage2D
+    # ("Invalid value used as weak map key"). Force both false until the backend
+    # capability is actually enabled for this AppID.
+    $gameJsonPath = Join-Path $buildDir 'game.json'
+    if (Test-Path $gameJsonPath) {
+        $gj = [System.IO.File]::ReadAllText($gameJsonPath, [System.Text.Encoding]::UTF8)
+        $gjPatched = $gj -replace '"iOSHighPerformance(\+?)":\s*true', '"iOSHighPerformance$1": false'
+        if ($gjPatched -ne $gj) {
+            [System.IO.File]::WriteAllText($gameJsonPath, $gjPatched, $utf8NoBom)
+            Write-Host '[minigame_export] patched game.json: iOSHighPerformance / iOSHighPerformance+ forced false (not opted-in on backend)'
+        }
+    }
+    
+    # --- NOTE: Brotli decompression disabled due to WeChat 4MB main package limit ---
+    # The .br file is ~6MB compressed but ~58MB decompressed, exceeding WeChat's 4MB limit
+    # We need to find alternative solutions (CDN loading, subpackaging, or different export settings)
+    
     $total = (Get-ChildItem $buildDir -Recurse -File | Measure-Object -Property Length -Sum).Sum
     $pckSize = if (Test-Path $pck) { (Get-Item $pck).Length } else { 0 }
     Write-Host ("[minigame_export] preset.$idx done: total {0:N2} MB (pck {1:N2} MB)" -f ($total/1MB), ($pckSize/1MB))
@@ -134,6 +206,15 @@ try {
         try {
             $r = Invoke-Godot "--headless --path `"$projDir`" --script res://tools/minigame_size_limit.gd -- --profile slim --apply" 'slim_apply'
             if ($r.Code -ne 0) { throw "slim size-limit apply failed (exit=$($r.Code)) - see $($r.Log)" }
+            # godot-minigame's WeChat WASM template mis-binds VRAM/ETC2 compressed
+            # textures (WebGL: INVALID_ENUM: compressedTexImage2D: invalid format),
+            # silently failing to render every compressed texture in the exported
+            # game (confirmed via VConsole: logic/hit-testing works, only texture
+            # upload fails). Switch to Lossy (WebP, CPU-decoded, uploaded as a plain
+            # texture) for the minigame export only; reverted below like the slim
+            # size limits.
+            $r = Invoke-Godot "--headless --path `"$projDir`" --script res://tools/minigame_texture_mode.gd -- --apply" 'lossy_apply'
+            if ($r.Code -ne 0) { throw "lossy texture-mode apply failed (exit=$($r.Code)) - see $($r.Log)" }
             $r = Invoke-Godot "--headless --path `"$projDir`" --import" 'slim_import'
             if ($r.Code -ne 0) { throw "slim --import failed (exit=$($r.Code)) - see $($r.Log)" }
             Export-Preset 3

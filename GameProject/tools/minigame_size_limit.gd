@@ -29,12 +29,24 @@ const RULES: Array = [
 # slim profile: tighter limits for preset.3 (douyin-oriented budget);
 # minigame_export.ps1 snapshots .import files and restores them afterwards
 const RULES_SLIM: Array = [
-	["res://assets/sprites/", 256],
-	["res://assets/vfx/", 256],
-	["res://assets/terrain/", 512],
-	["res://assets/environment/", 384],
-	["res://assets/ui/", 512],
+	["res://assets/sprites/", 224],
+	["res://assets/vfx/", 224],
+	["res://assets/terrain/", 448],
+	["res://assets/environment/", 320],
+	["res://assets/ui/", 448],
 ]
+
+# Pinned exact-size overrides applied regardless of profile (default or slim).
+# meadow_level.tscn's Ground Polygon2D bakes a *literal pixel-space* UV
+# (PackedVector2Array 0..1024) against this texture; Godot divides that UV by
+# the texture's actual imported pixel size at render time, so the image only
+# tiles correctly (UV 0..1) when it is imported at exactly 1024x1024. Letting
+# the terrain-wide slim rule (448) apply here breaks that assumption and the
+# ground renders tiled ~2.3x ("stretched"). Keep this one file pinned to 1024
+# until the UV is reworked to read the texture size at runtime instead.
+const PINNED: Dictionary = {
+	"res://assets/terrain/amber_starlight_sanctuary_4096.png": 1024,
+}
 
 var apply_mode := false
 var rules: Array = RULES
@@ -64,6 +76,8 @@ func _init() -> void:
 
 
 func _rule_for(path: String) -> int:
+	if PINNED.has(path):
+		return PINNED[path]
 	for rule in rules:
 		if path.begins_with(rule[0]):
 			return rule[1]

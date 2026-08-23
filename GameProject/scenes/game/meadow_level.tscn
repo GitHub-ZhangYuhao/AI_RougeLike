@@ -1,13 +1,13 @@
-[gd_scene format=3 uid="uid://d3761tros44s"]
+[gd_scene load_steps=3 format=3 uid="uid://d3761tros44s"]
 
 [ext_resource type="Texture2D" uid="uid://b7epc6nt7k8q2" path="res://assets/terrain/amber_starlight_sanctuary_4096.png" id="1_lrly7"]
 [ext_resource type="Script" uid="uid://fhl3akpnialn" path="res://scenes/game/meadow_decor.gd" id="3_decor"]
 
-[node name="MeadowLevel" type="Node2D" unique_id=517040107]
+[node name="MeadowLevel" type="Node2D"]
 z_index = -100
 z_as_relative = false
 
-[node name="Backdrop" type="ColorRect" parent="." unique_id=1481659062]
+[node name="Backdrop" type="ColorRect" parent="."]
 offset_left = -1763.0
 offset_top = -1763.0
 offset_right = 1763.0
@@ -15,19 +15,19 @@ offset_bottom = 1763.0
 mouse_filter = 2
 color = Color(0.025, 0.03, 0.065, 1)
 
-[node name="Ground" type="Polygon2D" parent="." unique_id=1196258164]
+[node name="Ground" type="Polygon2D" parent="."]
 texture_filter = 6
 texture_repeat = 1
 position = Vector2(-6.4999785, -6.499979)
 scale = Vector2(0.86108404, 0.86108416)
 texture = ExtResource("1_lrly7")
 polygon = PackedVector2Array(-2048, -2048, 2048, -2048, 2048, 2048, -2048, 2048)
-uv = PackedVector2Array(0, 0, 4096, 0, 4096, 4096, 0, 4096)
+uv = PackedVector2Array(0, 0, 1024, 0, 1024, 1024, 0, 1024)
 
-[node name="WalkableBoundary" type="Polygon2D" parent="." unique_id=1190753711]
+[node name="WalkableBoundary" type="Polygon2D" parent="."]
 color = Color(1, 0.85, 0.45, 0.08)
 polygon = PackedVector2Array(819, 939, 1203, 552, 1501, -166, 1239, -675, 848, -1084, 469, -1222, -415, -1196, -563, -1141, -607, -942, -792, -695, -1271, -537, -1492, -31, -1277, 537, -903, 840, -729, 1035, -618, 1304, -364, 1144, -172, 1341, 106, 1463, 282, 1377, 415, 1237)
 
-[node name="Decor" type="Node2D" parent="." unique_id=1374383082]
+[node name="Decor" type="Node2D" parent="."]
 z_index = 10
 script = ExtResource("3_decor")
