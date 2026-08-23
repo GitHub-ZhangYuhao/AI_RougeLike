@@ -13,6 +13,10 @@ var visual_time: float = 0.0
 ## 用于表现层检测波次更替与状态切换，驱动 sfx_requested 发射。
 var _prev_view_wave: int = 0
 var _prev_view_state: String = ""
+## 诊断日志预算：真机卡顿排查，每 3 秒打印一次帧率/存活实体数，只打印前几次
+## 避免刷屏；确认瓶颈后可删除。
+var _fps_diag_budget: int = 12
+var _fps_diag_timer: float = 0.0
 
 @onready var meadow_level = $MeadowLevel
 @onready var world_art = $WorldArtView
@@ -136,6 +140,19 @@ func _handle_touch_action(action: String) -> void:
 			run.input.key_up('KeyEnter')
 
 
+func _process(delta: float) -> void:
+	if _fps_diag_budget <= 0:
+		return
+	_fps_diag_timer += delta
+	if _fps_diag_timer < 3.0:
+		return
+	_fps_diag_timer = 0.0
+	_fps_diag_budget -= 1
+	print("[diag] fps=%.1f frame_ms=%.2f enemies=%d projectiles=%d effects=%d state=%s" % [
+		Engine.get_frames_per_second(), delta * 1000.0,
+		run.enemies.size(), run.projectiles.size(), run.effects.size(), run.state])
+
+
 func _physics_process(delta: float) -> void:
 	visual_time += delta
 	accumulator += minf(0.25, delta)
@@ -173,6 +190,10 @@ func _detect_audio_events() -> void:
 
 func _sync_views(size: Vector2) -> void:
 	run.viewport_size = size
+	# 只在真正需要控制角色移动的时候（局内进行中）显示摇杆；主菜单/商店/仓库/
+	# 选卡/结算等界面摇杆没有作用，不应该占屏幕。
+	if virtual_joystick:
+		virtual_joystick.visible = run.state == "playing"
 	# Scale ScreenAtmosphere ColorRect to fill the viewport
 	if screen_atmosphere is ColorRect:
 		screen_atmosphere.offset_right = size.x
