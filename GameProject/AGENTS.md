@@ -139,6 +139,17 @@
 5. **新贴图必须连 `.import` 一起入库**：只提交 PNG 时 `preload('res://assets/...')` 解析不到；
    补救是 `Godot --headless --path GameProject --import`，然后把生成的 `.import` 一并提交。
 
+### 2026-08-23 ｜ M6（微信小游戏真机适配，godothub/godot-minigame 4.7 模板）
+
+1. **这个定制引擎构建的 Control 锚点解析跟官方 Godot 不一致，不要相信场景反序列化**：`Godot Engine for Wechat v4.7.2.rc.custom_build` 加载 `.tscn` 时，Control 的 `anchor_*`/`anchors_preset` 解析结果跟官方 Godot 4.7.1 不同——同一份场景文件本地 headless 测试完全正确，真机上读到的却是另一个 rect（已排除缓存/导出遗漏：清空开发者工具全部缓存、grep 导出的 pck 确认包含最新代码，问题依旧）。**任何面向这个平台的 Control 定位，不要依赖 `.tscn` 里的锚点/偏移，改为在 `_ready()` 里用代码显式赋值 `anchor_left/top/right/bottom` 和 `offset_*`，绕开引擎差异**（参考 `virtual_joystick.gd` 的 `DESIGN_RECT` 写法）。
+2. **这个引擎构建的 `Control._draw()` 不可靠（对应 Godot 官方仓库已知问题 #112757，新版本才修复）**：全项目唯一一处用 `Control._draw()` 画主体视觉的地方（虚拟摇杆的圆形/圆弧手绘）在真机上完全不渲染，而所有 `Node2D._draw()`（`game_overlay`、选卡 UI）都正常。**这个平台上 UI 视觉一律用 Panel + StyleBoxFlat（圆角设够大即为圆形）等原生 Control 渲染或者干脆用 Node2D，别用 Control 的自定义 `_draw()`。**
+3. **触摸命中检测不要用 `get_global_mouse_position()`，要用事件自带的 `event.position`**：Godot 靠"模拟鼠标事件"才会同步内部鼠标位置追踪，这个同步在微信小游戏里不可靠，用 `get_global_mouse_position()` 判断触摸命中会永远读到过期/零值坐标。任何触摸交互一律直接用 `InputEventScreenTouch`/`InputEventScreenDrag` 自己的 `.position`。
+4. **微信小游戏 canvas 的 `getBoundingClientRect()` 不提供 `.x`/`.y`（微信认为画布永远全屏，没实现这两个字段）**：Godot 引擎自带的 `GodotInput.computePosition()` 读 `rect.x`/`rect.y` 转换触摸/鼠标坐标，拿到 `undefined` 后算出 NaN，导致所有指针交互失效（选卡点不中、摇杆拖不动，且不报错，很难排查）。已在 `tools/minigame_export.ps1` 里对导出产物的 `engine/godot.js` 做后处理，把这处计算改成 `rect.left`/`rect.top`（数值等价，且这两个字段规范保证一定存在）。**这个补丁由导出脚本自动打，换新版本导出模板后要重新确认这段字符串替换还能命中（脚本会在打不中时打印 WARNING）。**
+5. **ETC2 压缩纹理在这个引擎构建上绑定 WebGL 会报 `INVALID_ENUM: compressedTexImage2D: invalid format`，所有 VRAM 压缩纹理静默不渲染**（UI/贴图完全不显示，但点击逻辑正常，容易误判成别的问题）。小游戏导出改用 Lossy(WebP) 压缩（`tools/minigame_texture_mode.gd`，导出脚本自动调用），压缩率意外地比 ETC2 更好，不吃体积预算。
+6. **`godot-minigame` 4.7 模板默认走"分包运行时"架构**：导出的 `engine/game.js` 默认启动 `engine/empty-tips.bin`（模板自带的占位工程），而不是本项目真实内容（在 `engine/demo-pck.bin` 里，完全未被引用）。本项目没接入 `addons/godot_subpack_runtime`，`minigame_export.ps1` 会自动补丁 `game.js` 改回直接启动 `demo-pck.bin`，并删掉现在用不到的 `empty-tips.bin`（省 ~3MB）。
+7. **为了 MCP/桌面验证打开 Godot 4.7.1 编辑器会污染 `project.godot`**：打开一个上次用 4.5.1 保存的项目，编辑器会自动升级 `config/features`、新增渲染/vsync/2D snap 默认项、重新注册插件 autoload，个别改动是真实的行为回归（曾丢失过 `window/stretch/aspect="ignore"`、`textures/vram_compression/import_s3tc_bptc=false`）。**每次因为验证打开过编辑器之后，导出/提交前先 `git diff GameProject/project.godot` 检查有没有意外改动，只保留自己真正想要的那一行，其余用 `git checkout` 撤销。**
+8. **微信小游戏未开通虚拟支付的账号，总包（主包+分包）上限是 20MB，不是官方文档常说的 30MB**（30MB 只在开通虚拟支付后生效），预览报 `subpackage __FULL__ ... exceed max limit 4096KB` 时先查这个，不要以为是分包配置的问题。
+
 ### 2026-08-21 ｜ M6
 
 1. **slim 导出档是临时 .import 状态，仓库恒回默认档**：slim 导出舞（快照 → 应用 slim 尺寸限制 → 重导入 → 导出 → 恢复 → 重导入）由 `tools/minigame_export.ps1` 一条龙完成；不要手工改 `tools/minigame_size_limit.gd` 或 .import 后直接提交。每次导出后必须抽查恢复结果（menu_bg_exact=1024、bomber_sheet=512、env 无尺寸限制）。
