@@ -29,7 +29,27 @@ signal joystick_released()
 @onready var background: Panel = $Background
 
 
+## 摇杆在屏幕左下角的设计位置/尺寸（像素，基于 1280x720 逻辑视口）。
+const DESIGN_RECT := Rect2(40.0, 520.0, 240.0, 220.0)
+
+
 func _ready() -> void:
+	# 运行时强制覆盖锚点/偏移，不依赖 .tscn 反序列化结果：微信小游戏用的定制引擎
+	# 构建（Godot Engine for Wechat v4.7.2.rc.custom_build）对场景里的锚点属性
+	# 处理跟官方引擎不一致——本地标准 Godot 4.7.1 headless 测试这个场景能正确
+	# 得到 global_rect=(40,520)，但真机上诊断日志显示的是 (40,880)，多出来的
+	# 360 正好是 0.5 * 720（旧版本 anchor_top=0.5 的效应），说明这个引擎构建在
+	# 加载场景时对锚点的解析跟标准 Godot 不同。显式在代码里赋值锚点和偏移，
+	# 完全绕开场景反序列化这一步，不依赖某个特定引擎构建怎么解释 .tscn 里的
+	# anchor_* / anchors_preset 属性。
+	anchor_left = 0.0
+	anchor_top = 0.0
+	anchor_right = 0.0
+	anchor_bottom = 0.0
+	offset_left = DESIGN_RECT.position.x
+	offset_top = DESIGN_RECT.position.y
+	offset_right = DESIGN_RECT.position.x + DESIGN_RECT.size.x
+	offset_bottom = DESIGN_RECT.position.y + DESIGN_RECT.size.y
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
