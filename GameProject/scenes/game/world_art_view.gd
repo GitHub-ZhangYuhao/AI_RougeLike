@@ -584,7 +584,6 @@ func _draw_enemies() -> void:
 		var pos := Vector2(enemy.x, enemy.y)
 		if not _is_on_screen(pos, 180.0):
 			continue
-		visible_enemies.append(enemy)
 		var r: float = maxf(enemy.radius, 10.0)
 		var is_boss: bool = enemy.type == 'boss'
 		var pulse: float = 0.5 + sin(animation_time * (2.4 if is_boss else 3.6) + enemy.y * 0.006) * 0.5
@@ -593,11 +592,28 @@ func _draw_enemies() -> void:
 			display_size *= 1.12
 		elif enemy.type == 'shield':
 			display_size *= 1.08
+		var type_key: String = enemy.type if enemy.type != 'enhanced_chaser' else 'enhancedChaser'
+		visible_enemies.append(enemy)
 		render_info.append({
 			'pos': pos, 'r': r, 'is_boss': is_boss, 'pulse': pulse, 'display_size': display_size,
+			'type_key': type_key,
 		})
 	if visible_enemies.is_empty():
 		return
+	# 按敌人类型分组重排（稳定排序，同类型内部保持原有相对顺序），让 Pass 3
+	# 里同一贴图/图集的精灵绘制连续排列——Godot 的 2D 渲染器只会合批"紧挨着的
+	# 相同材质/纹理"绘制调用，之前按生成顺序绘制时不同类型敌人交替出现，合批
+	# 基本用不上；混战场面敌人一多，这个重排能让更多绘制调用真正合并成一次。
+	var order: Array = range(visible_enemies.size())
+	order.sort_custom(func(a: int, b: int) -> bool:
+		return render_info[a]['type_key'] < render_info[b]['type_key'])
+	var sorted_enemies: Array = []
+	var sorted_info: Array[Dictionary] = []
+	for idx in order:
+		sorted_enemies.append(visible_enemies[idx])
+		sorted_info.append(render_info[idx])
+	visible_enemies = sorted_enemies
+	render_info = sorted_info
 
 	# --- Pass 1: 地面阴影（统一 draw_circle/ellipse） ---
 	for info: Dictionary in render_info:
@@ -639,8 +655,8 @@ func _draw_enemies() -> void:
 			enemy_tint = Color(1.35, 1.2, 0.95, 1.0)
 			display_size *= 1.0 + hit_ratio * 0.08
 		var flip_h: bool = run.player.x < enemy.x
-		# 取精灵纹理（使用缓存的 atlas）
-		var enemy_type_key: String = enemy.type if enemy.type != 'enhanced_chaser' else 'enhancedChaser'
+		# 取精灵纹理（使用缓存的 atlas）；type_key 收集阶段已经算过，直接复用
+		var enemy_type_key: String = info['type_key']
 		# 敌人是 RefCounted：Object 没有 has()，get() 也只接受 1 个参数；属性存在性一律用 in 判断
 		if enemy_type_key == 'boss' and 'state' in enemy and enemy.state == 'windup':
 			enemy_type_key = 'bossIdle'

@@ -217,13 +217,20 @@ func apply_enemy_multipliers(enemy):
     if enemy == null:
         return enemy
     var id: int = enemy.get_instance_id()
-    if not enemy_bases.has(id):
+    var tracked: bool = enemy_bases.has(id)
+    var next: Dictionary = settings["enemy"]
+    # 快速路径：没开任何调试倍率（默认全 1.0，绝大多数正常游玩场景）时，
+    # 从未被本系统碰过的敌人直接跳过——省掉每敌人每帧一次 Dictionary 插入 +
+    # 6 次浮点运算，敌人一多（后期波次）这个无谓开销会跟着线性放大。
+    # 已被跟踪过的敌人（曾经开过倍率）仍要走完整流程，确保数值能正确复原。
+    if not tracked and next["hpMult"] == 1.0 and next["damageMult"] == 1.0 and next["speedMult"] == 1.0:
+        return enemy
+    if not tracked:
         enemy_bases[id] = {
             "hpMult": 1.0, "damageMult": 1.0, "speedMult": 1.0,
             "unscaledDamage": enemy.damage, "unscaledSpeed": enemy.speed,
         }
     var applied: Dictionary = enemy_bases[id]
-    var next: Dictionary = settings["enemy"]
     var hp_ratio: float = maxf(0.0, enemy.hp) / enemy.maxHp if enemy.maxHp > 0.0 else 1.0
     enemy.maxHp = maxf(0.0001, enemy.maxHp * next["hpMult"] / maxf(0.0001, applied["hpMult"]))
     enemy.hp = minf(enemy.maxHp, enemy.maxHp * hp_ratio)
