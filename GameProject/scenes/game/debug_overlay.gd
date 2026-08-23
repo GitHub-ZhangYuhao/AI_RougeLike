@@ -113,7 +113,10 @@ func refresh() -> void:
 
 func _process(delta: float) -> void:
   if not is_open():
-    _launcher.visible = false  # Debug launcher hidden by default
+    # 之前这里每帧强制把常驻入口按钮设为不可见，导致「调试台 F2」这个按钮
+    # 实际上从未真正显示过——桌面端靠 F2 快捷键绕开了这个问题所以没被发现，
+    # 手机端没有键盘，完全找不到入口。_toggle() 关闭面板时已经把 _launcher
+    # 设回 visible=true，这里不应该覆盖它。
     return
   _refresh_timer -= delta
   if _refresh_timer <= 0.0:
