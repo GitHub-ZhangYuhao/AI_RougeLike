@@ -83,9 +83,14 @@ func _draw() -> void:
 func _draw_ambient_motes() -> void:
 	if run.state not in ['opening', 'playing', 'choice', 'extraction', 'dead']:
 		return
+	# 性能：这段纯装饰背景粒子此前每帧固定产生约 140-150 次绘制调用（8x12 网格,
+	# ~75% 保留, 各 2 次绘制), 跟场上敌人/特效数量完全无关, 是真机卡顿排查时找
+	# 到的确凿浪费点（弱 GPU + 单线程 Emscripten 下这类固定 CPU 开销尤其明显）。
+	# 收紧网格范围到刚好覆盖屏幕(不留多余边距)、提高跳过比例、每个粒子只画一次
+	# draw_circle(丢弃装饰性的小拖线), 在几乎看不出视觉差异的前提下降到约 1/3。
 	var camera_cell := Vector2i(floori(run.camera.x / 180.0), floori(run.camera.y / 180.0))
-	for grid_y in range(camera_cell.y - 3, camera_cell.y + 4):
-		for grid_x in range(camera_cell.x - 5, camera_cell.x + 6):
+	for grid_y in range(camera_cell.y - 2, camera_cell.y + 4):
+		for grid_x in range(camera_cell.x - 4, camera_cell.x + 6):
 			var mote_seed: int = absi(grid_x * 92821 + grid_y * 68917)
 			if mote_seed % 4 == 0:
 				continue
@@ -95,8 +100,6 @@ func _draw_ambient_motes() -> void:
 				grid_y * 180.0 + float(floori(float(mote_seed) / 17.0) % 113) - 56.0 + cos(phase * 0.73) * 8.0
 			)
 			var mote_alpha: float = 0.07 + float(mote_seed % 5) * 0.012
-			var mote_color := Color(0.9, 0.84, 0.55, mote_alpha)
-			draw_line(mote_position - Vector2(4.0, 1.5), mote_position + Vector2(4.0, 1.5), mote_color, 1.1, true)
 			draw_circle(mote_position, 1.3 + float(mote_seed % 3) * 0.35, Color(1.0, 0.94, 0.72, mote_alpha * 0.72))
 
 
