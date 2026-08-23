@@ -2,11 +2,13 @@
 
 ## 当前工作焦点（临时节，发布工作完成后删除本节）
 
-> 更新 2026-08-21 ｜ 分支 `perf/minigame-etc2`
+> 更新 2026-08-22 ｜ 分支 `perf/minigame-etc2`
 
-微信/抖音小游戏打包发布。现状：包体双达标（微信全量档总包 29.05MB ≤ 30MB、抖音 slim 档总包 19.37MB ≤ 20MB，均无需 CDN）；Godot 4.5.1（`GameEngine/4.5/`，4.7.1 保留不动）+ godothub godot-minigame 插件导出链路就绪；产物在 `GameProject/build/minigame/wx/`（微信）与 `wx-slim/`（抖音）。
+微信/抖音小游戏打包发布。**重要更正（2026-08-22 复核）**：微信全量档（preset.2，总包 ~29MB）在当前 AppID（`wxe982a8234ada9560`）下预览必现 `subpackage __FULL__ ... exceed max limit 4096KB`——根因是**该账号未开通"虚拟支付"能力，微信小游戏主包+分包总量上限为 20MB（开通虚拟支付后才是 30MB）**，与包内是否分包无关（当前导出结构已是单一 `engine/` 分包，仍受总量上限约束）。之前"包体双达标"的记录不准确，已废弃。
 
-续作时先读 `Docs/research/minigame-handoff.md` 交接快照（状态/TODO/命令/环境注记），长期真值在 `Docs/research/minigame-release-checklist.md`。TODO 首要：替换微信 AppID（`GameProject/export_presets.cfg` preset.2/3 两处插件 demo 值）→ 重导出两档 → 微信开发者工具导入验证；最大返工风险是抖音横屏（官方当前仅竖屏，TTSDK 1.0.2+ 有横屏导出，需真机验证）。
+**现行发布方案**：统一用 preset.3（`微信小游戏-精简量尺寸`，已改 `runnable=true`）作为微信正式发布档，总包 19.2–19.4MB，在 20MB 上限内，微信开发者工具预览已验证通过。产物在 `GameProject/build/minigame/wx-slim/`；preset.2（全量档，`wx/`）暂停使用，除非后续账号开通虚拟支付（mp.weixin.qq.com 后台，需资质审核，业务侧操作）或把全量档资源进一步压缩到 20MB 内。
+
+续作时先读 `Docs/research/minigame-handoff.md` 交接快照（状态/TODO/命令/环境注记），长期真值在 `Docs/research/minigame-release-checklist.md`（两份文档的"包体双达标"结论需要同步更正）。最大返工风险是抖音横屏（官方当前仅竖屏，TTSDK 1.0.2+ 有横屏导出，需真机验证）。
 
 关键纪律：slim 导出档是临时 .import 状态，仓库恒回默认导入档，导出必须走 `GameProject/tools/minigame_export.ps1`（详见 `GameProject/AGENTS.md` 经验沉淀 2026-08-21 条）。
 
