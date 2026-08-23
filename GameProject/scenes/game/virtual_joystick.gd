@@ -34,6 +34,16 @@ func _ready() -> void:
 	print("[diag] joystick global_rect=%s visible=%s modulate=%s layer=%s" % [
 		get_global_rect(), visible, modulate,
 		(get_parent() as CanvasLayer).layer if get_parent() is CanvasLayer else "n/a"])
+	# 防御性兜底：Godot 有已知问题（godotengine/godot#17917、#112757）——Control
+	# 在 _ready() 阶段如果 size 还没从 anchor/offset 结算完（读到 (0,0)），
+	# 不仅 _draw() 会被裁剪逻辑直接跳过不渲染，子节点按锚点算出的矩形也会跟着
+	# 塌缩成 0，整个摇杆会完全不可见。等一帧让布局真正结算完，不对就重算一次
+	# 并强制重绘，覆盖这个平台相关的时序问题。
+	await get_tree().process_frame
+	if size != Vector2.ZERO:
+		_adapt_to_screen_size()
+		queue_redraw()
+		print("[diag] joystick post-layout global_rect=%s" % [get_global_rect()])
 
 func _adapt_to_screen_size() -> void:
 	var screen_size = get_viewport_rect().size
@@ -60,10 +70,16 @@ func _input(event: InputEvent) -> void:
 		_handle_mouse_motion(event as InputEventMouseMotion)
 
 func _handle_touch(event: InputEventScreenTouch) -> void:
+	# 用触摸事件自带的 position 命中检测，不要依赖 get_global_mouse_position()：
+	# 微信小游戏这个引擎构建上，原始触摸事件不一定会同步更新 Godot 内部的
+	# "鼠标位置"（通常靠 emulate_mouse_from_touch 生成合成鼠标事件才会同步），
+	# 之前一直用 get_global_mouse_position() 判断，导致命中检测读到的是过期/
+	# 零值坐标，摇杆按下永远判定不在范围内，也就永远拖不动。
 	if event.pressed and event.index == 0:
-		if get_global_mouse_position().distance_to(global_position + _center) < _radius:
+		if event.position.distance_to(global_position + _center) < _radius:
 			_touching = true
 			_touch_index = event.index
+			_update_from_position(event.position)
 	elif not event.pressed and event.index == _touch_index:
 		_touching = false
 		_touch_index = -1
