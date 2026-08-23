@@ -48,6 +48,8 @@ const CARD_COLORS: Dictionary = {
 var run = null
 var choice_card_renderer: RefCounted = ChoiceCardRendererScript.new()
 var animation_time: float = 0.0
+# 移动端触摸按钮区域
+var _touch_buttons: Array[Dictionary] = []
 # 预分配 StyleBoxFlat 避免每帧新建对象（主要 HUD 元素每帧调用）
 var _sb_shadow: StyleBoxFlat = StyleBoxFlat.new()
 var _sb_inner_border: StyleBoxFlat = StyleBoxFlat.new()
@@ -77,6 +79,8 @@ func bind_run(game_run) -> void:
 
 func refresh(delta: float = 0.0) -> void:
 	animation_time += delta
+	# 清空上一帧的触摸按钮
+	_touch_buttons.clear()
 	queue_redraw()
 
 
@@ -477,6 +481,9 @@ func _draw_extraction(size: Vector2) -> void:
 	var center_x: float = size.x * 0.5
 	_draw_key_button(Rect2(center_x - 240.0, size.y * 0.59, 210.0, 54.0), "E", "安然撤离", Color("78c7a0"))
 	_draw_key_button(Rect2(center_x + 30.0, size.y * 0.59, 210.0, 54.0), "C", "继续深入", CINNABAR)
+	# 添加移动端触摸按钮
+	_register_touch_button("extraction", Rect2(center_x - 240.0, size.y * 0.59, 210.0, 54.0), "extraction_leave")
+	_register_touch_button("extraction", Rect2(center_x + 30.0, size.y * 0.59, 210.0, 54.0), "extraction_continue")
 
 
 func _draw_dead(size: Vector2) -> void:
@@ -490,6 +497,8 @@ func _draw_dead(size: Vector2) -> void:
 			loss_text = "损失  " + "  ".join(losses)
 	_draw_modal(size, "魂灯熄灭", "存活 %s   境界 Lv%d   斩敌 %d\n%s  ·  暗晶保留 +%d" % [_format_time(run.elapsed), run.level, run.kills, loss_text, run.lastDeathReward], CINNABAR)
 	_draw_key_button(Rect2(size.x * 0.5 - 110.0, size.y * 0.62, 220.0, 52.0), "R", "返回主菜单", CINNABAR)
+	# 添加移动端触摸按钮 - 确保状态匹配
+	_register_touch_button("dead", Rect2(size.x * 0.5 - 110.0, size.y * 0.62, 220.0, 52.0), "dead_return")
 
 
 func _draw_summary(size: Vector2) -> void:
@@ -519,6 +528,8 @@ func _draw_summary(size: Vector2) -> void:
 	UI_FONT.draw_string(get_canvas_item(), Vector2(cx + prefix_w + icon_size + gap, line2_y), num_str, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, INK)
 	UI_FONT.draw_string(get_canvas_item(), Vector2(cx + prefix_w + icon_size + gap + num_w, line2_y), suffix, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, INK)
 	_draw_key_button(Rect2(size.x * 0.5 - 110.0, size.y * 0.62, 220.0, 52.0), "Enter", "返回主菜单", Color("79c99b"))
+	# 添加移动端触摸按钮
+	_register_touch_button("summary", Rect2(size.x * 0.5 - 110.0, size.y * 0.62, 220.0, 52.0), "summary_return")
 
 
 func _draw_modal(size: Vector2, title: String, body: String, accent: Color) -> void:
@@ -708,3 +719,53 @@ func _material_name(id: String) -> String:
 		"essence": return "辉光精华"
 		"soulCrystal": return "灵魂结晶"
 		_: return id
+
+
+# 移动端触摸按钮系统
+func _register_touch_button(state: String, rect: Rect2, action: String) -> void:
+	_touch_buttons.append({"state": state, "rect": rect, "action": action})
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		_handle_touch(event as InputEventScreenTouch)
+	elif event is InputEventScreenDrag:
+		_handle_touch_drag(event as InputEventScreenDrag)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_handle_mouse_click(event as InputEventMouseButton)
+
+
+func _handle_touch(event: InputEventScreenTouch) -> void:
+	if not event.pressed:
+		return
+	var touch_pos: Vector2 = event.position
+	for button: Dictionary in _touch_buttons:
+		if button["state"] != run.state:
+			continue
+		if button["rect"].has_point(touch_pos):
+			_execute_touch_action(button["action"])
+			break
+
+
+func _handle_touch_drag(event: InputEventScreenDrag) -> void:
+	# 拖动事件处理（如果需要）
+	pass
+
+
+func _handle_mouse_click(event: InputEventMouseButton) -> void:
+	if not event.pressed:
+		return
+	var mouse_pos: Vector2 = event.position
+	for button: Dictionary in _touch_buttons:
+		if button["state"] != run.state:
+			continue
+		if button["rect"].has_point(mouse_pos):
+			_execute_touch_action(button["action"])
+			break
+
+
+func _execute_touch_action(action: String) -> void:
+	# 直接调用游戏逻辑，不通过 Input 系统
+	var game_view = get_parent()
+	if game_view and game_view.has_method("_handle_touch_action"):
+		game_view._handle_touch_action(action)

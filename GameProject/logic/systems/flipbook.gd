@@ -13,6 +13,9 @@ static func frame_region(frame: int, cols: int = 5, atlas_size: int = 2000, cont
 	var row: int = floori(float(frame) / float(cols))
 	var col_start: int = roundi(float(col) * float(atlas_size) / float(cols))
 	var row_start: int = roundi(float(row) * float(atlas_size) / float(cols))
+	# 添加边界检查
+	col_start = clampi(col_start, 0, atlas_size - content)
+	row_start = clampi(row_start, 0, atlas_size - content)
 	return Rect2(col_start + gutter, row_start + gutter, content, content)
 
 

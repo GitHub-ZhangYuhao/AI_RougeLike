@@ -13,15 +13,15 @@ func title() -> String:
 
 
 func run(runner) -> void:
-    runner.check(WorldArtViewScript.DETAILED_IMPACT_BUDGET == 32
-        and WorldArtViewScript.DAMAGE_NUMBER_BUDGET == 24
-        and WorldArtViewScript.DETAILED_DOT_BUDGET == 48,
+    runner.check(WorldArtViewScript.DETAILED_IMPACT_BUDGET == 16
+        and WorldArtViewScript.DAMAGE_NUMBER_BUDGET == 16
+        and WorldArtViewScript.DETAILED_DOT_BUDGET == 24,
         "[6] world art performance budgets changed unexpectedly")
     var sampled_impacts: int = 0
     for impact_index in 220:
-        if WorldArtViewScript.is_budget_sample(impact_index, 220, 32):
+        if WorldArtViewScript.is_budget_sample(impact_index, 220, 16):
             sampled_impacts += 1
-    runner.check(sampled_impacts == 32, "[6] impact budget sampling must select exactly 32 of 220")
+    runner.check(sampled_impacts == 16, "[6] impact budget sampling must select exactly 16 of 220")
     var all_small_batches_sampled: bool = true
     for impact_index in 12:
         all_small_batches_sampled = all_small_batches_sampled and WorldArtViewScript.is_budget_sample(impact_index, 12, 32)

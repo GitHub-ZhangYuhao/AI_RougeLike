@@ -23,15 +23,15 @@ const IMPACT_TEXTURE_KEYS: Dictionary = {
 	'status': 'impact',
 }
 const STAFF_LINK_RADIUS: float = 260.0
-const DETAILED_IMPACT_BUDGET: int = 32
-const DAMAGE_NUMBER_BUDGET: int = 24
-const DETAILED_DOT_BUDGET: int = 48
+const DETAILED_IMPACT_BUDGET: int = 16  # 减少从32到16
+const DAMAGE_NUMBER_BUDGET: int = 16   # 减少从24到16
+const DETAILED_DOT_BUDGET: int = 24    # 减少从48到24
 const DAMAGE_NUMBER_OFFSETS: Array[Vector2] = [
 	Vector2(-2.0, 0.0), Vector2(2.0, 0.0), Vector2(0.0, -2.0), Vector2(0.0, 2.0),
 	Vector2(-1.5, -1.5), Vector2(1.5, -1.5), Vector2(-1.5, 1.5), Vector2(1.5, 1.5),
 ]
 # 序列帧图集常量（规格见 logic/systems/flipbook.gd 与 PRODUCTION_REPORT.md）
-const FLAME_FPS: float = 8.823529
+const FLAME_FPS: float = 12.0  # 调整为更合理的帧率
 const FLAME_LOOP_FRAMES: int = 25
 const BURST_FRAME_COUNT: int = 25
 
@@ -473,7 +473,6 @@ func _zone_alpha(zone: Dictionary) -> float:
 
 
 func _draw_trails() -> void:
-	var fire_tex: Texture2D = ArtCatalog.VFX_TEXTURES.get('furnaceFlameAnim')
 	for trail: Dictionary in run.trails:
 		if trail['dead']:
 			continue
@@ -483,11 +482,10 @@ func _draw_trails() -> void:
 		# 脉动尺寸
 		var pulse: float = 0.88 + sin(animation_time * 8.0 + pos.x * 0.07 + pos.y * 0.05) * 0.12
 		display_size *= pulse
-		if fire_tex != null:
-			# 使用丹火序列帧图集（2048×2048、5×5 网格，与丹火炉 / 丹火核心共用新图集）
-			var phase: float = fposmod(pos.x * 0.031 + pos.y * 0.017, 1.0) * float(FLAME_LOOP_FRAMES)
-			var frame: int = int(floor(animation_time * FLAME_FPS + phase)) % FLAME_LOOP_FRAMES
-			_draw_sprite_region(fire_tex, FlipbookScript.frame_region(frame, 5, 2048, 393, 8), pos, display_size, 0.0, Color(1.0, 1.0, 1.0, alpha))
+		# 使用静态火焰图片
+		var flame_tex: Texture2D = ArtCatalog.VFX_TEXTURES.get('furnaceFlame')
+		if flame_tex != null:
+			_draw_sprite(flame_tex, pos, display_size, 0.0, false, Color(1.0, 1.0, 1.0, alpha))
 		else:
 			# 后备：纯几何火球
 			var r: float = display_size * 0.5
@@ -1340,13 +1338,13 @@ func _draw_sprite_region(texture: Texture2D, region: Rect2, center: Vector2, dis
 ## 循环火焰动画（丹火炉 / trail 火苗 / 丹火核心共用）：帧 = floor(animation_time × FLAME_FPS) % 25，
 ## 叠加世界坐标导出的位置相位，避免所有火焰同一步调。
 func _draw_flame_anim(center: Vector2, display_size: float, tint: Color = Color.WHITE, rotation: float = 0.0) -> void:
-	var texture: Texture2D = ArtCatalog.VFX_TEXTURES.get('furnaceFlameAnim')
+	var texture: Texture2D = ArtCatalog.VFX_TEXTURES.get('furnaceFlame')
 	if texture == null:
-		_draw_sprite(ArtCatalog.VFX_TEXTURES['furnaceFlame'], center, display_size, rotation, false, tint)
+		# 后备：绘制简单的火焰效果
+		draw_circle(center, display_size * 0.5, Color(1.0, 0.4, 0.05, tint.a * 0.25))
+		draw_circle(center, display_size * 0.35, Color(1.0, 0.65, 0.15, tint.a * 0.7))
 		return
-	var phase: float = fposmod(center.x * 0.031 + center.y * 0.017, 1.0) * float(FLAME_LOOP_FRAMES)
-	var frame: int = int(floor(animation_time * FLAME_FPS + phase)) % FLAME_LOOP_FRAMES
-	_draw_sprite_region(texture, FlipbookScript.frame_region(frame, 5, 2048, 393, 8), center, display_size, rotation, tint)
+	_draw_sprite(texture, center, display_size, rotation, false, tint)
 
 
 # ---------- 敌人攻击预警（纯显示，不改逻辑与数值） ----------
