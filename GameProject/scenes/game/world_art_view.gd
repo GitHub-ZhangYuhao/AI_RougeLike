@@ -573,37 +573,18 @@ func _draw_pickup_label(position: Vector2, title: String, detail: String, accent
 func _draw_enemies() -> void:
 	# ===== 分批次绘制（instance 风格）=====
 	# 收集所有可见敌人，按绘制层分组；相同纹理的精灵连续绘制，引擎可自动合批
+	# 性能：pos/r/is_boss/pulse/display_size 这几项之前在 Pass 2/3/4 里各重新
+	# 算一遍（含 3 次一模一样的 sin() 调用），敌人一多这个重复量跟着线性增长；
+	# 改成收集阶段算一次、后续 Pass 直接读缓存，敌人多的波次能明显省下来。
 	var visible_enemies: Array = []
+	var render_info: Array[Dictionary] = []
 	for enemy in run.enemies:
 		if enemy.dead:
 			continue
-		if not _is_on_screen(Vector2(enemy.x, enemy.y), 180.0):
+		var pos := Vector2(enemy.x, enemy.y)
+		if not _is_on_screen(pos, 180.0):
 			continue
 		visible_enemies.append(enemy)
-	if visible_enemies.is_empty():
-		return
-
-	# --- Pass 1: 地面阴影（统一 draw_circle/ellipse） ---
-	for enemy in visible_enemies:
-		var pos := Vector2(enemy.x, enemy.y)
-		var r: float = maxf(enemy.radius, 10.0)
-		_draw_ellipse_shape(pos + Vector2(0.0, r * 0.72), Vector2(r * 1.22, r * 0.5), Color(0.03, 0.025, 0.035, 0.38))
-
-	# --- Pass 2: 光环 / Boss 光效 ---
-	for enemy in visible_enemies:
-		var pos := Vector2(enemy.x, enemy.y)
-		var r: float = maxf(enemy.radius, 10.0)
-		var is_boss: bool = enemy.type == 'boss'
-		var pulse: float = 0.5 + sin(animation_time * (2.4 if is_boss else 3.6) + enemy.y * 0.006) * 0.5
-		if is_boss:
-			draw_circle(pos, r * (1.55 + pulse * 0.12), Color(0.34, 0.12, 0.42, 0.08 + pulse * 0.04))
-			draw_arc(pos, r * (1.6 + pulse * 0.08), 0.0, TAU, 48, Color(0.76, 0.42, 0.95, 0.22 + pulse * 0.16), 2.0)
-		elif enemy.rank == 'elite':
-			draw_circle(pos, r * 1.35, Color(1.0, 0.72, 0.18, 0.07 + pulse * 0.03))
-
-	# --- Pass 3: Boss 怒气 / 冰冻 / 受击精灵（按纹理分组连续绘制，引擎自动合批） ---
-	for enemy in visible_enemies:
-		var pos := Vector2(enemy.x, enemy.y)
 		var r: float = maxf(enemy.radius, 10.0)
 		var is_boss: bool = enemy.type == 'boss'
 		var pulse: float = 0.5 + sin(animation_time * (2.4 if is_boss else 3.6) + enemy.y * 0.006) * 0.5
@@ -612,6 +593,40 @@ func _draw_enemies() -> void:
 			display_size *= 1.12
 		elif enemy.type == 'shield':
 			display_size *= 1.08
+		render_info.append({
+			'pos': pos, 'r': r, 'is_boss': is_boss, 'pulse': pulse, 'display_size': display_size,
+		})
+	if visible_enemies.is_empty():
+		return
+
+	# --- Pass 1: 地面阴影（统一 draw_circle/ellipse） ---
+	for info: Dictionary in render_info:
+		var pos: Vector2 = info['pos']
+		var r: float = info['r']
+		_draw_ellipse_shape(pos + Vector2(0.0, r * 0.72), Vector2(r * 1.22, r * 0.5), Color(0.03, 0.025, 0.035, 0.38))
+
+	# --- Pass 2: 光环 / Boss 光效 ---
+	for i in visible_enemies.size():
+		var enemy = visible_enemies[i]
+		var info: Dictionary = render_info[i]
+		var pos: Vector2 = info['pos']
+		var r: float = info['r']
+		var pulse: float = info['pulse']
+		if info['is_boss']:
+			draw_circle(pos, r * (1.55 + pulse * 0.12), Color(0.34, 0.12, 0.42, 0.08 + pulse * 0.04))
+			draw_arc(pos, r * (1.6 + pulse * 0.08), 0.0, TAU, 32, Color(0.76, 0.42, 0.95, 0.22 + pulse * 0.16), 2.0)
+		elif enemy.rank == 'elite':
+			draw_circle(pos, r * 1.35, Color(1.0, 0.72, 0.18, 0.07 + pulse * 0.03))
+
+	# --- Pass 3: Boss 怒气 / 冰冻 / 受击精灵（按纹理分组连续绘制，引擎自动合批） ---
+	for i in visible_enemies.size():
+		var enemy = visible_enemies[i]
+		var info: Dictionary = render_info[i]
+		var pos: Vector2 = info['pos']
+		var r: float = info['r']
+		var is_boss: bool = info['is_boss']
+		var pulse: float = info['pulse']
+		var display_size: float = info['display_size']
 		var bob: float = sin(animation_time * (2.2 if is_boss else 4.2) + enemy.x * 0.008) * (1.2 if is_boss else 2.0)
 		if is_boss and enemy.enraged:
 			_draw_sprite(ArtCatalog.VFX_TEXTURES['bossEnraged'], pos, display_size * (1.45 + pulse * 0.08), animation_time * 0.15, false, Color(1.0, 1.0, 1.0, 0.72))
@@ -643,25 +658,25 @@ func _draw_enemies() -> void:
 		if _has_active_enemy_dot(enemy.dots):
 			dot_enemy_total += 1
 	var dot_enemy_index: int = 0
-	for enemy in visible_enemies:
-		var pos := Vector2(enemy.x, enemy.y)
-		var r: float = maxf(enemy.radius, 10.0)
-		var is_boss: bool = enemy.type == 'boss'
-		var pulse: float = 0.5 + sin(animation_time * (2.4 if is_boss else 3.6) + enemy.y * 0.006) * 0.5
-		var display_size: float = r * (6.6 if is_boss else 6.2)
-		if enemy.type == 'charger':
-			display_size *= 1.12
-		elif enemy.type == 'shield':
-			display_size *= 1.08
+	for i in visible_enemies.size():
+		var enemy = visible_enemies[i]
+		var info: Dictionary = render_info[i]
+		var pos: Vector2 = info['pos']
+		var r: float = info['r']
+		var is_boss: bool = info['is_boss']
+		var pulse: float = info['pulse']
+		var display_size: float = info['display_size']
 		var hit_ratio: float = clampf(enemy.hitFlash / 0.14, 0.0, 1.0)
 		if hit_ratio > 0.0:
-			draw_arc(pos, r * (1.0 + (1.0 - hit_ratio) * 0.6), 0.0, TAU, 24, Color(1.0, 0.9, 0.55, hit_ratio * 0.78), 2.5)
+			# 弧线分段数：贴图显示尺寸在这个数量级下 16-20 段和 24-32 段视觉上
+			# 分辨不出来，敌人一多这些 tessellation 成本会线性叠加，调低压开销。
+			draw_arc(pos, r * (1.0 + (1.0 - hit_ratio) * 0.6), 0.0, TAU, 16, Color(1.0, 0.9, 0.55, hit_ratio * 0.78), 2.5)
 			_draw_sprite(ArtCatalog.VFX_TEXTURES['impact'], pos - Vector2(0.0, r * 0.25), display_size * (0.42 + (1.0 - hit_ratio) * 0.18), animation_time * 0.6, false, Color(1.0, 1.0, 1.0, hit_ratio * 0.88))
 		if enemy.rank == 'elite':
-			draw_arc(pos, r + 7.0 + pulse * 2.0, 0.0, TAU, 32, Color(1.0, 0.84, 0.31, 0.72 + pulse * 0.22), 2.5)
+			draw_arc(pos, r + 7.0 + pulse * 2.0, 0.0, TAU, 20, Color(1.0, 0.84, 0.31, 0.72 + pulse * 0.22), 2.5)
 			_draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], pos, r * (3.4 + pulse * 0.18), animation_time * 0.3, false, Color(1.0, 0.86, 0.38, 0.24 + pulse * 0.1))
 		if enemy.slowTimer > 0.0:
-			draw_arc(pos, r + 9.0, 0.0, TAU, 24, Color('80cbc4'), 2.0)
+			draw_arc(pos, r + 9.0, 0.0, TAU, 16, Color('80cbc4'), 2.0)
 		if enemy.type == 'charger' and 'state' in enemy and (enemy.state == 'windup' or enemy.state == 'dash'):
 			_draw_charge_indicator(pos, r, enemy)
 		if enemy.type == 'bomber' and 'state' in enemy and enemy.state == 'windup':
