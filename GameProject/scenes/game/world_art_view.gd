@@ -42,6 +42,23 @@ var _atlas_cache: Dictionary = {}
 # 上一帧编号，用于失效缓存
 var _last_frame_index: int = -1
 
+# ===== 敌人精灵 GPU 合批（MultiMesh） =====
+# 常规敌人类型共享同一张序列帧图集、且全局同步同一动画帧（_get_animated_frame
+# 的 frame_index 只取决于 animation_time，跟具体哪只敌人无关），所以同类型
+# 敌人可以共用一份「单帧四边形网格」+ 一个 MultiMesh，把整批实例合并成一次
+# RenderingServer.canvas_item_add_multimesh() 绘制指令，而不是每只敌人各画
+# 一次 draw_texture。用 canvas_item_add_multimesh 直接插入当前画布（而不是
+# 拆成独立的 MultiMeshInstance2D 子节点），是因为前者能精确插在这次 _draw()
+# 调用里 Pass 1/2/4 之间的既定位置，不会打乱阴影/光环/血条的层次顺序；后者
+# 作为独立节点只能整体排在这个节点自身内容的前面或后面，做不到"插在中间"。
+const BATCHABLE_ENEMY_TYPES: Dictionary = {
+	'chaser': true, 'enhancedChaser': true, 'charger': true,
+	'ranged': true, 'bomber': true, 'shield': true,
+}
+var _enemy_batch_mesh: Dictionary = {}       # type_key -> ArrayMesh（单帧四边形）
+var _enemy_batch_mesh_frame: Dictionary = {} # type_key -> 该网格当前对应的动画帧号
+var _enemy_multimesh: Dictionary = {}        # type_key -> MultiMesh
+
 
 func bind_run(game_run) -> void:
 	run = game_run
@@ -637,39 +654,23 @@ func _draw_enemies() -> void:
 		elif enemy.rank == 'elite':
 			draw_circle(pos, r * 1.35, Color(1.0, 0.72, 0.18, 0.07 + pulse * 0.03))
 
-	# --- Pass 3: Boss 怒气 / 冰冻 / 受击精灵（按纹理分组连续绘制，引擎自动合批） ---
-	for i in visible_enemies.size():
-		var enemy = visible_enemies[i]
-		var info: Dictionary = render_info[i]
-		var pos: Vector2 = info['pos']
-		var r: float = info['r']
-		var is_boss: bool = info['is_boss']
-		var pulse: float = info['pulse']
-		var display_size: float = info['display_size']
-		var bob: float = sin(animation_time * (2.2 if is_boss else 4.2) + enemy.x * 0.008) * (1.2 if is_boss else 2.0)
-		if is_boss and enemy.enraged:
-			_draw_sprite(ArtCatalog.VFX_TEXTURES['bossEnraged'], pos, display_size * (1.45 + pulse * 0.08), animation_time * 0.15, false, Color(1.0, 1.0, 1.0, 0.72))
-		var hit_ratio: float = clampf(enemy.hitFlash / 0.14, 0.0, 1.0)
-		var enemy_tint := Color.WHITE
-		if enemy.frozenTimer > 0.0:
-			enemy_tint = Color(0.65, 0.9, 1.0, 0.94)
-			_draw_sprite(ArtCatalog.VFX_TEXTURES['freeze'], pos, display_size * 0.85, 0.0, false, Color(1.0, 1.0, 1.0, 0.46))
-		elif hit_ratio > 0.0:
-			enemy_tint = Color(1.35, 1.2, 0.95, 1.0)
-			display_size *= 1.0 + hit_ratio * 0.08
-		var flip_h: bool = run.player.x < enemy.x
-		# 取精灵纹理（使用缓存的 atlas）；type_key 收集阶段已经算过，直接复用
-		var enemy_type_key: String = info['type_key']
-		# 敌人是 RefCounted：Object 没有 has()，get() 也只接受 1 个参数；属性存在性一律用 in 判断
-		if enemy_type_key == 'boss' and 'state' in enemy and enemy.state == 'windup':
-			enemy_type_key = 'bossIdle'
-		var sheet: Texture2D = ArtCatalog.ENEMY_SPRITE_SHEETS.get(enemy_type_key)
-		var texture: Texture2D
-		if sheet != null:
-			texture = _get_animated_frame(sheet, enemy_type_key)
-		else:
-			texture = ArtCatalog.ENEMY_TEXTURES.get(enemy.type, ArtCatalog.ENEMY_TEXTURES['chaser'])
-		_draw_sprite(texture, pos + Vector2(0.0, bob - display_size * 0.31), display_size, 0.0, flip_h, enemy_tint)
+	# --- Pass 3: Boss 怒气 / 冰冻 / 受击精灵 ---
+	# 常规类型走 GPU 合批（_draw_enemy_batch），boss 数量通常 0-1、合批没有
+	# 收益且有额外的 enrage/windup 状态判断，继续用原来的即时绘制路径。
+	# visible_enemies/render_info 已按 type_key 排序，同类型必然连续，一次
+	# 扫描即可正确分段。
+	var batch_start: int = 0
+	while batch_start < visible_enemies.size():
+		var type_key: String = render_info[batch_start]['type_key']
+		if not BATCHABLE_ENEMY_TYPES.get(type_key, false):
+			_draw_enemy_immediate(visible_enemies[batch_start], render_info[batch_start])
+			batch_start += 1
+			continue
+		var batch_end: int = batch_start + 1
+		while batch_end < visible_enemies.size() and render_info[batch_end]['type_key'] == type_key:
+			batch_end += 1
+		_draw_enemy_batch(type_key, visible_enemies, render_info, batch_start, batch_end)
+		batch_start = batch_end
 
 	# --- Pass 4: 叠加效果（受击弧、精英标识、减速、冲锋、dot、任务、血条） ---
 	var dot_enemy_total: int = 0
@@ -714,6 +715,135 @@ func _draw_enemies() -> void:
 			_draw_sprite(ArtCatalog.TASK_TEXTURES['bounty'], pos - Vector2(0.0, r + 24.0), 30.0 + pulse * 2.0)
 		if enemy.hp < enemy.maxHp or enemy.rank == 'elite' or enemy.rank == 'boss':
 			_draw_health_bar(pos, r, enemy.hp, enemy.maxHp, is_boss)
+
+
+## Pass 3 里不可合批的单个敌人（目前只有 boss）：保留原本的即时绘制路径，
+## 含 enrage/冰冻覆盖层与 windup 时切到 bossIdle 图集这些一次性状态判断。
+func _draw_enemy_immediate(enemy, info: Dictionary) -> void:
+	var pos: Vector2 = info['pos']
+	var is_boss: bool = info['is_boss']
+	var pulse: float = info['pulse']
+	var display_size: float = info['display_size']
+	var bob: float = sin(animation_time * (2.2 if is_boss else 4.2) + enemy.x * 0.008) * (1.2 if is_boss else 2.0)
+	if is_boss and enemy.enraged:
+		_draw_sprite(ArtCatalog.VFX_TEXTURES['bossEnraged'], pos, display_size * (1.45 + pulse * 0.08), animation_time * 0.15, false, Color(1.0, 1.0, 1.0, 0.72))
+	var hit_ratio: float = clampf(enemy.hitFlash / 0.14, 0.0, 1.0)
+	var enemy_tint := Color.WHITE
+	if enemy.frozenTimer > 0.0:
+		enemy_tint = Color(0.65, 0.9, 1.0, 0.94)
+		_draw_sprite(ArtCatalog.VFX_TEXTURES['freeze'], pos, display_size * 0.85, 0.0, false, Color(1.0, 1.0, 1.0, 0.46))
+	elif hit_ratio > 0.0:
+		enemy_tint = Color(1.35, 1.2, 0.95, 1.0)
+		display_size *= 1.0 + hit_ratio * 0.08
+	var flip_h: bool = run.player.x < enemy.x
+	# 敌人是 RefCounted：Object 没有 has()，get() 也只接受 1 个参数；属性存在性一律用 in 判断
+	var enemy_type_key: String = info['type_key']
+	if enemy_type_key == 'boss' and 'state' in enemy and enemy.state == 'windup':
+		enemy_type_key = 'bossIdle'
+	var sheet: Texture2D = ArtCatalog.ENEMY_SPRITE_SHEETS.get(enemy_type_key)
+	var texture: Texture2D
+	if sheet != null:
+		texture = _get_animated_frame(sheet, enemy_type_key)
+	else:
+		texture = ArtCatalog.ENEMY_TEXTURES.get(enemy.type, ArtCatalog.ENEMY_TEXTURES['chaser'])
+	_draw_sprite(texture, pos + Vector2(0.0, bob - display_size * 0.31), display_size, 0.0, flip_h, enemy_tint)
+
+
+## Pass 3 里的常规敌人类型（同类型整批一次绘制指令）：把 [start, end) 这段
+## 同 type_key 的敌人合并成一个 MultiMesh，通过 canvas_item_add_multimesh
+## 插入当前画布——数量再多，这批敌人在 GPU 侧也只对应一次绘制。
+func _draw_enemy_batch(type_key: String, enemies: Array, infos: Array[Dictionary], start: int, end: int) -> void:
+	var sheet: Texture2D = ArtCatalog.ENEMY_SPRITE_SHEETS.get(type_key)
+	if sheet == null:
+		for i in range(start, end):
+			_draw_enemy_immediate(enemies[i], infos[i])
+		return
+	var total_frames: int = ArtCatalog.ENEMY_SHEET_COLS * ArtCatalog.ENEMY_SHEET_ROWS
+	var frame_index: int = int(animation_time * ArtCatalog.ENEMY_SHEET_FPS) % total_frames
+	var mesh: ArrayMesh = _get_enemy_batch_mesh(type_key, sheet, frame_index)
+	var frame_w: float = sheet.get_width() / float(ArtCatalog.ENEMY_SHEET_COLS)
+	var frame_h: float = sheet.get_height() / float(ArtCatalog.ENEMY_SHEET_ROWS)
+	var mesh_max_side: float = maxf(frame_w, frame_h)
+	var mm: MultiMesh = _get_enemy_multimesh(type_key)
+	if mm.mesh != mesh:
+		mm.mesh = mesh
+	var count: int = end - start
+	if mm.instance_count != count:
+		mm.instance_count = count
+	for offset in count:
+		var i: int = start + offset
+		var enemy = enemies[i]
+		var info: Dictionary = infos[i]
+		var pos: Vector2 = info['pos']
+		var display_size: float = info['display_size']
+		var bob: float = sin(animation_time * 4.2 + enemy.x * 0.008) * 2.0
+		var hit_ratio: float = clampf(enemy.hitFlash / 0.14, 0.0, 1.0)
+		var enemy_tint := Color.WHITE
+		var frozen: bool = enemy.frozenTimer > 0.0
+		if frozen:
+			enemy_tint = Color(0.65, 0.9, 1.0, 0.94)
+		elif hit_ratio > 0.0:
+			enemy_tint = Color(1.35, 1.2, 0.95, 1.0)
+			display_size *= 1.0 + hit_ratio * 0.08
+		var flip_h: bool = run.player.x < enemy.x
+		var factor: float = display_size / mesh_max_side
+		var t := Transform2D()
+		t.x = Vector2(-factor if flip_h else factor, 0.0)
+		t.y = Vector2(0.0, factor)
+		t.origin = pos + Vector2(0.0, bob - display_size * 0.31)
+		mm.set_instance_transform_2d(offset, t)
+		mm.set_instance_color(offset, enemy_tint)
+		# 冰冻覆盖层是单独一张贴图叠在本体上面，数量少（冰冻期间才有），
+		# 保留即时绘制，不需要也参与合批。
+		if frozen:
+			_draw_sprite(ArtCatalog.VFX_TEXTURES['freeze'], pos, display_size * 0.85, 0.0, false, Color(1.0, 1.0, 1.0, 0.46))
+	RenderingServer.canvas_item_add_multimesh(get_canvas_item(), mm.get_rid(), sheet.get_rid())
+
+
+## 常规敌人类型共享的「单帧四边形」网格：4 个顶点 + UV 对应当前动画帧在图集
+## 里的区域，帧号变化时才重建（同类型全局同步同一帧，不需要每敌人单独一份）。
+func _get_enemy_batch_mesh(type_key: String, sheet: Texture2D, frame_index: int) -> ArrayMesh:
+	if _enemy_batch_mesh_frame.get(type_key, -1) == frame_index and _enemy_batch_mesh.has(type_key):
+		return _enemy_batch_mesh[type_key]
+	var cols: int = ArtCatalog.ENEMY_SHEET_COLS
+	var rows: int = ArtCatalog.ENEMY_SHEET_ROWS
+	var sheet_w: float = sheet.get_width()
+	var sheet_h: float = sheet.get_height()
+	var frame_w: float = sheet_w / float(cols)
+	var frame_h: float = sheet_h / float(rows)
+	var col: int = frame_index % cols
+	var row: int = floori(float(frame_index) / float(cols))
+	var uv_min := Vector2(col * frame_w / sheet_w, row * frame_h / sheet_h)
+	var uv_max := Vector2((col + 1) * frame_w / sheet_w, (row + 1) * frame_h / sheet_h)
+	var half := Vector2(frame_w, frame_h) * 0.5
+	var vertices := PackedVector2Array([
+		Vector2(-half.x, -half.y), Vector2(half.x, -half.y), Vector2(half.x, half.y), Vector2(-half.x, half.y),
+	])
+	var uvs := PackedVector2Array([
+		Vector2(uv_min.x, uv_min.y), Vector2(uv_max.x, uv_min.y), Vector2(uv_max.x, uv_max.y), Vector2(uv_min.x, uv_max.y),
+	])
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = PackedInt32Array([0, 1, 2, 0, 2, 3])
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	_enemy_batch_mesh[type_key] = mesh
+	_enemy_batch_mesh_frame[type_key] = frame_index
+	return mesh
+
+
+## MultiMesh 资源懒创建：per-instance transform + per-instance color，
+## instance_count 在 _draw_enemy_batch 里按当批数量动态设置。
+func _get_enemy_multimesh(type_key: String) -> MultiMesh:
+	var mm: MultiMesh = _enemy_multimesh.get(type_key)
+	if mm == null:
+		mm = MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_2D
+		mm.use_colors = true
+		_enemy_multimesh[type_key] = mm
+	return mm
 
 
 # Returns an AtlasTexture for the current animation frame from a sprite sheet
