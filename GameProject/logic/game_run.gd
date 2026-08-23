@@ -219,6 +219,7 @@ func step(dt: float, view_w: float = 1280.0, view_h: float = 720.0) -> void:
     camera.y = camera_position["y"]
     waveDirector.update(dt, self, camera, view_w, view_h)
     taskDirector.update(dt, self)
+    var world: Dictionary = _world()
     for enemy in enemies:
         if enemy.dead:
             continue
@@ -227,13 +228,13 @@ func step(dt: float, view_w: float = 1280.0, view_h: float = 720.0) -> void:
         if dot_damage > 0.0:
             damage_enemy(enemy, dot_damage)
         if not enemy.dead:
-            enemy.update(player, dt, _world())
+            enemy.update(player, dt, world)
     _enemy_grid.rebuild(enemies)
     EnemyScript.separate_enemies(enemies, dt, _enemy_grid)
     for enemy in enemies:
         if not enemy.dead:
             _clamp_entity_to_level(enemy)
-    var world: Dictionary = _world()
+    world = _world()
     for weapon in weapons:
         weapon.update(dt, world)
     for trail: Dictionary in trails:
@@ -477,7 +478,6 @@ func _handle_collisions() -> void:
         if UtilsScript.dist2(hostile.x, hostile.y, player.x, player.y) <= pow(hostile.radius + player.radius, 2):
             hostile.dead = true
             hurt_player(hostile.damage)
-    _enemy_grid.rebuild(enemies)
     for projectile in projectiles:
         if projectile.dead:
             continue

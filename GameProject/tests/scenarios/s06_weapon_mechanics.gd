@@ -95,6 +95,7 @@ func run(runner) -> void:
     var finite = ProjectileScript.new(5000.0, 0.0, 0.0, {"radius": 20.0, "damage": 10.0, "maxHits": 2.0})
     game.enemies = collision_enemies
     game.projectiles = [finite]
+    game._enemy_grid.rebuild(game.enemies)
     game._handle_collisions()
     var finite_hits: int = collision_enemies.filter(func(enemy) -> bool: return is_equal_approx(enemy.hp, 90.0)).size()
     runner.check(finite.dead and finite_hits == 2 and finite.maxHits == 2.0, "[6] finite projectile hit limit failed")
@@ -103,6 +104,7 @@ func run(runner) -> void:
         enemy.hp = 100.0
         enemy.dead = false
     game.projectiles = [infinite]
+    game._enemy_grid.rebuild(game.enemies)
     game._handle_collisions()
     runner.check(not infinite.dead and collision_enemies.all(func(enemy) -> bool: return is_equal_approx(enemy.hp, 90.0)),
         "[6] infinite projectile piercing failed")
