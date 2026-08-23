@@ -1,3 +1,6 @@
 [mcp_servers.godot]
 command = "cmd"
 args = ["/c", "npx", "-y", "godot-mcp-server@0.5.0"]
+
+[mcp_servers.godot.tools.list_dir]
+approval_mode = "approve"
