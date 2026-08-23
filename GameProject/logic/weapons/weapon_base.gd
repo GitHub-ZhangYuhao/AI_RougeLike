@@ -2,6 +2,7 @@ extends RefCounted
 ## ← js/weapons/base.js：武器公共状态与索敌/AoE 工具。
 
 const UtilsScript: GDScript = preload("res://logic/utils.gd")
+const SpatialGridScript: GDScript = preload("res://logic/systems/spatial_grid.gd")
 
 var card: Dictionary
 var level: int = 1
@@ -62,6 +63,25 @@ static func hit_enemies_in_radius(current_world, x: float, y: float, radius: flo
 		on_hit: Callable = Callable(), damage_options: Dictionary = {}) -> int:
 	var hits: int = 0
 	for enemy in current_world.enemies:
+		if enemy.dead:
+			continue
+		if UtilsScript.dist2(x, y, enemy.x, enemy.y) <= pow(radius + enemy.radius, 2):
+			current_world.damage_enemy.call(enemy, damage, damage_options)
+			if on_hit.is_valid():
+				on_hit.call(enemy)
+			hits += 1
+	return hits
+
+
+## 空间网格优化版：通过 grid 查询局部候选集，把 O(N) 降到 O(k)（k=局部邻居数）。
+## 用于 ring/cloak/trail 等范围伤害武器，避免每武器每帧全量扫描敌人。
+static func hit_enemies_in_radius_optimized(current_world, x: float, y: float, radius: float, damage: float,
+		on_hit: Callable = Callable(), damage_options: Dictionary = {}, grid = null) -> int:
+	if grid == null:
+		return hit_enemies_in_radius(current_world, x, y, radius, damage, on_hit, damage_options)
+	var hits: int = 0
+	var candidates: Array = grid.query_entities(x, y, radius + SpatialGridScript.MAX_ENTITY_RADIUS, current_world.enemies)
+	for enemy in candidates:
 		if enemy.dead:
 			continue
 		if UtilsScript.dist2(x, y, enemy.x, enemy.y) <= pow(radius + enemy.radius, 2):

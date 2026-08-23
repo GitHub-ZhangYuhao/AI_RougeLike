@@ -578,6 +578,7 @@ func _world() -> Dictionary:
             "set_player_move_speed_bonus": Callable(self, "set_player_move_speed_bonus"),
             "has_synergy": Callable(self, "has_synergy"), "get_weapon": Callable(self, "get_weapon"),
             "record_synergy_trigger": Callable(self, "record_synergy_trigger"),
+            "enemyGrid": _enemy_grid,
         }
     _world_cache["player"] = player
     _world_cache["enemies"] = enemies

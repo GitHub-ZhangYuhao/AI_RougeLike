@@ -11,38 +11,49 @@ var _cells: Dictionary = {}
 
 
 func rebuild(entities: Array) -> void:
-    _cells.clear()
-    for i in entities.size():
-        var entity = entities[i]
-        if entity.dead:
-            continue
-        var key: int = _cell_key(entity.x, entity.y)
-        if _cells.has(key):
-            _cells[key].append(i)
-        else:
-            _cells[key] = [i]
+	_cells.clear()
+	for i in entities.size():
+		var entity = entities[i]
+		if entity.dead:
+			continue
+		var key: int = _cell_key(entity.x, entity.y)
+		if _cells.has(key):
+			_cells[key].append(i)
+		else:
+			_cells[key] = [i]
 
 
 ## 返回窗口内所有格子中的实体索引，升序去重（与线性扫描的遍历顺序一致）。
 func query_indices(x: float, y: float, radius: float) -> Array:
-    var min_cx: int = floori((x - radius) / CELL_SIZE)
-    var max_cx: int = floori((x + radius) / CELL_SIZE)
-    var min_cy: int = floori((y - radius) / CELL_SIZE)
-    var max_cy: int = floori((y + radius) / CELL_SIZE)
-    var result: Array = []
-    for cx in range(min_cx, max_cx + 1):
-        for cy in range(min_cy, max_cy + 1):
-            var bucket = _cells.get(_pack(cx, cy))
-            if bucket != null:
-                result.append_array(bucket)
-    result.sort()
-    return result
+	var min_cx: int = floori((x - radius) / CELL_SIZE)
+	var max_cx: int = floori((x + radius) / CELL_SIZE)
+	var min_cy: int = floori((y - radius) / CELL_SIZE)
+	var max_cy: int = floori((y + radius) / CELL_SIZE)
+	var result: Array = []
+	for cx in range(min_cx, max_cx + 1):
+		for cy in range(min_cy, max_cy + 1):
+			var bucket = _cells.get(_pack(cx, cy))
+			if bucket != null:
+				result.append_array(bucket)
+	result.sort()
+	return result
+
+
+## 返回窗口内所有实体对象（不是索引），用于武器/弹道等需要直接访问
+## 实体属性的场景。调用方仍需做精确距离判定（这是候选集，不是最终结果）。
+func query_entities(x: float, y: float, radius: float, entities: Array) -> Array:
+	var indices: Array = query_indices(x, y, radius)
+	var result: Array = []
+	for i in indices:
+		if i < entities.size():
+			result.append(entities[i])
+	return result
 
 
 static func _cell_key(x: float, y: float) -> int:
-    return _pack(floori(x / CELL_SIZE), floori(y / CELL_SIZE))
+	return _pack(floori(x / CELL_SIZE), floori(y / CELL_SIZE))
 
 
 ## 双 int32 打包成单一 int64 键，cx/cy 在 int32 范围内是双射。
 static func _pack(cx: int, cy: int) -> int:
-    return ((cx & 0xFFFFFFFF) << 32) | (cy & 0xFFFFFFFF)
+	return ((cx & 0xFFFFFFFF) << 32) | (cy & 0xFFFFFFFF)
