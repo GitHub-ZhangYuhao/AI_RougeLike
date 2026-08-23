@@ -5,10 +5,10 @@ const WeaponFactoryScript: GDScript = preload("res://logic/weapons/weapon_factor
 const DEFAULT_SETTINGS: Dictionary = {
     "paused": false,
     "invincible": false,
-    ## 性能排查用：跳过 WorldArtView 里所有纯装饰性绘制（环境粒子、武器光环/
-    ## 法阵/联动特效等），只保留地形/玩家/敌人。用于真机卡顿时二分排查——
-    ## 打开后卡顿若消失，问题在渲染；若依旧卡，问题在别处（逻辑/引擎本身）。
-    "minimalRender": false,
+    ## 真机排查确认：这些装饰性绘制确实占了一部分卡顿，视觉损失很小
+    ## （武器光环/法阵/召唤特效等叠加层，玩家基本感知不到），默认转正为
+    ## 常态渲染优化。debug 面板仍保留开关，方便后续需要更高观感时临时打开对比。
+    "minimalRender": true,
     "player": {
         "damageMult": 1.0, "xpMult": 1.0, "moveSpeedMult": 1.0,
         "maxHpMult": 1.0, "pickupRangeMult": 1.0, "armorBonus": 0.0,

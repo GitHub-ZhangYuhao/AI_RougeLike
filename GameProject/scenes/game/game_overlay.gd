@@ -50,6 +50,16 @@ var choice_card_renderer: RefCounted = ChoiceCardRendererScript.new()
 var animation_time: float = 0.0
 # 移动端触摸按钮区域
 var _touch_buttons: Array[Dictionary] = []
+# HUD 重绘节流：战斗 HUD（血条/波次/法器槽/首领血条/任务面板/仓库）在
+# "playing" 状态下无条件跟随 60Hz 逻辑帧全量重绘（styleboxflat 阴影 + 数十次
+# draw_string/draw_panel/draw_circle），跟场上敌人数量完全无关，是真机排查
+# 时找到的、明显不受"极简渲染"开关覆盖的一处固定开销。这些数值/进度条的变化
+# 人眼完全分辨不出 60Hz 和 20Hz 的差异，降频重绘。只在 "playing" 状态生效——
+# 其余状态（choice/extraction/dead/summary）会经由 `_register_touch_button`
+# 注册触摸命中区域，必须保持每帧重绘，否则中间跳过的帧会让触摸检测短暂读到
+# 上一次的旧区域（这几个状态下 UI 也是静态为主，60Hz 重绘成本本来就不高）。
+const HUD_REDRAW_INTERVAL: float = 1.0 / 20.0
+var _hud_redraw_timer: float = 0.0
 # 预分配 StyleBoxFlat 避免每帧新建对象（主要 HUD 元素每帧调用）
 var _sb_shadow: StyleBoxFlat = StyleBoxFlat.new()
 var _sb_inner_border: StyleBoxFlat = StyleBoxFlat.new()
@@ -81,6 +91,13 @@ func refresh(delta: float = 0.0) -> void:
 	animation_time += delta
 	# 清空上一帧的触摸按钮
 	_touch_buttons.clear()
+	if run != null and run.state == "playing":
+		_hud_redraw_timer -= delta
+		if _hud_redraw_timer > 0.0:
+			return
+		_hud_redraw_timer = HUD_REDRAW_INTERVAL
+	else:
+		_hud_redraw_timer = 0.0
 	queue_redraw()
 
 
