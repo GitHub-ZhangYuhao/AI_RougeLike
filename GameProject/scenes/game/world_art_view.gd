@@ -87,30 +87,30 @@ func refresh(delta: float = 0.0) -> void:
 func _draw() -> void:
 	if run == null:
 		return
-	# 性能排查开关（F2 调试台「极简渲染」）：只画地形（由 meadow_level 负责，
-	# 不受这里影响）/ 玩家 / 敌人 / 弹道，跳过所有纯装饰性叠加特效。用于真机
-	# 卡顿时二分排查——开启后卡顿若消失，问题在这些装饰绘制；若依旧卡，问题
-	# 在别处（逻辑 tick、HUD、或引擎本身在该设备上的固定开销）。
+	# 性能排查开关（F2 调试台「极简渲染」）：只跳过纯背景装饰（环境粒子），
+	# 不影响任何有游戏信息价值的内容。之前这个开关误伤了武器攻击范围
+	# （_draw_weapon_zones）、法阵（_draw_sword_rings）、武器装载显示
+	# （_draw_weapon_loadout）、法杖/飞剑/符咒攻击特效、召唤物和通用命中/
+	# 死亡反馈（_draw_effects，含伤害数字）——这些都被真机测试证实是玩家
+	# 依赖的游戏反馈，不是可以随便砍掉的装饰，已经改回来始终绘制。
 	var minimal_render: bool = run.debug != null and run.debug.settings.get('minimalRender', false)
 	if not minimal_render:
 		_draw_ambient_motes()
-		_draw_tasks()
-		_draw_weapon_zones()
-		_draw_weapon_loadout()
-		_draw_sword_rings()
+	_draw_tasks()
+	_draw_weapon_zones()
+	_draw_weapon_loadout()
+	_draw_sword_rings()
 	_draw_trails()
 	_draw_gems()
 	_draw_pickups()
 	_draw_enemies()
-	if not minimal_render:
-		_draw_staff_effects()
-		_draw_summons()
-		_draw_flying_swords()
+	_draw_staff_effects()
+	_draw_summons()
+	_draw_flying_swords()
 	_draw_player_projectiles()
 	_draw_hostile_projectiles()
-	if not minimal_render:
-		_draw_talisman_effects()
-		_draw_effects()
+	_draw_talisman_effects()
+	_draw_effects()
 
 
 func _draw_ambient_motes() -> void:

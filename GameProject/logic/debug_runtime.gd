@@ -5,9 +5,10 @@ const WeaponFactoryScript: GDScript = preload("res://logic/weapons/weapon_factor
 const DEFAULT_SETTINGS: Dictionary = {
     "paused": false,
     "invincible": false,
-    ## 真机排查确认：这些装饰性绘制确实占了一部分卡顿，视觉损失很小
-    ## （武器光环/法阵/召唤特效等叠加层，玩家基本感知不到），默认转正为
-    ## 常态渲染优化。debug 面板仍保留开关，方便后续需要更高观感时临时打开对比。
+    ## 范围已收窄为只跳过纯背景装饰（环境粒子）：之前误把武器攻击范围/法阵/
+    ## 法杖/飞剑/符咒特效/召唤物/命中死亡反馈（含伤害数字）也归进"装饰"一起
+    ## 跳过了，真机测试证实这些是玩家依赖的游戏反馈，已改回始终绘制，只有
+    ## 环境粒子这个纯背景项还受这个开关控制。
     "minimalRender": true,
     "player": {
         "damageMult": 1.0, "xpMult": 1.0, "moveSpeedMult": 1.0,
