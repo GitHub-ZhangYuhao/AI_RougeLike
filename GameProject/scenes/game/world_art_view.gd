@@ -59,6 +59,14 @@ var _enemy_batch_mesh: Dictionary = {}       # type_key -> ArrayMesh（单帧四
 var _enemy_batch_mesh_frame: Dictionary = {} # type_key -> 该网格当前对应的动画帧号
 var _enemy_multimesh: Dictionary = {}        # type_key -> MultiMesh
 
+# 血条同理合批：任意掉血的敌人都会画血条（混战中命中率很高，是 Pass 4 里最
+# 常触发的一项），背景条+填充条各自形状不变，只是位置/宽度/颜色不同，用一张
+# 1x1 白色单位方块网格配合 MultiMesh 的 per-instance transform/color 即可
+# 表示，不需要贴图。
+var _health_bar_quad: ArrayMesh
+var _health_bar_bg_mm: MultiMesh
+var _health_bar_fill_mm: MultiMesh
+
 
 func bind_run(game_run) -> void:
 	run = game_run
@@ -678,6 +686,11 @@ func _draw_enemies() -> void:
 		if _has_active_enemy_dot(enemy.dots):
 			dot_enemy_total += 1
 	var dot_enemy_index: int = 0
+	# 血条改收集到数组，Pass 4 扫描结束后一次性合批绘制（背景条 + 填充条各
+	# 一个 MultiMesh），而不是逐敌人各画 2 次 draw_rect。
+	var health_bar_bg_rects: Array[Rect2] = []
+	var health_bar_fill_rects: Array[Rect2] = []
+	var health_bar_fill_colors: Array[Color] = []
 	for i in visible_enemies.size():
 		var enemy = visible_enemies[i]
 		var info: Dictionary = render_info[i]
@@ -714,7 +727,8 @@ func _draw_enemies() -> void:
 		if enemy.taskRole != null:
 			_draw_sprite(ArtCatalog.TASK_TEXTURES['bounty'], pos - Vector2(0.0, r + 24.0), 30.0 + pulse * 2.0)
 		if enemy.hp < enemy.maxHp or enemy.rank == 'elite' or enemy.rank == 'boss':
-			_draw_health_bar(pos, r, enemy.hp, enemy.maxHp, is_boss)
+			_collect_health_bar(pos, r, enemy.hp, enemy.maxHp, is_boss, health_bar_bg_rects, health_bar_fill_rects, health_bar_fill_colors)
+	_flush_health_bars(health_bar_bg_rects, health_bar_fill_rects, health_bar_fill_colors)
 
 
 ## Pass 3 里不可合批的单个敌人（目前只有 boss）：保留原本的即时绘制路径，
@@ -908,12 +922,63 @@ static func is_budget_sample(index: int, total: int, budget: int) -> bool:
 	return current_bucket != next_bucket
 
 
-func _draw_health_bar(bar_position: Vector2, radius: float, hp: float, max_hp: float, is_boss: bool) -> void:
+## 收集一条血条的背景/填充矩形，实际绘制推迟到 _flush_health_bars 合批。
+func _collect_health_bar(bar_position: Vector2, radius: float, hp: float, max_hp: float, is_boss: bool,
+		bg_rects: Array[Rect2], fill_rects: Array[Rect2], fill_colors: Array[Color]) -> void:
 	var width: float = maxf(34.0, radius * (2.6 if is_boss else 2.2))
 	var ratio: float = clampf(hp / maxf(max_hp, 0.001), 0.0, 1.0)
 	var top_left := bar_position + Vector2(-width * 0.5, -radius - (18.0 if is_boss else 11.0))
-	draw_rect(Rect2(top_left, Vector2(width, 5.0)), Color(0.025, 0.02, 0.03, 0.84))
-	draw_rect(Rect2(top_left + Vector2.ONE, Vector2((width - 2.0) * ratio, 3.0)), Color('66bb6a') if ratio > 0.35 else Color('ef5350'))
+	bg_rects.append(Rect2(top_left, Vector2(width, 5.0)))
+	fill_rects.append(Rect2(top_left + Vector2.ONE, Vector2((width - 2.0) * ratio, 3.0)))
+	fill_colors.append(Color('66bb6a') if ratio > 0.35 else Color('ef5350'))
+
+
+## 血条合批绘制：背景条纯色统一、填充条按血量比例分两色，各用一个 MultiMesh
+## 一次性画完，不管这帧有多少条血条要显示。
+func _flush_health_bars(bg_rects: Array[Rect2], fill_rects: Array[Rect2], fill_colors: Array[Color]) -> void:
+	if bg_rects.is_empty():
+		return
+	if _health_bar_quad == null:
+		var arrays: Array = []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = PackedVector2Array([
+			Vector2(0.0, 0.0), Vector2(1.0, 0.0), Vector2(1.0, 1.0), Vector2(0.0, 1.0),
+		])
+		arrays[Mesh.ARRAY_INDEX] = PackedInt32Array([0, 1, 2, 0, 2, 3])
+		_health_bar_quad = ArrayMesh.new()
+		_health_bar_quad.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	if _health_bar_bg_mm == null:
+		_health_bar_bg_mm = MultiMesh.new()
+		_health_bar_bg_mm.transform_format = MultiMesh.TRANSFORM_2D
+		_health_bar_bg_mm.use_colors = true
+		_health_bar_bg_mm.mesh = _health_bar_quad
+	if _health_bar_fill_mm == null:
+		_health_bar_fill_mm = MultiMesh.new()
+		_health_bar_fill_mm.transform_format = MultiMesh.TRANSFORM_2D
+		_health_bar_fill_mm.use_colors = true
+		_health_bar_fill_mm.mesh = _health_bar_quad
+	var bg_color := Color(0.025, 0.02, 0.03, 0.84)
+	_health_bar_bg_mm.instance_count = bg_rects.size()
+	for i in bg_rects.size():
+		var rect: Rect2 = bg_rects[i]
+		var t := Transform2D()
+		t.x = Vector2(rect.size.x, 0.0)
+		t.y = Vector2(0.0, rect.size.y)
+		t.origin = rect.position
+		_health_bar_bg_mm.set_instance_transform_2d(i, t)
+		_health_bar_bg_mm.set_instance_color(i, bg_color)
+	RenderingServer.canvas_item_add_multimesh(get_canvas_item(), _health_bar_bg_mm.get_rid())
+	_health_bar_fill_mm.instance_count = fill_rects.size()
+	for i in fill_rects.size():
+		var rect: Rect2 = fill_rects[i]
+		# 填充条宽度可能为 0（血量归零瞬间），退化成 0 宽矩形不会画出东西，安全。
+		var t := Transform2D()
+		t.x = Vector2(rect.size.x, 0.0)
+		t.y = Vector2(0.0, rect.size.y)
+		t.origin = rect.position
+		_health_bar_fill_mm.set_instance_transform_2d(i, t)
+		_health_bar_fill_mm.set_instance_color(i, fill_colors[i])
+	RenderingServer.canvas_item_add_multimesh(get_canvas_item(), _health_bar_fill_mm.get_rid())
 
 
 func _draw_staff_effects() -> void:
