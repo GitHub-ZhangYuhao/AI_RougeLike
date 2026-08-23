@@ -88,6 +88,7 @@ func refresh() -> void:
   controls['stats'].text = '状态 %s   波次 %d   敌人 %d\n时间 %s   等级 %d   经验 %.0f/%.0f' % [run.state, run.waveDirector.wave, _alive_count(), _format_time(run.elapsed), run.level, run.xp, run.xp_to_next()]
   controls['paused'].button_pressed = settings['paused']
   controls['invincible'].button_pressed = settings['invincible']
+  controls['minimalRender'].button_pressed = settings.get('minimalRender', false)
   controls['hp'].value = run.player.hp
   controls['damage'].value = settings['player']['damageMult']
   controls['xp'].value = settings['player']['xpMult']
@@ -234,6 +235,7 @@ func _build_panel() -> void:
   _add_section(content, '游戏控制')
   controls['paused'] = _add_check(content, '暂停世界', Callable(self, '_paused_toggled'))
   controls['invincible'] = _add_check(content, '玩家无敌', Callable(self, '_invincible_toggled'))
+  controls['minimalRender'] = _add_check(content, '极简渲染（性能排查）', Callable(self, '_minimal_render_toggled'))
   controls['hp'] = _add_number(content, '当前生命', 0.0, 1000000.0, 1.0, Callable(self, '_hp_changed'))
   _add_section(content, '玩家倍率')
   controls['damage'] = _add_number(content, '伤害', 0.0, 1000.0, 0.1, _player_setting.bind('damageMult'))
@@ -387,6 +389,11 @@ func _paused_toggled(value: bool) -> void:
 func _invincible_toggled(value: bool) -> void:
   if not _updating and run != null:
     run.debug.set_invincible(value)
+
+
+func _minimal_render_toggled(value: bool) -> void:
+  if not _updating and run != null:
+    run.debug.set_minimal_render(value)
 
 
 func _spawn_paused_toggled(value: bool) -> void:

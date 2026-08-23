@@ -62,22 +62,30 @@ func refresh(delta: float = 0.0) -> void:
 func _draw() -> void:
 	if run == null:
 		return
-	_draw_ambient_motes()
-	_draw_tasks()
-	_draw_weapon_zones()
-	_draw_weapon_loadout()
-	_draw_sword_rings()
+	# 性能排查开关（F2 调试台「极简渲染」）：只画地形（由 meadow_level 负责，
+	# 不受这里影响）/ 玩家 / 敌人 / 弹道，跳过所有纯装饰性叠加特效。用于真机
+	# 卡顿时二分排查——开启后卡顿若消失，问题在这些装饰绘制；若依旧卡，问题
+	# 在别处（逻辑 tick、HUD、或引擎本身在该设备上的固定开销）。
+	var minimal_render: bool = run.debug != null and run.debug.settings.get('minimalRender', false)
+	if not minimal_render:
+		_draw_ambient_motes()
+		_draw_tasks()
+		_draw_weapon_zones()
+		_draw_weapon_loadout()
+		_draw_sword_rings()
 	_draw_trails()
 	_draw_gems()
 	_draw_pickups()
 	_draw_enemies()
-	_draw_staff_effects()
-	_draw_summons()
-	_draw_flying_swords()
+	if not minimal_render:
+		_draw_staff_effects()
+		_draw_summons()
+		_draw_flying_swords()
 	_draw_player_projectiles()
 	_draw_hostile_projectiles()
-	_draw_talisman_effects()
-	_draw_effects()
+	if not minimal_render:
+		_draw_talisman_effects()
+		_draw_effects()
 
 
 func _draw_ambient_motes() -> void:

@@ -5,6 +5,10 @@ const WeaponFactoryScript: GDScript = preload("res://logic/weapons/weapon_factor
 const DEFAULT_SETTINGS: Dictionary = {
     "paused": false,
     "invincible": false,
+    ## 性能排查用：跳过 WorldArtView 里所有纯装饰性绘制（环境粒子、武器光环/
+    ## 法阵/联动特效等），只保留地形/玩家/敌人。用于真机卡顿时二分排查——
+    ## 打开后卡顿若消失，问题在渲染；若依旧卡，问题在别处（逻辑/引擎本身）。
+    "minimalRender": false,
     "player": {
         "damageMult": 1.0, "xpMult": 1.0, "moveSpeedMult": 1.0,
         "maxHpMult": 1.0, "pickupRangeMult": 1.0, "armorBonus": 0.0,
@@ -35,6 +39,11 @@ func set_paused(value) -> bool:
 func set_invincible(value) -> bool:
     settings["invincible"] = value == true
     return settings["invincible"]
+
+
+func set_minimal_render(value) -> bool:
+    settings["minimalRender"] = value == true
+    return settings["minimalRender"]
 
 
 func set_player_hp(value) -> float:

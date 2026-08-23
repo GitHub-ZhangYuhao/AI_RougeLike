@@ -30,7 +30,9 @@ signal joystick_released()
 
 
 ## 摇杆在屏幕左下角的设计位置/尺寸（像素，基于 1280x720 逻辑视口）。
-const DESIGN_RECT := Rect2(40.0, 520.0, 240.0, 220.0)
+## 之前 offset_bottom=740 超出了 720 高的视口 20px，摇杆下半部分本来就在可见/
+## 可交互区域之外，往下拖动自然容易失效；整体上移，留出安全边距。
+const DESIGN_RECT := Rect2(40.0, 410.0, 240.0, 220.0)
 
 
 func _ready() -> void:
