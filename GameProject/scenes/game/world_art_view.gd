@@ -615,11 +615,14 @@ func _draw_enemies() -> void:
 	visible_enemies = sorted_enemies
 	render_info = sorted_info
 
-	# --- Pass 1: 地面阴影（统一 draw_circle/ellipse） ---
+	# --- Pass 1: 地面阴影 ---
+	# 性能：_draw_ellipse_shape 用「设变换矩阵→画圆→重置变换矩阵」三条绘制指令
+	# 模拟椭圆，每敌人每帧 3 条；阴影本来就是个模糊小色块，椭圆和正圆在这个
+	# 尺寸下肉眼分辨不出来，直接画圆省成 1 条指令，敌人多时省下来的更明显。
 	for info: Dictionary in render_info:
 		var pos: Vector2 = info['pos']
 		var r: float = info['r']
-		_draw_ellipse_shape(pos + Vector2(0.0, r * 0.72), Vector2(r * 1.22, r * 0.5), Color(0.03, 0.025, 0.035, 0.38))
+		draw_circle(pos + Vector2(0.0, r * 0.72), r * 0.86, Color(0.03, 0.025, 0.035, 0.38))
 
 	# --- Pass 2: 光环 / Boss 光效 ---
 	for i in visible_enemies.size():
