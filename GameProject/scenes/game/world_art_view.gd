@@ -77,14 +77,14 @@ func _draw() -> void:
 	_draw_gems()
 	_draw_pickups()
 	_draw_enemies()
+	_draw_talisman_effects()
+	_draw_player_projectiles()
+	_draw_hostile_projectiles()
+	_draw_effects()
 	if not minimal_render:
 		_draw_staff_effects()
 		_draw_summons()
 		_draw_flying_swords()
-		_draw_talisman_effects()
-		_draw_player_projectiles()
-		_draw_hostile_projectiles()
-		_draw_effects()
 
 
 func _draw_ambient_motes() -> void:
