@@ -81,9 +81,8 @@ func _draw() -> void:
 		_draw_staff_effects()
 		_draw_summons()
 		_draw_flying_swords()
-	_draw_player_projectiles()
-	_draw_hostile_projectiles()
-	if not minimal_render:
+		_draw_player_projectiles()
+		_draw_hostile_projectiles()
 		_draw_talisman_effects()
 		_draw_effects()
 
