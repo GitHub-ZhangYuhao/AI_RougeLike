@@ -67,12 +67,6 @@ func _draw() -> void:
 	# 卡顿时二分排查——开启后卡顿若消失，问题在这些装饰绘制；若依旧卡，问题
 	# 在别处（逻辑 tick、HUD、或引擎本身在该设备上的固定开销）。
 	var minimal_render: bool = run.debug != null and run.debug.settings.get('minimalRender', false)
-	if not minimal_render:
-		_draw_ambient_motes()
-		_draw_tasks()
-		_draw_weapon_zones()
-		_draw_weapon_loadout()
-		_draw_sword_rings()
 	_draw_trails()
 	_draw_gems()
 	_draw_pickups()
@@ -82,6 +76,11 @@ func _draw() -> void:
 	_draw_hostile_projectiles()
 	_draw_effects()
 	if not minimal_render:
+		_draw_ambient_motes()
+		_draw_tasks()
+		_draw_weapon_zones()
+		_draw_weapon_loadout()
+		_draw_sword_rings()
 		_draw_staff_effects()
 		_draw_summons()
 		_draw_flying_swords()
@@ -95,11 +94,12 @@ func _draw_ambient_motes() -> void:
 	# 到的确凿浪费点（弱 GPU + 单线程 Emscripten 下这类固定 CPU 开销尤其明显）。
 	# 收紧网格范围到刚好覆盖屏幕(不留多余边距)、提高跳过比例、每个粒子只画一次
 	# draw_circle(丢弃装饰性的小拖线), 在几乎看不出视觉差异的前提下降到约 1/3。
+	# 进一步优化：跳过 75% 的粒子，只保留 25%
 	var camera_cell := Vector2i(floori(run.camera.x / 180.0), floori(run.camera.y / 180.0))
 	for grid_y in range(camera_cell.y - 2, camera_cell.y + 4):
 		for grid_x in range(camera_cell.x - 4, camera_cell.x + 6):
 			var mote_seed: int = absi(grid_x * 92821 + grid_y * 68917)
-			if mote_seed % 4 == 0:
+			if mote_seed % 4 != 0:  # 只保留 25%
 				continue
 			var phase: float = animation_time * (0.42 + float(mote_seed % 7) * 0.035) + float(mote_seed % 31)
 			var mote_position := Vector2(

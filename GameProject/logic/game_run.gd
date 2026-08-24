@@ -30,8 +30,8 @@ const WEAPON_EVOLUTION_COLORS: Dictionary = {
     "trail": "#ff8a32", "ring": "#8fffd0", "staff": "#d89cff",
 }
 const PROJECTILE_POOL_CAP: int = 256
-const EFFECT_POOL_CAP: int = 256
-const MAX_EFFECTS: int = 300
+const EFFECT_POOL_CAP: int = 128
+const MAX_EFFECTS: int = 200
 
 var state: String
 var debug

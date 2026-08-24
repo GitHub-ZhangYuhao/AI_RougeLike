@@ -27,9 +27,9 @@ const CONFIG: Dictionary = {
         "startInterval": 1.0,
         "minInterval": 0.14,
         "intervalPerWave": 0.12,
-        "startMaxAlive": 35,
-        "maxAlivePerWave": 10,
-        "maxAliveCap": 70,
+        "startMaxAlive": 25,
+        "maxAlivePerWave": 8,
+        "maxAliveCap": 50,
         "spawnMargin": 80,
     },
 
