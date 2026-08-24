@@ -84,7 +84,7 @@ func _melee_slash(current_world, s: Dictionary, angle: float, damage: float) -> 
     # Always show slash effect regardless of hit (matches JS prototype behavior)
     var slash_x: float = current_world.player.x + cos(angle) * s["meleeRange"] * 0.55
     var slash_y: float = current_world.player.y + sin(angle) * s["meleeRange"] * 0.55
-    current_world.effects.append({"type": "slash", "x": slash_x, "y": slash_y,
+    current_world.spawn_effect.call({"type": "slash", "x": slash_x, "y": slash_y,
         "range": s["meleeRange"] * 0.85, "angle": angle,
         "ttl": 0.22, "maxTtl": 0.22, "seed": current_world.elapsed})
     return hit_any
@@ -111,7 +111,7 @@ func _on_damage_hit(enemy, current_world, s: Dictionary, count_intent: bool, act
     if _has_synergy(current_world, "sword-staff-command") and ["projectile", "flyingSword"].has(action):
         enemy.synergyMarks["swordCommandUntil"] = current_world.elapsed + 3.0
         current_world.record_synergy_trigger.call("sword-staff-command", 1)
-        current_world.effects.append({"type": "synergyCommandMark", "x": enemy.x, "y": enemy.y, "ttl": 0.32, "maxTtl": 0.32})
+        current_world.spawn_effect.call({"type": "synergyCommandMark", "x": enemy.x, "y": enemy.y, "ttl": 0.32, "maxTtl": 0.32})
     if _has_synergy(current_world, "sword-talisman-mark"):
         var talisman = current_world.get_weapon.call("talisman")
         if talisman != null:
@@ -148,7 +148,7 @@ func _try_flame_blade(enemy, current_world, s: Dictionary) -> void:
             current_world.damage_enemy.call(target, damage, {"sourceWeaponId": "sword", "sourceAction": "flame-blade", "sourceTags": ["fire", "area"], "synergyId": "sword-cloak-flame", "noSynergy": true, "noSummon": true})
             hits += 1
     current_world.record_synergy_trigger.call("sword-cloak-flame", hits)
-    current_world.effects.append({"type": "synergyFlameBlade", "x1": enemy.x, "y1": enemy.y, "x2": x2, "y2": y2, "width": 34.0, "ttl": 0.25, "maxTtl": 0.25})
+    current_world.spawn_effect.call({"type": "synergyFlameBlade", "x1": enemy.x, "y1": enemy.y, "x2": x2, "y2": y2, "width": 34.0, "ttl": 0.25, "maxTtl": 0.25})
 
 
 func _update_projectile_synergies(current_world, s: Dictionary) -> void:
@@ -169,7 +169,7 @@ func _update_projectile_synergies(current_world, s: Dictionary) -> void:
                 if _point_segment_dist2(position["x"], position["y"], x1, y1, projectile.x, projectile.y) <= pow(52.0 + projectile.radius, 2):
                     projectile.ringReturnCharged = true
                     projectile.color = "#fff59d"
-                    current_world.effects.append({"type": "synergyArc", "x1": position["x"], "y1": position["y"], "x2": projectile.x, "y2": projectile.y, "color": "#d1ff8a", "ttl": 0.18, "maxTtl": 0.18})
+                    current_world.spawn_effect.call({"type": "synergyArc", "x1": position["x"], "y1": position["y"], "x2": projectile.x, "y2": projectile.y, "color": "#d1ff8a", "ttl": 0.18, "maxTtl": 0.18})
                     break
         if trail != null:
             trail.cut_furnaces_along_segment(x1, y1, projectile.x, projectile.y, s["damage"] * current_world.mods["damageMult"] * 0.45, current_world, projectile.furnaceCuts)

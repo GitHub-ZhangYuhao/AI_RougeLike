@@ -30,7 +30,7 @@ const WEAPON_EVOLUTION_COLORS: Dictionary = {
     "trail": "#ff8a32", "ring": "#8fffd0", "staff": "#d89cff",
 }
 const PROJECTILE_POOL_CAP: int = 256
-const EFFECT_POOL_CAP: int = 128
+const EFFECT_POOL_CAP: int = 256
 const MAX_EFFECTS: int = 300
 
 var state: String
@@ -402,18 +402,43 @@ func damage_enemy(enemy, damage: float, options: Dictionary = {}) -> void:
 func _emit_damage_feedback(enemy, damage: float, options: Dictionary, defeated: bool) -> void:
     var source_weapon_id = options.get("sourceWeaponId")
     if source_weapon_id != null:
-        effects.append({"type": "weaponImpact", "x": enemy.x, "y": enemy.y,
-            "radius": enemy.radius, "damage": damage, "sourceWeaponId": source_weapon_id,
-            "sourceAction": options.get("sourceAction", "hit"),
-            "angle": atan2(enemy.y - player.y, enemy.x - player.x),
-            "seed": _next_kill_id + effects.size(), "ttl": 0.5, "maxTtl": 0.5})
+        var effect: Dictionary
+        if _effect_pool.size() > 0:
+            effect = _effect_pool.pop_back()
+            effect.clear()
+        else:
+            effect = {}
+        effect["type"] = "weaponImpact"
+        effect["x"] = enemy.x
+        effect["y"] = enemy.y
+        effect["radius"] = enemy.radius
+        effect["damage"] = damage
+        effect["sourceWeaponId"] = source_weapon_id
+        effect["sourceAction"] = options.get("sourceAction", "hit")
+        effect["angle"] = atan2(enemy.y - player.y, enemy.x - player.x)
+        effect["seed"] = _next_kill_id + effects.size()
+        effect["ttl"] = 0.5
+        effect["maxTtl"] = 0.5
+        effects.append(effect)
     if defeated:
-        effects.append({"type": "enemyDefeat", "x": enemy.x, "y": enemy.y,
-            "radius": enemy.radius, "enemyType": enemy.type, "rank": enemy.rank,
-            "sourceWeaponId": source_weapon_id if source_weapon_id != null else "status",
-            "flipH": player.x < enemy.x, "seed": _next_kill_id,
-            "ttl": 0.38 if enemy.rank == "boss" else 0.3,
-            "maxTtl": 0.38 if enemy.rank == "boss" else 0.3})
+        var effect: Dictionary
+        if _effect_pool.size() > 0:
+            effect = _effect_pool.pop_back()
+            effect.clear()
+        else:
+            effect = {}
+        effect["type"] = "enemyDefeat"
+        effect["x"] = enemy.x
+        effect["y"] = enemy.y
+        effect["radius"] = enemy.radius
+        effect["enemyType"] = enemy.type
+        effect["rank"] = enemy.rank
+        effect["sourceWeaponId"] = source_weapon_id if source_weapon_id != null else "status"
+        effect["flipH"] = player.x < enemy.x
+        effect["seed"] = _next_kill_id
+        effect["ttl"] = 0.38 if enemy.rank == "boss" else 0.3
+        effect["maxTtl"] = 0.38 if enemy.rank == "boss" else 0.3
+        effects.append(effect)
 
 
 func _kill_enemy(enemy, options: Dictionary = {}) -> void:
@@ -565,6 +590,8 @@ func _cleanup() -> void:
             pickups.remove_at(i)
     for i in range(effects.size() - 1, -1, -1):
         if effects[i]["ttl"] <= 0.0:
+            if _effect_pool.size() < EFFECT_POOL_CAP:
+                _effect_pool.append(effects[i])
             effects.remove_at(i)
 
 
@@ -593,6 +620,7 @@ func _world() -> Dictionary:
     _world_cache["weapons"] = weapons
     _world_cache["synergies"] = synergies
     _world_cache["mods"] = mods
+    _world_cache["spawn_effect"] = Callable(self, "spawn_effect")
     _world_cache["elapsed"] = elapsed
     _world_cache["kills"] = kills
     _world_cache["killLog"] = killLog
@@ -648,15 +676,37 @@ func spawn_hostile_projectile(options: Dictionary):
 
 func spawn_enemy_blast(options, y: float = 0.0, radius: float = 0.0, ttl: float = 0.35) -> void:
     var effect: Dictionary
+    if _effect_pool.size() > 0:
+        effect = _effect_pool.pop_back()
+        effect.clear()
+    else:
+        effect = {}
     if options is Dictionary:
-        effect = options.duplicate(true)
+        for key in options:
+            effect[key] = options[key]
         effect["type"] = "enemyBlast"
         effect["color"] = effect.get("color", "#ff7043")
         effect["ttl"] = effect.get("ttl", 0.35)
     else:
-        effect = {"type": "enemyBlast", "x": float(options), "y": y, "radius": radius,
-            "color": "#ff7043", "ttl": ttl}
+        effect["type"] = "enemyBlast"
+        effect["x"] = float(options)
+        effect["y"] = y
+        effect["radius"] = radius
+        effect["color"] = "#ff7043"
+        effect["ttl"] = ttl
     effect["maxTtl"] = effect["ttl"]
+    effects.append(effect)
+
+
+func spawn_effect(effect_data: Dictionary) -> void:
+    var effect: Dictionary
+    if _effect_pool.size() > 0:
+        effect = _effect_pool.pop_back()
+        effect.clear()
+    else:
+        effect = {}
+    for key in effect_data:
+        effect[key] = effect_data[key]
     effects.append(effect)
 
 
@@ -787,9 +837,22 @@ func on_weapon_level_changed(weapon, previous_level: int) -> void:
     var color: String = WEAPON_EVOLUTION_COLORS.get(id, "#fff176")
     var ultimate: bool = evolution_level == 6
     var duration: float = 1.8 if ultimate else 1.25
-    effects.append({"type": "weaponEvolution", "weaponId": id, "evolutionLevel": evolution_level,
-        "x": player.x, "y": player.y, "radius": 280.0 if ultimate else 190.0,
-        "color": color, "ttl": duration, "maxTtl": duration})
+    var effect: Dictionary
+    if _effect_pool.size() > 0:
+        effect = _effect_pool.pop_back()
+        effect.clear()
+    else:
+        effect = {}
+    effect["type"] = "weaponEvolution"
+    effect["weaponId"] = id
+    effect["evolutionLevel"] = evolution_level
+    effect["x"] = player.x
+    effect["y"] = player.y
+    effect["radius"] = 280.0 if ultimate else 190.0
+    effect["color"] = color
+    effect["ttl"] = duration
+    effect["maxTtl"] = duration
+    effects.append(effect)
     hitShake = maxf(hitShake, 0.48 if ultimate else 0.32)
     rareMessage = {"text": ("终极蜕变" if ultimate else "法器觉醒") + " · " + weapon.card["name"],
         "detail": CardsScript.weapon_level_benefit(id, evolution_level), "color": color,
@@ -809,5 +872,17 @@ func get_weapon(id: String):
 
 func record_synergy_trigger(id: String, amount: float = 1.0) -> void:
     if synergies.record_trigger(id, amount):
-        effects.append({"type": "synergyTrigger", "synergyId": id, "x": player.x, "y": player.y,
-            "radius": 82.0, "ttl": 0.5, "maxTtl": 0.5})
+        var effect: Dictionary
+        if _effect_pool.size() > 0:
+            effect = _effect_pool.pop_back()
+            effect.clear()
+        else:
+            effect = {}
+        effect["type"] = "synergyTrigger"
+        effect["synergyId"] = id
+        effect["x"] = player.x
+        effect["y"] = player.y
+        effect["radius"] = 82.0
+        effect["ttl"] = 0.5
+        effect["maxTtl"] = 0.5
+        effects.append(effect)

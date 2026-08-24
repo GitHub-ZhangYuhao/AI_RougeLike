@@ -321,8 +321,8 @@ func _convert_corpse_fire(summon: Dictionary, current_world) -> bool:
         return false
     summon["corpseFireConverted"] = true
     current_world.record_synergy_trigger.call("trail-staff-corpse-fire", 1.5)
-    current_world.effects.append({"type": "synergyArc", "x1": summon["x"], "y1": summon["y"], "x2": furnace["center"]["x"], "y2": furnace["center"]["y"], "color": "#d68cff", "ttl": 0.32, "maxTtl": 0.32})
-    current_world.effects.append({"type": "synergyBurst", "style": "corpseFire", "x": furnace["center"]["x"], "y": furnace["center"]["y"], "radius": 42.0, "ttl": 0.32, "maxTtl": 0.32})
+    current_world.spawn_effect.call({"type": "synergyArc", "x1": summon["x"], "y1": summon["y"], "x2": furnace["center"]["x"], "y2": furnace["center"]["y"], "color": "#d68cff", "ttl": 0.32, "maxTtl": 0.32})
+    current_world.spawn_effect.call({"type": "synergyBurst", "style": "corpseFire", "x": furnace["center"]["x"], "y": furnace["center"]["y"], "radius": 42.0, "ttl": 0.32, "maxTtl": 0.32})
     return true
 
 

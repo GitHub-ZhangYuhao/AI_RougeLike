@@ -117,7 +117,7 @@ func _sync_ring_synergies(current_world, positions: Array):
         if furnace != null:
             if state["insideFurnace"] == null and not state["charged"]:
                 state["charged"] = true
-                current_world.effects.append({"type": "synergyBurst", "style": "jadeCharge", "x": position["x"], "y": position["y"], "radius": 28.0, "ttl": 0.28, "maxTtl": 0.28})
+                current_world.spawn_effect.call({"type": "synergyBurst", "style": "jadeCharge", "x": position["x"], "y": position["y"], "radius": 28.0, "ttl": 0.28, "maxTtl": 0.28})
             state["insideFurnace"] = furnace
         else:
             state["insideFurnace"] = null
@@ -130,7 +130,7 @@ func _release_furnace_charge(index: int, position: Dictionary, damage: float, cu
     ring_charge[index]["charged"] = false
     var hits: int = release_charged_burst(position, damage, current_world)
     current_world.record_synergy_trigger.call("ring-trail-charge", maxi(1, hits))
-    current_world.effects.append({"type": "synergyBurst", "style": "jadeCharge", "x": position["x"], "y": position["y"], "radius": CHARGED_BURST_RADIUS, "ttl": 0.3, "maxTtl": 0.3})
+    current_world.spawn_effect.call({"type": "synergyBurst", "style": "jadeCharge", "x": position["x"], "y": position["y"], "radius": CHARGED_BURST_RADIUS, "ttl": 0.3, "maxTtl": 0.3})
 
 
 func _counter_nova(current_world, s: Dictionary) -> void:
