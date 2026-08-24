@@ -19,6 +19,8 @@
 
 **第八轮**（特效修复与性能平衡，2026-08-24）：将所有特效渲染函数移出 `minimal_render` 块，确保视觉完整性；`startMaxAlive` 40→35、`maxAlivePerWave` 12→10、`maxAliveCap` 80→70（进一步优化性能）。
 
+**第九轮**（根本原因修复，2026-08-24）：发现 `minimalRender` 默认设置为 `true`，导致所有装饰性特效被跳过渲染。修改 `debug_runtime.gd` 中 `DEFAULT_SETTINGS["minimalRender"]` 从 `true` 改为 `false`，确保默认情况下所有攻击特效（刀剑、雷符咒、死灵法杖等）都能正常显示。
+
 **第三轮**（单局时长与后期容错，2026-08-17）：每波 90→60 秒，25 波基础战斗时长压缩为 25 分钟；`enemy.damagePerMin` 2.2→1.0、`damagePerWaveMid` 0.14→0.09、`damagePerWaveLate` 0.18→0.09；死亡按所在波正常暗晶的 35%保底结算。
 
 **第三轮后曲线速览（chaser，按波开始时间估算）**：w1 45 HP / 7 伤害 → w5 ~119 HP / ~14 伤害 → w10 ~267 HP / ~27 伤害 → w20 ~705 HP / ~67 伤害 → w25 ~855 HP / ~93 伤害。W25 Boss 普通弹约 161 原始伤害，后续通过实机与受击遥测继续校准。

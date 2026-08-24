@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS: Dictionary = {
     ## 真机排查确认：这些装饰性绘制确实占了一部分卡顿，视觉损失很小
     ## （武器光环/法阵/召唤特效等叠加层，玩家基本感知不到），默认转正为
     ## 常态渲染优化。debug 面板仍保留开关，方便后续需要更高观感时临时打开对比。
-    "minimalRender": true,
+    "minimalRender": false,
     "player": {
         "damageMult": 1.0, "xpMult": 1.0, "moveSpeedMult": 1.0,
         "maxHpMult": 1.0, "pickupRangeMult": 1.0, "armorBonus": 0.0,
