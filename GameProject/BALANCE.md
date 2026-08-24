@@ -15,7 +15,9 @@
 **第二轮**（血太厚 / 移速增长过快 / 数量太少，裁决见 RULES.md 附录 B #10）：
 `enemy.hpPerMin` 54→10、`enemy.speedPerMin` 0.08→0.015、`enemy.hpPerWave` 0.16→0.10、`enemy.hpPerWaveMid` 0.30→0.12、`enemy.hpPerWaveLate` 0.28→0.10、`enemy.hpWaveCap` 7→3、`enemy.baseSpeedMult` 1.5→1.35、`enemy.speedWaveCap` 2→1.6、`spawner.startMaxAlive` 30→40、`spawner.maxAlivePerWave` 10→12、`waves.baseQuota` 24→30、`waves.quantityPerWave` 0.8→1.2、`waves.quantityWaveCap` 11.25→14。`maxAliveCap` 180→100（性能优化：减少同屏敌人数量以降低 CPU 负担）。同轮将 `logic/enemies/base.gd` 的 `apply_wave_scaling` 由硬编码改为 Config 驱动（对齐 js/enemies/base.js）。
 
-**第七轮**（性能优化，2026-08-24）：`MAX_EFFECTS` 220→150→300（先降后升：特效数量限制导致特效丢失，恢复到 300 确保视觉完整性）。`maxAliveCap` 100→80（进一步降低同屏敌人数量以平衡性能）。
+**第七轮**（性能优化，2026-08-24）：`MAX_EFFECTS` 220→150→300（先降后升：特效数量限制导致特效丢失，恢复到 300 确保视觉完整性）。`maxAliveCap` 100→80→70（逐步降低同屏敌人数量以平衡性能）。
+
+**第八轮**（特效修复与性能平衡，2026-08-24）：将所有特效渲染函数移出 `minimal_render` 块，确保视觉完整性；`startMaxAlive` 40→35、`maxAlivePerWave` 12→10、`maxAliveCap` 80→70（进一步优化性能）。
 
 **第三轮**（单局时长与后期容错，2026-08-17）：每波 90→60 秒，25 波基础战斗时长压缩为 25 分钟；`enemy.damagePerMin` 2.2→1.0、`damagePerWaveMid` 0.14→0.09、`damagePerWaveLate` 0.18→0.09；死亡按所在波正常暗晶的 35%保底结算。
 
