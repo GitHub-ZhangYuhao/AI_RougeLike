@@ -86,7 +86,7 @@ func _melee_slash(current_world, s: Dictionary, angle: float, damage: float) -> 
     var slash_y: float = current_world.player.y + sin(angle) * s["meleeRange"] * 0.55
     current_world.effects.append({"type": "slash", "x": slash_x, "y": slash_y,
         "range": s["meleeRange"] * 0.85, "angle": angle,
-        "ttl": 0.22, "maxTtl": 0.22})
+        "ttl": 0.22, "maxTtl": 0.22, "seed": current_world.elapsed})
     return hit_any
 
 
@@ -104,7 +104,7 @@ func _fire_ring(current_world, s: Dictionary) -> void:
     BaseScript.hit_enemies_in_radius(current_world, current_world.player.x, current_world.player.y,
         s["ringRadius"], s["damage"] * current_world.mods["damageMult"] * 2.5, on_hit,
         {"sourceWeaponId": "sword", "sourceAction": "ring"})
-    rings.append({"x": current_world.player.x, "y": current_world.player.y, "r": s["ringRadius"], "ttl": 0.28})
+    rings.append({"x": current_world.player.x, "y": current_world.player.y, "r": s["ringRadius"], "ttl": 0.28, "maxTtl": 0.28})
 
 
 func _on_damage_hit(enemy, current_world, s: Dictionary, count_intent: bool, action: String = "projectile") -> void:

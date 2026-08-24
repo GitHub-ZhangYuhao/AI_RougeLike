@@ -31,7 +31,7 @@ const WEAPON_EVOLUTION_COLORS: Dictionary = {
 }
 const PROJECTILE_POOL_CAP: int = 256
 const EFFECT_POOL_CAP: int = 128
-const MAX_EFFECTS: int = 150
+const MAX_EFFECTS: int = 300
 
 var state: String
 var debug
@@ -401,13 +401,13 @@ func damage_enemy(enemy, damage: float, options: Dictionary = {}) -> void:
 
 func _emit_damage_feedback(enemy, damage: float, options: Dictionary, defeated: bool) -> void:
     var source_weapon_id = options.get("sourceWeaponId")
-    if source_weapon_id != null and effects.size() < MAX_EFFECTS:
+    if source_weapon_id != null:
         effects.append({"type": "weaponImpact", "x": enemy.x, "y": enemy.y,
             "radius": enemy.radius, "damage": damage, "sourceWeaponId": source_weapon_id,
             "sourceAction": options.get("sourceAction", "hit"),
             "angle": atan2(enemy.y - player.y, enemy.x - player.x),
             "seed": _next_kill_id + effects.size(), "ttl": 0.5, "maxTtl": 0.5})
-    if defeated and effects.size() < MAX_EFFECTS:
+    if defeated:
         effects.append({"type": "enemyDefeat", "x": enemy.x, "y": enemy.y,
             "radius": enemy.radius, "enemyType": enemy.type, "rank": enemy.rank,
             "sourceWeaponId": source_weapon_id if source_weapon_id != null else "status",
