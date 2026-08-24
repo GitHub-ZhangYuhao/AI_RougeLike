@@ -32,6 +32,8 @@
 
 **第十三轮**（玉环性能优化，2026-08-24）：玉环武器卡顿的根本原因是 `_sync_ring_synergies` 每帧都要调用 `trail.find_furnace_at`，而该函数需要遍历所有 furnaces（最多 6 个）。玉环最多有 6 个环，导致每帧可能有 36 次遍历。添加节流机制：每 0.05 秒才检查一次 furnace（测试模式跳过节流），将查找频率从每帧 60 次降低到每秒 20 次，大幅减少 CPU 开销。
 
+**第十四轮**（Godot 启动画面配置，2026-08-24）：在 export_presets.cfg 中为微信小游戏导出预设（preset.2 和 preset.3）配置启动封面背景图为 `res://assets/ui/modern/brand_mascot.png`。这是 godot-minigame 插件提供的配置项，可以替换引擎默认的 Godot 启动画面。
+
 **第三轮**（单局时长与后期容错，2026-08-17）：每波 90→60 秒，25 波基础战斗时长压缩为 25 分钟；`enemy.damagePerMin` 2.2→1.0、`damagePerWaveMid` 0.14→0.09、`damagePerWaveLate` 0.18→0.09；死亡按所在波正常暗晶的 35%保底结算。
 
 **第三轮后曲线速览（chaser，按波开始时间估算）**：w1 45 HP / 7 伤害 → w5 ~119 HP / ~14 伤害 → w10 ~267 HP / ~27 伤害 → w20 ~705 HP / ~67 伤害 → w25 ~855 HP / ~93 伤害。W25 Boss 普通弹约 161 原始伤害，后续通过实机与受击遥测继续校准。
