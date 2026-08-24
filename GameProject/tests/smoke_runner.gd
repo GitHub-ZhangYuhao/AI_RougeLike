@@ -111,7 +111,7 @@ func _check_config() -> void:
     check(cfg["player"]["radius"] == 14, "[M0] CONFIG.player.radius == 14")
     check(cfg["player"]["hurtIFrames"] == 0.8, "[M0] CONFIG.player.hurtIFrames == 0.8")
     check(cfg["camera"]["lerp"] == 8, "[M0] CONFIG.camera.lerp == 8")
-    check(cfg["spawner"]["maxAliveCap"] == 180, "[M0] CONFIG.spawner.maxAliveCap == 180")
+    check(cfg["spawner"]["maxAliveCap"] == 100, "[M0] CONFIG.spawner.maxAliveCap == 100")
     check(cfg["enemy"]["hpPerWaveMid"] == 0.12, "[M0] CONFIG.enemy.hpPerWaveMid == 0.12")
     check(cfg["enemy"]["damagePerMin"] == 1.0 and cfg["enemy"]["damagePerWaveLate"] == 0.09, "[M0] CONFIG.enemy damage curve")
     check(cfg["enemyTypes"]["chaser"]["weight"] == 62, "[M0] CONFIG.enemyTypes.chaser.weight == 62")

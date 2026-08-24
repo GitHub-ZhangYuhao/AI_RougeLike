@@ -30,6 +30,8 @@ const WEAPON_EVOLUTION_COLORS: Dictionary = {
     "trail": "#ff8a32", "ring": "#8fffd0", "staff": "#d89cff",
 }
 const PROJECTILE_POOL_CAP: int = 256
+const EFFECT_POOL_CAP: int = 128
+const MAX_EFFECTS: int = 150
 
 var state: String
 var debug
@@ -80,6 +82,7 @@ var _final_settled: bool = false
 var _death_settled: bool = false
 var _synergy_activation_serial_seen: int = 0
 var _projectile_pool: Array = []
+var _effect_pool: Array = []
 var _enemy_grid
 var _world_cache: Dictionary = {}
 
@@ -121,6 +124,7 @@ func reset() -> void:
     enemies = []
     projectiles = []
     _projectile_pool = []
+    _effect_pool = []
     _enemy_grid = SpatialGridScript.new()
     _world_cache = {}
     hostileProjectiles = []
@@ -397,13 +401,13 @@ func damage_enemy(enemy, damage: float, options: Dictionary = {}) -> void:
 
 func _emit_damage_feedback(enemy, damage: float, options: Dictionary, defeated: bool) -> void:
     var source_weapon_id = options.get("sourceWeaponId")
-    if source_weapon_id != null and effects.size() < 220:
+    if source_weapon_id != null and effects.size() < MAX_EFFECTS:
         effects.append({"type": "weaponImpact", "x": enemy.x, "y": enemy.y,
             "radius": enemy.radius, "damage": damage, "sourceWeaponId": source_weapon_id,
             "sourceAction": options.get("sourceAction", "hit"),
             "angle": atan2(enemy.y - player.y, enemy.x - player.x),
             "seed": _next_kill_id + effects.size(), "ttl": 0.5, "maxTtl": 0.5})
-    if defeated and effects.size() < 220:
+    if defeated and effects.size() < MAX_EFFECTS:
         effects.append({"type": "enemyDefeat", "x": enemy.x, "y": enemy.y,
             "radius": enemy.radius, "enemyType": enemy.type, "rank": enemy.rank,
             "sourceWeaponId": source_weapon_id if source_weapon_id != null else "status",
