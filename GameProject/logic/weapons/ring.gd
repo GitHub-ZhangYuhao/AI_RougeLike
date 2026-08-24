@@ -27,6 +27,11 @@ var counter_cd: float = 0.0
 var counter_fx: Array = []
 var burning_rings: Array[bool] = []
 var ring_charge: Array = []
+var _last_furnace_check: float = -1.0  # 上次检查 furnace 的时间
+
+
+func _init(card_data: Dictionary) -> void:
+    super._init(card_data)
 
 
 func ring_positions(current_world) -> Array:
@@ -107,6 +112,10 @@ func _sync_ring_synergies(current_world, positions: Array):
     if trail == null:
         ring_charge.clear()
         return cloak
+    # 节流：每 0.05 秒才检查一次 furnace，避免每帧遍历（测试模式跳过节流）
+    if current_world.elapsed - _last_furnace_check < 0.05 and current_world.elapsed > 0.1:
+        return cloak
+    _last_furnace_check = current_world.elapsed
     while ring_charge.size() < positions.size():
         ring_charge.append({"charged": false, "insideFurnace": null})
     ring_charge.resize(positions.size())
