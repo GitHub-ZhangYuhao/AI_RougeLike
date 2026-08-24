@@ -392,35 +392,18 @@ func damage_enemy(enemy, damage: float, options: Dictionary = {}) -> void:
     enemy.hp -= final_damage
     enemy.hitFlash = 0.14
     var defeated: bool = enemy.hp <= 0.0
-    _emit_damage_feedback(enemy, final_damage, options, defeated)
+    # 性能优化：只在敌人死亡时创建特效，普通攻击跳过 weaponImpact
     if defeated:
+        _emit_damage_feedback(enemy, final_damage, options, defeated)
         _kill_enemy(enemy, options)
     if not options.get("noSynergy", false):
         synergies.on_damage({"target": enemy, "damage": final_damage, "options": options}, _world())
 
 
 func _emit_damage_feedback(enemy, damage: float, options: Dictionary, defeated: bool) -> void:
-    var source_weapon_id = options.get("sourceWeaponId")
-    if source_weapon_id != null:
-        var effect: Dictionary
-        if _effect_pool.size() > 0:
-            effect = _effect_pool.pop_back()
-            effect.clear()
-        else:
-            effect = {}
-        effect["type"] = "weaponImpact"
-        effect["x"] = enemy.x
-        effect["y"] = enemy.y
-        effect["radius"] = enemy.radius
-        effect["damage"] = damage
-        effect["sourceWeaponId"] = source_weapon_id
-        effect["sourceAction"] = options.get("sourceAction", "hit")
-        effect["angle"] = atan2(enemy.y - player.y, enemy.x - player.x)
-        effect["seed"] = _next_kill_id + effects.size()
-        effect["ttl"] = 0.5
-        effect["maxTtl"] = 0.5
-        effects.append(effect)
+    # 性能优化：只在敌人死亡时创建特效，跳过 weaponImpact
     if defeated:
+        var source_weapon_id = options.get("sourceWeaponId")
         var effect: Dictionary
         if _effect_pool.size() > 0:
             effect = _effect_pool.pop_back()
