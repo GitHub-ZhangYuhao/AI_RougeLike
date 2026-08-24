@@ -689,7 +689,7 @@ func _draw_enemies() -> void:
 			# 弧线分段数：贴图显示尺寸在这个数量级下 16-20 段和 24-32 段视觉上
 			# 分辨不出来，敌人一多这些 tessellation 成本会线性叠加，调低压开销。
 			draw_arc(pos, r * (1.0 + (1.0 - hit_ratio) * 0.6), 0.0, TAU, 16, Color(1.0, 0.9, 0.55, hit_ratio * 0.78), 2.5)
-			_draw_sprite(ArtCatalog.VFX_TEXTURES['impact'], pos - Vector2(0.0, r * 0.25), display_size * (0.42 + (1.0 - hit_ratio) * 0.18), animation_time * 0.6, false, Color(1.0, 1.0, 1.0, hit_ratio * 0.88))
+			# 性能优化：移除 impact 精灵渲染，只保留受击闪光弧线
 		if enemy.rank == 'elite':
 			draw_arc(pos, r + 7.0 + pulse * 2.0, 0.0, TAU, 20, Color(1.0, 0.84, 0.31, 0.72 + pulse * 0.22), 2.5)
 			_draw_sprite(ArtCatalog.VFX_TEXTURES['pickup'], pos, r * (3.4 + pulse * 0.18), animation_time * 0.3, false, Color(1.0, 0.86, 0.38, 0.24 + pulse * 0.1))
@@ -1066,14 +1066,8 @@ func _draw_effects() -> void:
 					draw_arc(trigger_position, trigger_radius * (0.35 + trigger_progress * 0.65), animation_time, animation_time + PI * 1.45, 32, Color(1.0, 0.76, 0.30, alpha * 0.88), 2.0)
 					_draw_sprite(ArtCatalog.VFX_TEXTURES['synergyArc'], trigger_position, trigger_radius * 1.7, animation_time * 0.4, false, Color(1.0, 1.0, 1.0, alpha * 0.65))
 			'weaponImpact':
-				if _effect_point_on_screen(effect, 100.0):
-					var detailed: bool = is_budget_sample(visible_impact_index, visible_impact_total, DETAILED_IMPACT_BUDGET)
-					if detailed:
-						_draw_weapon_impact(effect, alpha, detailed_impact_count < DAMAGE_NUMBER_BUDGET)
-						detailed_impact_count += 1
-					else:
-						_draw_compact_weapon_impact(effect, alpha)
-					visible_impact_index += 1
+				# 性能优化：跳过 weaponImpact 特效渲染，只保留敌人受击闪光
+				pass
 			'enemyDefeat':
 				if _effect_point_on_screen(effect, 160.0):
 					_draw_enemy_defeat(effect, alpha)
